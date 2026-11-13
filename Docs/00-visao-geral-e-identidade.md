@@ -1,0 +1,60 @@
+---
+title: 00 - Visão Geral e Identidade
+aliases:
+  - Visão Geral
+  - Identidade Visual
+  - Regras do Projeto
+tags:
+  - visao-geral
+  - identidade-visual
+  - convite-carol
+status: active
+updated: 2026-11-13
+related:
+  - "[[00-INDEX]]"
+  - "[[01-arquitetura-e-estrutura]]"
+  - "[[02-envelope-3d-e-animacoes]]"
+  - "[[03-design-system-e-responsividade]]"
+---
+
+# 00 · Visão Geral e Identidade (`convitecarol.site`)
+
+> [!info] Propósito do Projeto
+> **Convite Digital Interativo — 18 Anos da Carol (Caroline Maria)** (`https://convitecarol.site`), projetado para compartilhamento rápido via WhatsApp (mobile-first em `100dvh`) com experiência imersiva completa em Desktop.
+
+---
+
+## Dados Oficiais do Evento (`src/config/event.ts`)
+
+* **Aniversariante:** Carol (`Caroline Maria`) — **18 anos**
+* **Data e Horário:** **17 de Julho de 2027**, às **20:30** (fuso `America/Sao_Paulo`)
+* **Traje:** **Esporte Fino** — *"Tons de azul royal e prata são reservados à aniversariante."* (`EVENT.dressCodeNote`)
+* **Local Padrão Configurado:** Espaço Royal Eventos — Av. Paulista, 1000, Bela Vista, São Paulo - SP
+
+> [!quote] Frase Oficial de Abertura
+> “Você pode sonhar, criar, desenhar e construir o lugar mais maravilhoso do mundo. Mas é necessário ter pessoas para transformar seu sonho em realidade.” – Walt Disney
+>
+> *Por isso, você não poderia deixar de fazer parte de um dos dias mais especiais pra mim.*
+
+---
+
+## Identidade Visual Inviolável
+
+> [!important] Regras Estritas de Design
+> * **Paleta Oficial:** **Azul Royal** (`#172554` a `#3B82F6`), **Branco / Off-White Perolado** (`#FFFFFF` / `#F8FAFC`) e **Prata Metálico** (`#E2E8F0` a `#64748B`).
+> * **Proibição de Elementos Florais:** É terminantemente proibido usar flores, folhas ou arranjos florais em qualquer SVG, imagem ou ornamento.
+> * **Ornamento Exclusivo:** Utilizar **lacinhos de fita acetinada** (`BowDecoration.tsx`), acompanhados apenas por estrelas de 4 pontas (`✦`), balões metalizados (`18`), globo espelhado e adesivos temáticos em PNG sem fundo.
+
+---
+
+## Experiência Interativa
+
+1. **Gateway 3D de Alta Papelaria (`Envelope3DOpening.tsx`):** Envelope em Azul Royal & Prata com textura de linho (`--linen-grain`), forro geométrico interno, oclusão de dobras, selo de joalheria `"C · 18"` com lacinho acetinado e tração magnética ao ponteiro, legenda em pílula perolada (`glass-pearl-pill`), abertura coreografada por timeline GSAP e disparo de confetes vetoriais (`canvas-confetti`).
+2. **Carta do Convite (`InvitationContent.tsx`):** Folha acetinada em Azul Royal degradê (`bg-royal-letter`) com cantoneiras geométricas (`CornerFiligree`), reflexo metálico reativo via `requestAnimationFrame` (`--sheen-x`, `--sheen-y`), colagem editorial da Carol (`CarolHeroCollage.tsx`), citação de Walt Disney emoldurada, altar da data `17/07` com botão integrado **"Salvar na Agenda"** (Google Agenda / `.ics`), **contador regressivo** em cápsulas de cristal (`CountdownTimer.tsx`) e card de traje **"Esporte Fino"**.
+3. **Ações Rápidas (`InteractiveActions.tsx`):** Medalhões com aro duplo cromado, subtítulos descritivos e micro-indicadores de ação:
+   * **Local da Festa (`LocationSheet.tsx`):** Cartão perolado de endereço copiável, mapa embed com moldura cromada, rotas via Google Maps/Waze e salvar na agenda (Google Agenda / `.ics`).
+   * **Confirmar Presença (`RsvpSheet.tsx`):** Formulário validado com alertas na paleta oficial, seleção de presença, número de acompanhantes, contador de caracteres, micro-celebração estelar (`fireMiniCelebration`) e envio direto para o WhatsApp.
+   * **Sugestões de Presentes (`GiftsSheet.tsx`):** Cartão Private Bank em Azul Royal & Prata com chip metálico, chave Pix copiável com feedback cromado e disparo de micro-estrelas, além de grade de sugestões.
+
+Veja também: [[00-INDEX]], [[01-arquitetura-e-estrutura]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]].
+

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Great_Vibes, Plus_Jakarta_Sans } from "next/font/google";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
-import { EVENT, getFormattedDate } from "@/config/event";
+import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
 import "./globals.css";
 
 const greatVibes = Great_Vibes({
@@ -25,18 +25,43 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const date = getFormattedDate();
+const siteTitle = `${EVENT.name} · ${EVENT.age} Anos — Convite`;
+const siteDescription = `Você é meu convidado especial! ${FORMATTED_EVENT_DATE.weekday}, ${FORMATTED_EVENT_DATE.day} de ${FORMATTED_EVENT_DATE.month.toLowerCase()} de ${FORMATTED_EVENT_DATE.year} às ${FORMATTED_EVENT_DATE.time}.`;
 
 export const metadata: Metadata = {
-  title: `${EVENT.name} · ${EVENT.age} Anos — Convite`,
-  description: `Você é meu convidado especial! ${date.weekday}, ${date.day} de ${date.month.toLowerCase()} de ${date.year} às ${date.time}.`,
+  metadataBase: new URL(EVENT.siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: `${EVENT.name} · ${EVENT.age} Anos`,
-    description: `Save the date — ${date.short} · ${date.time}`,
+    description: `Save the date — ${FORMATTED_EVENT_DATE.short} · ${FORMATTED_EVENT_DATE.time}. Confirme sua presença!`,
+    url: "/",
+    siteName: `${EVENT.name} · ${EVENT.age} Anos`,
     type: "website",
     locale: "pt_BR",
+    images: [
+      {
+        url: "/images/carol-cutout.png",
+        width: 800,
+        height: 800,
+        alt: `${EVENT.name} — ${EVENT.age} Anos`,
+      },
+    ],
   },
-  appleWebApp: { capable: true, title: `${EVENT.name} ${EVENT.age}`, statusBarStyle: "default" },
+  twitter: {
+    card: "summary_large_image",
+    title: `${EVENT.name} · ${EVENT.age} Anos`,
+    description: `Save the date — ${FORMATTED_EVENT_DATE.short} · ${FORMATTED_EVENT_DATE.time}.`,
+    images: ["/images/carol-cutout.png"],
+  },
+  appleWebApp: {
+    capable: true,
+    title: `${EVENT.name} ${EVENT.age}`,
+    statusBarStyle: "default",
+  },
   formatDetection: { telephone: false },
 };
 
@@ -60,4 +85,3 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
-

@@ -19,13 +19,10 @@
   --color-silver-500: #64748b;
   --color-ice: #f8fafc;
 
-  --animate-spin-slow: spin 24s linear infinite;
   --animate-seal-pulse: seal-pulse 3.2s ease-in-out infinite;
   --animate-seal-ripple: seal-ripple 3.2s ease-out infinite;
   --animate-shimmer: shimmer 6s linear infinite;
   --animate-sheen: sheen 5.5s ease-in-out infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-float-slow: float-slow 7.5s ease-in-out infinite;
   --animate-twinkle: twinkle 3.6s ease-in-out infinite;
 }
 
@@ -33,8 +30,7 @@
 
 :root {
   --satin-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .5 0 0 0 0 .62 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --chrome: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 50%, #f8fafc 100%);
-  --imperial: linear-gradient(135deg, #1e40af 0%, #1d4ed8 55%, #1e3a8a 100%);
+  --linen-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cpath d='M0 6h12M6 0v12' stroke='%23e2e8f0' stroke-opacity='0.055' stroke-width='0.6'/%3E%3Cpath d='M0 0h12v12H0z' fill='none'/%3E%3C/svg%3E");
 }
 
 html {
@@ -51,7 +47,6 @@ body {
     radial-gradient(55% 50% at 88% 85%, rgba(29, 78, 216, 0.09) 0%, transparent 68%),
     radial-gradient(55% 50% at 12% 80%, rgba(148, 163, 184, 0.20) 0%, transparent 68%),
     linear-gradient(180deg, #ffffff 0%, #f8fafc 48%, #e2e8f0 100%);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -103,14 +98,6 @@ html.lenis body {
     linear-gradient(135deg, #ffffff 0%, #f8fafc 42%, #f1f5f9 74%, #ffffff 100%);
 }
 
-@utility bg-quilt {
-  background-color: #f8fafc;
-  background-image:
-    var(--satin-noise),
-    radial-gradient(80% 60% at 30% 25%, rgba(255, 255, 255, 0.95) 0%, transparent 70%),
-    linear-gradient(155deg, #ffffff 0%, #f8fafc 48%, #eff6ff 100%);
-}
-
 @utility bg-chrome {
   background-image: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 50%, #f8fafc 100%);
 }
@@ -123,10 +110,42 @@ html.lenis body {
   background-color: #172554;
   background-image:
     var(--satin-noise),
+    var(--linen-grain),
     radial-gradient(85% 45% at 50% 8%, rgba(59, 130, 246, 0.34) 0%, transparent 68%),
     radial-gradient(65% 40% at 15% 42%, rgba(37, 99, 235, 0.24) 0%, transparent 68%),
     radial-gradient(60% 45% at 85% 78%, rgba(96, 165, 250, 0.18) 0%, transparent 70%),
     linear-gradient(162deg, #0f172a 0%, #172554 22%, #1e3a8a 48%, #1e40af 74%, #172554 100%);
+}
+
+@utility glass-royal-card {
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 52%,
+    rgba(30, 64, 175, 0.18) 100%
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.22),
+    0 16px 34px -14px rgba(9, 13, 22, 0.58);
+}
+
+@utility glass-pearl-pill {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(248, 250, 252, 0.84) 52%,
+    rgba(226, 232, 240, 0.9) 100%
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(203, 213, 225, 0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 10px 26px -10px rgba(23, 37, 84, 0.24);
 }
 
 @utility text-silver-luxury {
@@ -151,85 +170,18 @@ html.lenis body {
   filter: drop-shadow(0 2px 10px rgba(15, 23, 42, 0.38));
 }
 
-@utility shadow-paper {
-  box-shadow:
-    0 32px 64px -16px rgba(15, 23, 42, 0.16),
-    0 14px 28px -8px rgba(30, 64, 175, 0.09);
-}
-
-/* Texto com gradiente Azul Royal com leve shimmer metálico — padding generoso evita corte em fontes caligráficas */
-@utility text-imperial {
-  display: inline-block;
-  padding-inline: 0.22em;
-  padding-block: 0.18em;
-  margin-block: -0.14em;
-  line-height: 1.35;
-  background-image: linear-gradient(
-    120deg,
-    #172554 0%,
-    #1e40af 28%,
-    #2563eb 50%,
-    #1d4ed8 72%,
-    #1e3a8a 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Texto em Relevo Prateado Metálico (usado no canto superior esquerdo do envelope) */
-@utility text-silver-emboss {
-  background-image: linear-gradient(
-    135deg,
-    #475569 0%,
-    #94a3b8 22%,
-    #cbd5e1 44%,
-    #475569 58%,
-    #94a3b8 78%,
-    #64748b 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.95));
-}
-
-@utility text-chrome {
-  background-image: linear-gradient(
-    110deg,
-    #64748b 0%,
-    #94a3b8 22%,
-    #cbd5e1 36%,
-    #64748b 50%,
-    #94a3b8 66%,
-    #e2e8f0 80%,
-    #64748b 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
 @utility hairline-silver {
-  background-image: linear-gradient(90deg, transparent 0%, #cbd5e1 18%, #94a3b8 50%, #cbd5e1 82%, transparent 100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    #cbd5e1 18%,
+    #94a3b8 50%,
+    #cbd5e1 82%,
+    transparent 100%
+  );
 }
 
-@utility hairline-silver-vertical {
-  background-image: linear-gradient(180deg, transparent 0%, #cbd5e1 18%, #94a3b8 50%, #cbd5e1 82%, transparent 100%);
-}
-
-/* Moldura metálica prateada dupla */
-.metallic-frame-outer {
-  background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 50%, #f8fafc 100%);
-}
-
-/* IMPORTANTE: Não definir `position: relative` aqui para nunca sobrescrever `absolute`/`fixed` das abas do envelope */
+/* IMPORTANTE: Não definir `position: relative` aqui para nunca sobrescrever `absolute`/`fixed` */
 .satin-sheen {
   isolation: isolate;
 }
@@ -246,29 +198,110 @@ html.lenis body {
   );
   mix-blend-mode: soft-light;
   animation: sheen-sweep 7.5s ease-in-out infinite;
+  will-change: transform;
   z-index: 1;
+}
+
+/* Reflexo especular metálico controlado por --sheen-x e --sheen-y sem re-renders */
+.interactive-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 150px at var(--sheen-x, 50%) var(--sheen-y, 25%),
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(147, 197, 253, 0.08) 45%,
+    transparent 74%
+  );
+  opacity: 0.85;
+  z-index: 0;
+}
+
+/* ───────────────────────── Animações GPU-Accelerated de Adesivos & Poeira Estelar ───────────────────────── */
+
+.animate-sticker-float {
+  animation: sticker-float var(--float-duration, 5.2s) ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-sticker-float-alt {
+  animation: sticker-float-alt var(--float-duration, 5.6s) ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-sticker-sway {
+  animation: sticker-sway var(--float-duration, 6.2s) ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-stardust {
+  animation: stardust-drift var(--stardust-duration, 10s) linear infinite;
+  will-change: transform, opacity;
+}
+
+/* Pausa animações decorativas quando o convite ainda está oculto atrás do envelope */
+[data-active="false"] .animate-sticker-float,
+[data-active="false"] .animate-sticker-float-alt,
+[data-active="false"] .animate-sticker-sway,
+[data-active="false"] .animate-stardust,
+[data-active="false"] .satin-sheen::after,
+[data-active="false"] .animate-twinkle,
+[data-active="false"] .animate-shimmer {
+  animation-play-state: paused;
 }
 
 /* ───────────────────────── Keyframes ───────────────────────── */
 
+@keyframes sticker-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--r-start, 0deg)) scale(var(--s-start, 1));
+  }
+  50% {
+    transform: translate3d(0, var(--ty, -6px), 0) rotate(var(--r-mid, 4deg)) scale(var(--s-mid, 1));
+  }
+}
+
+@keyframes sticker-float-alt {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--r-start, 0deg));
+  }
+  50% {
+    transform: translate3d(0, var(--ty, -7px), 0) rotate(var(--r-mid, -5deg));
+  }
+}
+
+@keyframes sticker-sway {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--r-start, -2deg));
+  }
+  50% {
+    transform: translate3d(0, var(--ty, -4px), 0) rotate(var(--r-mid, 3deg));
+  }
+}
+
 @keyframes seal-pulse {
   0%,
   100% {
-    transform: scale(1);
+    transform: scale3d(1, 1, 1);
   }
   50% {
-    transform: scale(1.035);
+    transform: scale3d(1.035, 1.035, 1);
   }
 }
 
 @keyframes seal-ripple {
   0% {
-    transform: scale(0.88);
+    transform: scale3d(0.88, 0.88, 1);
     opacity: 0.5;
   }
   80%,
   100% {
-    transform: scale(1.42);
+    transform: scale3d(1.42, 1.42, 1);
     opacity: 0;
   }
 }
@@ -285,52 +318,49 @@ html.lenis body {
 @keyframes sheen {
   0%,
   55% {
-    transform: translateX(-160%) skewX(-20deg);
+    transform: translate3d(-160%, 0, 0) skewX(-20deg);
   }
   100% {
-    transform: translateX(420%) skewX(-20deg);
+    transform: translate3d(420%, 0, 0) skewX(-20deg);
   }
 }
 
 @keyframes sheen-sweep {
   0%,
   40% {
-    transform: translateX(-55%);
+    transform: translate3d(-55%, 0, 0);
   }
   100% {
-    transform: translateX(55%);
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(var(--float-rotate, 0deg));
-  }
-  50% {
-    transform: translateY(-6px) rotate(var(--float-rotate, 0deg));
-  }
-}
-
-@keyframes float-slow {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-5px) scale(1.015);
+    transform: translate3d(55%, 0, 0);
   }
 }
 
 @keyframes twinkle {
   0%,
   100% {
-    opacity: 0.2;
-    transform: scale(0.75) rotate(0deg);
+    opacity: 0.22;
+    transform: scale3d(0.78, 0.78, 1) rotate(0deg);
   }
   50% {
-    opacity: 0.95;
-    transform: scale(1.18) rotate(25deg);
+    opacity: 0.92;
+    transform: scale3d(1.15, 1.15, 1) rotate(24deg);
+  }
+}
+
+@keyframes stardust-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale3d(0.7, 0.7, 1);
+  }
+  18% {
+    opacity: 0.85;
+  }
+  82% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--stardust-x, 10px), var(--stardust-y, -48px), 0) scale3d(1.15, 1.15, 1);
   }
 }
 

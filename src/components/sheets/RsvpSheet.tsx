@@ -1,42 +1,42 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, HeartCrack, MessageCircle, Minus, Plus } from "lucide-react";
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { AlertCircle, Heart, HeartCrack, MessageCircle, Minus, Plus } from "lucide-react";
+import { useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { fireMiniCelebration } from "@/components/LuxuryParticles";
 import SheetButton from "@/components/sheets/SheetButton";
-import { EVENT } from "@/config/event";
+import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
 import { whatsappUrl } from "@/lib/utils";
 
 type Attendance = "yes" | "no";
 
 export default function RsvpSheet() {
-  const ids = { name: useId(), guests: useId(), message: useId() };
+  const ids = { name: useId(), nameError: useId(), guests: useId(), message: useId() };
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const [name, setName] = useState("");
   const [attendance, setAttendance] = useState<Attendance>("yes");
   const [guests, setGuests] = useState(1);
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Monta a mensagem do WhatsApp em tempo real com os dados preenchidos
   const whatsappHref = useMemo(() => {
     const trimmedName = name.trim();
     const trimmedMsg = message.trim();
-
-    if (!trimmedName && !trimmedMsg && attendance === "yes" && guests === 1) {
-      return whatsappUrl(EVENT.rsvp.whatsapp, EVENT.rsvp.defaultMessage);
-    }
+    const dateLabel = FORMATTED_EVENT_DATE.short.replace(/\s·\s/g, "/");
 
     const lines =
       attendance === "yes"
         ? [
-            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia 17/07/2027!`,
+            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel}!`,
             "",
-            ...(trimmedName ? [`👤 Nome: ${trimmedName}`] : []),
+            `👤 Nome: ${trimmedName}`,
             `👥 Total de pessoas: ${guests}`,
           ]
         : [
             `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
-            ...(trimmedName ? ["", `👤 Nome: ${trimmedName}`] : []),
+            "",
+            `👤 Nome: ${trimmedName}`,
           ];
 
     if (trimmedMsg) {
@@ -46,13 +46,20 @@ export default function RsvpSheet() {
     return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
   }, [name, attendance, guests, message]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (name.trim().length > 0 && name.trim().length < 2) {
-      setError("Informe seu nome para confirmar.");
+    const trimmedName = name.trim();
+
+    if (trimmedName.length < 2) {
+      setError("Por favor, informe seu nome para confirmar.");
+      nameInputRef.current?.focus();
       return;
     }
+
     setError(null);
+    if (attendance === "yes") {
+      fireMiniCelebration({ x: 0.5, y: 0.75 });
+    }
     window.open(whatsappHref, "_blank", "noopener,noreferrer");
   };
 
@@ -116,7 +123,9 @@ export default function RsvpSheet() {
           SEU NOME
         </label>
         <input
+          ref={nameInputRef}
           id={ids.name}
+          required
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -126,32 +135,36 @@ export default function RsvpSheet() {
           autoComplete="name"
           enterKeyHint="done"
           aria-invalid={!!error}
-          className={inputCls}
+          aria-describedby={error ? ids.nameError : undefined}
+          className={`${inputCls} ${error ? "border-royal-800 ring-4 ring-royal-800/15" : ""}`}
         />
         <AnimatePresence>
           {error && (
-            <motion.p
+            <motion.div
+              id={ids.nameError}
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mt-1.5 font-sans text-[12px] text-red-600"
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-silver-300/60 bg-royal-900 px-3 py-1.5 font-sans text-[12px] font-medium text-white shadow-sm"
               role="alert"
             >
-              {error}
-            </motion.p>
+              <AlertCircle className="size-3.5 shrink-0 text-silver-200" />
+              <span>{error}</span>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Quantidade de Pessoas */}
-      <AnimatePresence initial={false}>
+      {/* Quantidade de Pessoas (transição GPU-only sem animar height: auto) */}
+      <AnimatePresence initial={false} mode="wait">
         {attendance === "yes" && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden"
+            key="guests-picker"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
             <span
               id={ids.guests}
@@ -165,24 +178,25 @@ export default function RsvpSheet() {
             >
               <button
                 type="button"
-                aria-label="Diminuir"
+                aria-label="Diminuir quantidade de pessoas"
                 onClick={() => setGuests((g) => Math.max(1, g - 1))}
                 disabled={guests <= 1}
-                className="grid size-11 cursor-pointer place-items-center rounded-xl bg-silver-100 text-royal-800 transition active:scale-90 disabled:opacity-40"
+                className="grid size-11 cursor-pointer place-items-center rounded-xl bg-silver-100 text-royal-800 transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Minus className="size-4" />
               </button>
               <span
-                className="relative h-8 w-12 overflow-hidden text-center font-serif text-2xl text-royal-900"
+                className="relative h-8 w-12 overflow-hidden text-center font-serif text-2xl tabular-nums text-royal-900"
                 aria-live="polite"
               >
                 <AnimatePresence initial={false} mode="popLayout">
                   <motion.span
                     key={guests}
-                    initial={{ y: 20, opacity: 0 }}
+                    initial={{ y: 16, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    className="absolute inset-0"
+                    exit={{ y: -16, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 flex items-center justify-center"
                   >
                     {guests}
                   </motion.span>
@@ -190,10 +204,10 @@ export default function RsvpSheet() {
               </span>
               <button
                 type="button"
-                aria-label="Aumentar"
+                aria-label="Aumentar quantidade de pessoas"
                 onClick={() => setGuests((g) => Math.min(EVENT.rsvp.maxGuests, g + 1))}
                 disabled={guests >= EVENT.rsvp.maxGuests}
-                className="grid size-11 cursor-pointer place-items-center rounded-xl bg-silver-100 text-royal-800 transition active:scale-90 disabled:opacity-40"
+                className="grid size-11 cursor-pointer place-items-center rounded-xl bg-silver-100 text-royal-800 transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus className="size-4" />
               </button>
@@ -204,13 +218,18 @@ export default function RsvpSheet() {
 
       {/* Recado Opcional */}
       <div>
-        <label
-          htmlFor={ids.message}
-          className="mb-1.5 block font-sans text-[11px] font-semibold tracking-[0.18em] text-silver-500 uppercase"
-        >
-          RECADO PARA A {EVENT.name.toUpperCase()}{" "}
-          <span className="font-normal tracking-normal lowercase">(opcional)</span>
-        </label>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <label
+            htmlFor={ids.message}
+            className="block font-sans text-[11px] font-semibold tracking-[0.18em] text-silver-500 uppercase"
+          >
+            RECADO PARA A {EVENT.name.toUpperCase()}{" "}
+            <span className="font-normal tracking-normal lowercase">(opcional)</span>
+          </label>
+          <span className="font-sans text-[10.5px] tabular-nums text-silver-400">
+            {message.length}/280
+          </span>
+        </div>
         <textarea
           id={ids.message}
           value={message}
@@ -222,12 +241,12 @@ export default function RsvpSheet() {
         />
       </div>
 
-      {/* Botão Único Direto para o WhatsApp (+55 19 97134-5909) */}
+      {/* Botão Submit real para executar validação antes de abrir o WhatsApp */}
       <SheetButton
-        href={whatsappHref}
+        type="submit"
         icon={MessageCircle}
         tone="royal"
-        className="min-h-13 text-[13.5px]"
+        className="min-h-13 cursor-pointer text-[13.5px]"
       >
         Confirmar pelo WhatsApp
       </SheetButton>

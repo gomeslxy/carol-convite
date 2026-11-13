@@ -18,13 +18,17 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-interface SmoothScrollContextValue {
-  lenis: Lenis | null;
+interface ScrollLockContextValue {
   /** Trava o scroll (contador — suporta travas aninhadas: envelope + modais). */
   lock: () => void;
   unlock: () => void;
 }
 
+interface SmoothScrollContextValue extends ScrollLockContextValue {
+  lenis: Lenis | null;
+}
+
+const ScrollLockContext = createContext<ScrollLockContextValue | null>(null);
 const SmoothScrollContext = createContext<SmoothScrollContextValue | null>(null);
 
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
@@ -62,17 +66,24 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
       touchMultiplier: 1.4,
     });
 
-    instance.on("scroll", ScrollTrigger.update);
+    const onScroll = () => ScrollTrigger.update();
+    instance.on("scroll", onScroll);
+
     const tick = (time: number) => instance.raf(time * 1000);
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
 
     lenisRef.current = instance;
-    if (lockCount.current > 0) instance.stop();
-    else document.documentElement.classList.remove("scroll-locked");
+    if (lockCount.current > 0) {
+      document.documentElement.classList.add("scroll-locked");
+      instance.stop();
+    } else {
+      document.documentElement.classList.remove("scroll-locked");
+    }
     setLenis(instance);
 
     return () => {
+      instance.off("scroll", onScroll);
       gsap.ticker.remove(tick);
       instance.destroy();
       lenisRef.current = null;
@@ -80,9 +91,17 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo(() => ({ lenis, lock, unlock }), [lenis, lock, unlock]);
+  const lockValue = useMemo<ScrollLockContextValue>(() => ({ lock, unlock }), [lock, unlock]);
+  const scrollValue = useMemo<SmoothScrollContextValue>(
+    () => ({ lenis, lock, unlock }),
+    [lenis, lock, unlock],
+  );
 
-  return <SmoothScrollContext.Provider value={value}>{children}</SmoothScrollContext.Provider>;
+  return (
+    <ScrollLockContext.Provider value={lockValue}>
+      <SmoothScrollContext.Provider value={scrollValue}>{children}</SmoothScrollContext.Provider>
+    </ScrollLockContext.Provider>
+  );
 }
 
 export function useSmoothScroll(): SmoothScrollContextValue {
@@ -91,13 +110,15 @@ export function useSmoothScroll(): SmoothScrollContextValue {
   return ctx;
 }
 
-/** Trava o scroll enquanto `active` for verdadeiro. */
+/** Trava o scroll enquanto `active` for verdadeiro sem assinar mudanças da instância Lenis. */
 export function useScrollLock(active: boolean) {
-  const { lock, unlock } = useSmoothScroll();
+  const ctx = useContext(ScrollLockContext);
+  if (!ctx) throw new Error("useScrollLock deve ser usado dentro de <SmoothScrollProvider>");
+  const { lock, unlock } = ctx;
+
   useEffect(() => {
     if (!active) return;
     lock();
     return () => unlock();
   }, [active, lock, unlock]);
 }
-

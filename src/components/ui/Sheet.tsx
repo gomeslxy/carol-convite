@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Bow } from "@/components/BowDecoration";
+import { CornerFiligree } from "@/components/Ornaments";
 import { useScrollLock } from "@/components/SmoothScrollProvider";
 
 export interface SheetProps {
@@ -20,6 +21,7 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
   const controls = useDragControls();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const subtitleId = useId();
 
   useScrollLock(true);
 
@@ -29,9 +31,14 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     panelRef.current?.focus({ preventScroll: true });
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCloseRef.current();
+      }
     };
+
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
@@ -40,20 +47,24 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
   }, []);
 
   const handleDragEnd = (_: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
-    if (info.offset.y > 110 || info.velocity.y > 600) onClose();
+    if (info.offset.y > 110 || info.velocity.y > 600) {
+      onClose();
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-6" data-lenis-prevent>
-      <motion.button
-        type="button"
-        aria-label="Fechar"
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-6"
+      data-lenis-prevent
+    >
+      <motion.div
+        aria-hidden
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-slate-900/35 backdrop-blur-[4px]"
+        className="absolute inset-0 bg-slate-950/55 backdrop-blur-md"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.26 }}
       />
 
       <motion.div
@@ -61,6 +72,7 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={subtitle ? subtitleId : undefined}
         tabIndex={-1}
         drag="y"
         dragControls={controls}
@@ -72,9 +84,9 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", stiffness: 330, damping: 34, mass: 0.9 }}
-        className="bg-satin relative flex max-h-[88dvh] w-full max-w-md md:max-w-lg flex-col overflow-hidden rounded-t-[28px] md:rounded-[28px] shadow-[0_25px_50px_-12px_rgba(15,23,42,0.22)] outline-none"
+        className="bg-satin relative flex max-h-[88dvh] w-full max-w-md md:max-w-lg flex-col overflow-hidden rounded-t-[28px] md:rounded-[28px] shadow-[0_28px_60px_-12px_rgba(15,23,42,0.38)] outline-none"
       >
-        {/* Moldura dupla prateada interna */}
+        {/* Moldura dupla prateada interna + cantoneiras geométricas */}
         <div
           className="pointer-events-none absolute inset-2.5 rounded-t-[22px] md:rounded-[22px] border border-silver-300/85"
           aria-hidden
@@ -83,20 +95,39 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
           className="pointer-events-none absolute inset-[14px] rounded-t-[19px] md:rounded-[19px] border border-silver-200/90"
           aria-hidden
         />
+        <CornerFiligree
+          position="tl"
+          tone="slate"
+          className="absolute top-3.5 left-3.5 size-9 opacity-45"
+        />
+        <CornerFiligree
+          position="tr"
+          tone="slate"
+          className="absolute top-3.5 right-3.5 size-9 opacity-45"
+        />
 
         {/* Cabeçalho arrastável */}
         <div
           onPointerDown={(e) => controls.start(e)}
           className="relative shrink-0 cursor-grab touch-none px-6 pt-3.5 pb-4 text-center active:cursor-grabbing"
         >
-          <span className="mx-auto block h-1.5 w-11 rounded-full bg-silver-300 md:hidden" aria-hidden />
+          <span
+            className="mx-auto block h-1.5 w-11 rounded-full bg-silver-300 md:hidden"
+            aria-hidden
+          />
           <Bow variant="silver" className="mx-auto mt-2.5 w-11" />
           {icon ? <div className="mx-auto mt-1 flex justify-center text-royal-800">{icon}</div> : null}
-          <h3 id={titleId} className="mt-2 font-serif text-[14px] sm:text-[15px] font-semibold tracking-[0.26em] text-slate-800">
+          <h3
+            id={titleId}
+            className="mt-2 font-serif text-[14px] sm:text-[15px] font-semibold tracking-[0.26em] text-slate-800"
+          >
             {title}
           </h3>
           {subtitle ? (
-            <p className="mt-1.5 font-sans text-[10.5px] font-medium tracking-[0.16em] text-slate-500 uppercase">
+            <p
+              id={subtitleId}
+              className="mt-1.5 font-sans text-[10.5px] font-medium tracking-[0.16em] text-slate-500 uppercase"
+            >
               {subtitle}
             </p>
           ) : null}
@@ -106,8 +137,8 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
             type="button"
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Fechar"
-            className="absolute top-4 right-4 grid size-9 cursor-pointer place-items-center rounded-full border border-silver-300 bg-white/85 text-slate-500 transition hover:border-royal-700 hover:text-royal-800 active:scale-90"
+            aria-label="Fechar janela"
+            className="absolute top-4 right-4 grid size-9 cursor-pointer place-items-center rounded-full border border-silver-300 bg-white/90 text-slate-500 transition hover:border-royal-700 hover:text-royal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal-700/40 active:scale-90"
           >
             <X className="size-4" />
           </button>
@@ -127,5 +158,8 @@ export default function Sheet({ open, ...props }: SheetProps) {
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
 
-  return createPortal(<AnimatePresence>{open ? <SheetPanel key="sheet" {...props} /> : null}</AnimatePresence>, document.body);
+  return createPortal(
+    <AnimatePresence>{open ? <SheetPanel key="sheet" {...props} /> : null}</AnimatePresence>,
+    document.body,
+  );
 }

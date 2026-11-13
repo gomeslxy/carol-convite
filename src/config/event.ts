@@ -20,6 +20,7 @@ export interface GiftSuggestion {
 }
 
 export interface EventConfig {
+  siteUrl: string;
   name: string;
   initial: string;
   age: number;
@@ -58,6 +59,7 @@ export interface EventConfig {
 }
 
 export const EVENT: EventConfig = {
+  siteUrl: "https://convitecarol.site",
   name: "Carol",
   initial: "C",
   age: 18,
@@ -116,8 +118,14 @@ export interface FormattedDate {
   short: string;
 }
 
-/** Formata a data no fuso do evento — idêntico no servidor e no cliente. */
+const formattedDateCache = new Map<string, FormattedDate>();
+
+/** Formata a data no fuso do evento com cache determinístico — idêntico no servidor e no cliente. */
 export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
+  const cacheKey = `${config.dateISO}|${config.timeZone}`;
+  const cached = formattedDateCache.get(cacheKey);
+  if (cached) return cached;
+
   const date = new Date(config.dateISO);
   const fmt = (options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat("pt-BR", { timeZone: config.timeZone, ...options }).format(date);
@@ -128,7 +136,7 @@ export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
   const fullWeekday = strip(fmt({ weekday: "long" })).toUpperCase();
   const shortWeekday = strip(fmt({ weekday: "short" })).toUpperCase();
 
-  return {
+  const result: FormattedDate = {
     weekday: fullWeekday,
     weekdayShort: shortWeekday,
     day,
@@ -137,8 +145,14 @@ export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
     time: fmt({ hour: "2-digit", minute: "2-digit", hour12: false }),
     short: `${day} · ${monthNum} · ${year}`,
   };
+
+  formattedDateCache.set(cacheKey, result);
+  return result;
 }
 
+export const FORMATTED_EVENT_DATE: FormattedDate = getFormattedDate(EVENT);
+export const EVENT_TIMESTAMP: number = new Date(EVENT.dateISO).getTime();
+
 export function getEventTimestamp(config: EventConfig = EVENT): number {
-  return new Date(config.dateISO).getTime();
+  return config === EVENT ? EVENT_TIMESTAMP : new Date(config.dateISO).getTime();
 }

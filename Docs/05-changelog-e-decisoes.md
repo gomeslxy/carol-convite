@@ -1,0 +1,78 @@
+---
+title: 05 - Changelog e Decisões (ADRs)
+aliases:
+  - Changelog
+  - ADRs
+  - Decisões Arquiteturais
+tags:
+  - adr
+  - changelog
+  - refatoracao
+status: active
+updated: 2026-11-13
+related:
+  - "[[00-INDEX]]"
+  - "[[01-arquitetura-e-estrutura]]"
+  - "[[02-envelope-3d-e-animacoes]]"
+  - "[[06-aprendizados-e-troubleshooting]]"
+---
+
+# 05 · Changelog e Decisões Arquiteturais (ADRs)
+
+> [!info] Registro Vivo de Decisões
+> Toda alteração significativa de arquitetura, estado, performance ou UI/UX deve ser registrada aqui em ordem cronológica reversa.
+
+---
+
+## [2026-11-13] · Elevação UI/UX Awwwards-Level
+
+### ADR-007: Envelope Físico de Alta Papelaria & Selo Magnético Isolado do Plano `translateZ`
+* **Problema:** O envelope anterior utilizava polígonos chapados sem textura de linho, forro interno ou sombra projetada da aba, e o selo não respondia magneticamente ao ponteiro. Além disso, aplicar `x`/`y` (`MotionValue`) no mesmo elemento de `translateZ(18px)` faz o Framer Motion sobrescrever o eixo Z no WebKit.
+* **Decisão:** Adicionar textura `--linen-grain`, forro geométrico prateado (`cavity-liner` e `flap-liner`), oclusão de dobras diagonais, sombra projetada da aba superior, legenda em pílula `glass-pearl-pill`, ondas de choque duplas na quebra do lacre e selo chanfrado `"C · 18"` com `<Bow variant="silver" />` e tração magnética (`sealRawX`/`sealRawY`) dentro de um `<motion.div>` filho aninhado ao wrapper `translateZ(18px)`.
+
+### ADR-008: Lacinhos Esculturais de Alta-Costura & Cantoneiras Geométricas (`CornerFiligree`)
+* **Decisão:** Refatorar `BowDecoration.tsx` com gradientes cilíndricos de 6 stops, sombra de oclusão sobre as caudas (`tail-shadow`), 3 pregas convergentes por alça, pontas cortadas em V (*swallowtail*) e nó central abobadado, preservando zero filtros `<feDropShadow>`. Criar `CornerFiligree` em `Ornaments.tsx` com geometria estrita de linhas duplas e estrela de 4 pontas (zero elementos florais) aplicada na carta (`InvitationContent.tsx`) e nos modais (`Sheet.tsx`).
+
+### ADR-009: Altar Editorial da Data `17/07` com Agenda Integrada & Cápsulas de Cristal no Contador
+* **Decisão:** Emoldurar a citação de Walt Disney e o bloco de traje (`Esporte Fino`) em cartões translúcidos `glass-royal-card`. Integrar o seletor **"Salvar na Agenda"** (Google Agenda + `.ics` com feedback visual e `ScrollTrigger.refresh()` sincronizado) diretamente no bloco da data `17/07`. Evoluir `CountdownTimer.tsx` para cápsulas `grid-cols-4` com separadores `CrystalSeparator` e rolagem vertical 3D (`rotateX: ±38deg`) em GPU, mantendo `useCountdown` nulo no SSR.
+
+### ADR-010: Reflexo Especular via `requestAnimationFrame` sem Re-renders & Fidelidade Cromática nos Modais
+* **Decisão:** Implementar rastreamento de brilho metálico (`--sheen-x`, `--sheen-y` para `.interactive-sheen`) via `requestAnimationFrame` direto no `rootRef.current.style` no ponteiro e no scroll mobile. Elevar os medalhões de `InteractiveActions.tsx` com aro duplo cromado, subtítulos e chevrons deslizantes; corrigir desvios de paleta substituindo `emerald` por prata espelhado/azul royal no `GiftsSheet.tsx` (com chip metálico SVG) e `red-600` por badge Azul Royal no `RsvpSheet.tsx`, ambos disparando `fireMiniCelebration` (`LuxuryParticles.tsx`).
+
+---
+
+## [2026-11-13] · Estruturação da Base de Conhecimento Obsidian & Agent Skill
+
+* **Decisão:** Instituir o cofre Obsidian em `Docs/` com notas interligadas por Wikilinks, YAML Properties, Callouts e Mermaid, acompanhado da Agent Skill `.agents/skills/obsidian-markdown/SKILL.md` (`obsidian-vault-docs`) e das diretrizes persistentes `GEMINI.md` e `AGENTS.md`.
+* **Justificativa:** Garantir continuidade de contexto entre sessões de agentes e manter a documentação sincronizada com o código-fonte.
+* **Higiene Git:** Adicionado `Docs/.obsidian/workspace*.json` ao `.gitignore` para não versionar estado efêmero de janelas do Obsidian.
+
+---
+
+## [2026-11-13] · Auditoria Sênior e Refatoração Completa para Produção
+
+### ADR-001: Máquina de Estados Determinística no Envelope 3D
+* **Problema:** `Envelope3DOpening.tsx` usava 7 `window.setTimeout` independentes sem trava síncrona contra múltiplos cliques no mesmo frame.
+* **Decisão:** Substituir os timeouts por uma única `gsap.timeline()` armazenada em `timelineRef` (com `kill()` no unmount) + trava síncrona `isOpeningRef = useRef(false)` e cleanup explícito de `fireLuxuryCelebration` (`LuxuryParticles.tsx`).
+
+### ADR-002: Planos `translateZ` Explícitos para WebKit/Safari
+* **Problema:** Camadas dentro de `preserve-3d` dependiam apenas de `z-index` 2D, causando *z-fighting* no Safari.
+* **Decisão:** Atribuir planos distintos (`-12px`, `-2px`, `2px -> 14px`, `6px`, `8px -> -1px`, `18px`) em `Envelope3DOpening.tsx`.
+
+### ADR-003: Migração de Loops Infinitos JS para CSS GPU-Accelerated
+* **Problema:** Mais de 20 loops `repeat: Infinity` do Framer Motion rodavam na main-thread mesmo com o envelope fechado, além de animações de `filter: blur(...)` e `background-attachment: fixed`.
+* **Decisão:** Criar keyframes CSS GPU-only (`translate3d`, `rotate`) em `src/app/globals.css`, pausados automaticamente quando `data-active="false"` em `InvitationContent.tsx`. Remover `filter: blur(...)` de `CountdownTimer.tsx` e `Envelope3DOpening.tsx`, e remover `background-attachment: fixed` do `body`.
+
+### ADR-004: Isolamento do `ScrollLockContext`
+* **Problema:** `useScrollLock` assinava o mesmo contexto que armazenava a instância `lenis`, causando re-renders quando o Lenis era inicializado.
+* **Decisão:** Separar `ScrollLockContext` (`lock`, `unlock` estáveis) de `SmoothScrollContext` em `SmoothScrollProvider.tsx`.
+
+### ADR-005: Restauração do Fluxo de Presentes & Correção do Submit no RSVP
+* **Problema:** `GiftsSheet.tsx` estava inacessível em `InteractiveActions.tsx`, e `RsvpSheet.tsx` usava `<SheetButton href={...}>` (âncora `<a>`), burlando a validação `onSubmit`.
+* **Decisão:** Adicionar o 3º medalhão `SUGESTÕES DE PRESENTES` com `HollowGiftIcon`, converter o botão do RSVP para `type="submit"` real com validação de nome e foco automático no campo em caso de erro, e remover animação de `height: "auto"` no seletor de acompanhantes.
+
+### ADR-006: Limpeza de Dead Code e SEO Completo
+* **Decisão:** Remover `EnvelopeGate.tsx`, `WaxSeal.tsx`, componentes `null` em `BowDecoration.tsx`, `MonogramCrest` em `Ornaments.tsx` e classes/keyframes mortos em `globals.css`. Adicionar `siteUrl`, `metadataBase`, `openGraph.images` e `twitter` em `src/config/event.ts` e `src/app/layout.tsx`.
+
+Veja também: [[06-aprendizados-e-troubleshooting]], [[01-arquitetura-e-estrutura]].
+

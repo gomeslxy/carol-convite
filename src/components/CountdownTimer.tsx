@@ -1,8 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Fragment, useEffect, useState } from "react";
-import { getEventTimestamp } from "@/config/event";
+import { memo, useEffect, useState } from "react";
+import { EVENT_TIMESTAMP } from "@/config/event";
 
 interface TimeLeft {
   days: number;
@@ -24,81 +24,130 @@ function computeTimeLeft(target: number): TimeLeft {
 }
 
 function useCountdown(target: number): TimeLeft | null {
-  // null no SSR → evita divergência de hidratação
+  // null no SSR e no primeiro render cliente -> zero Hydration Mismatch
   const [time, setTime] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
-    let timeout: number;
+    let timeoutId: number;
+
     const tick = () => {
       setTime(computeTimeLeft(target));
-      timeout = window.setTimeout(tick, 1000 - (Date.now() % 1000) + 8);
+      timeoutId = window.setTimeout(tick, 1000 - (Date.now() % 1000) + 12);
     };
+
     tick();
-    return () => window.clearTimeout(timeout);
+    return () => window.clearTimeout(timeoutId);
   }, [target]);
 
   return time;
 }
 
-function RollingDigit({ digit }: { digit: string }) {
+const RollingDigit = memo(function RollingDigit({ digit }: { digit: string }) {
   return (
-    <span className="relative inline-block h-[1.15em] w-[0.68em] overflow-hidden align-top">
+    <span
+      className="relative inline-block h-[1.18em] w-[0.64em] overflow-hidden align-top"
+      style={{ perspective: "420px" }}
+    >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
           key={digit}
-          initial={{ y: "-78%", opacity: 0, filter: "blur(2.5px)" }}
-          animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
-          exit={{ y: "78%", opacity: 0, filter: "blur(2.5px)" }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex items-center justify-center text-white drop-shadow-[0_2px_10px_rgba(15,23,42,0.45)]"
+          initial={{ y: "-78%", rotateX: 38, scale: 0.9, opacity: 0 }}
+          animate={{ y: "0%", rotateX: 0, scale: 1, opacity: 1 }}
+          exit={{ y: "78%", rotateX: -38, scale: 0.9, opacity: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 flex items-center justify-center text-white will-change-transform drop-shadow-[0_2px_10px_rgba(15,23,42,0.5)]"
         >
           {digit}
         </motion.span>
       </AnimatePresence>
     </span>
   );
-}
+});
 
-function CountdownUnit({
+const CrystalSeparator = memo(function CrystalSeparator() {
+  return (
+    <span
+      className="pointer-events-none absolute top-[42%] -right-[6px] sm:-right-[10px] z-20 flex -translate-y-1/2 flex-col items-center gap-1.5 animate-pulse"
+      aria-hidden
+    >
+      <span className="size-1 sm:size-1.5 rotate-45 rounded-[1px] bg-silver-200/85 shadow-[0_0_6px_rgba(255,255,255,0.65)]" />
+      <span className="size-1 sm:size-1.5 rotate-45 rounded-[1px] bg-silver-200/85 shadow-[0_0_6px_rgba(255,255,255,0.65)]" />
+    </span>
+  );
+});
+
+const CountdownUnit = memo(function CountdownUnit({
   value,
   label,
   ready,
+  showSeparator,
 }: {
   value: number;
   label: string;
   ready: boolean;
+  showSeparator: boolean;
 }) {
   const digits = String(value).padStart(2, "0").split("");
+  const isThreeDigits = digits.length >= 3;
 
   return (
-    <div className="flex flex-col items-center justify-start">
-      <span
-        className={`flex items-center justify-center font-serif text-[clamp(32px,8.8vw,48px)] sm:text-[50px] leading-none font-normal tracking-tight text-white transition-opacity duration-500 ${
-          ready ? "opacity-100" : "opacity-0"
-        }`}
-        aria-hidden
-      >
-        {digits.map((d, i) => (
-          <RollingDigit key={`${digits.length}-${i}`} digit={d} />
-        ))}
-      </span>
+    <div className="relative min-w-0">
+      <div className="glass-royal-card interactive-sheen relative flex flex-col items-center justify-between overflow-hidden rounded-2xl px-1.5 pt-2.5 pb-2.5 sm:rounded-[20px] sm:px-2.5 sm:pt-3.5 sm:pb-3">
+        {/* Filete especular superior da cápsula */}
+        <span
+          className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent"
+          aria-hidden
+        />
 
-      <span className="mt-2.5 pl-[0.18em] font-serif text-[9.5px] sm:text-[11px] font-semibold tracking-[0.18em] text-silver-200/85 uppercase">
-        {label}
-      </span>
+        {/* Micro-estrela prateada no topo */}
+        <span
+          className="relative z-10 mb-1 text-[7px] sm:text-[8px] leading-none text-silver-200/70"
+          aria-hidden
+        >
+          ✦
+        </span>
+
+        {/* Dígitos com rolagem 3D em GPU */}
+        <span
+          className={`relative z-10 flex items-center justify-center font-serif tabular-nums leading-none font-normal tracking-tight text-white transition-opacity duration-500 ${
+            isThreeDigits
+              ? "text-[clamp(21px,5.8vw,38px)] sm:text-[38px]"
+              : "text-[clamp(24px,6.8vw,42px)] sm:text-[42px]"
+          } ${ready ? "opacity-100" : "opacity-0"}`}
+          aria-hidden
+        >
+          {ready ? (
+            digits.map((d, i) => (
+              <RollingDigit key={`${digits.length}-${i}`} digit={d} />
+            ))
+          ) : (
+            <span className="inline-block h-[1.18em] w-[1.28em]" />
+          )}
+        </span>
+
+        {/* Divisória sutil + rótulo */}
+        <span className="hairline-silver relative z-10 mt-2 mb-1.5 h-px w-4/5 opacity-45" aria-hidden />
+
+        <span className="relative z-10 pl-[0.12em] font-serif text-[7.5px] sm:text-[9.5px] font-semibold tracking-[0.12em] sm:tracking-[0.18em] text-silver-200/90 uppercase">
+          {label}
+        </span>
+      </div>
+
+      {showSeparator && <CrystalSeparator />}
     </div>
   );
-}
+});
 
 export default function CountdownTimer() {
-  const time = useCountdown(getEventTimestamp());
+  const time = useCountdown(EVENT_TIMESTAMP);
   const ready = time !== null;
-  const t = time ?? { days: 0, hours: 0, minutes: 0, seconds: 0, done: false };
 
-  if (t.done) {
+  if (time?.done) {
     return (
-      <div className="py-4 text-center">
-        <p className="text-silver-luxury px-4 font-script text-4xl sm:text-5xl">Chegou o grande dia!</p>
+      <div className="glass-royal-card mx-auto max-w-[360px] rounded-3xl px-6 py-5 text-center">
+        <p className="text-silver-luxury px-4 font-script text-4xl sm:text-5xl">
+          Chegou o grande dia!
+        </p>
         <p className="mt-2 font-serif text-[11px] font-semibold tracking-[0.22em] text-silver-200 uppercase">
           TE ESPERO PARA CELEBRAR
         </p>
@@ -106,43 +155,42 @@ export default function CountdownTimer() {
     );
   }
 
+  const days = time?.days ?? 0;
+  const hours = time?.hours ?? 0;
+  const minutes = time?.minutes ?? 0;
+  const seconds = time?.seconds ?? 0;
+
   const units = [
-    { label: "DIAS", value: t.days },
-    { label: "HORAS", value: t.hours },
-    { label: "MINUTOS", value: t.minutes },
-    { label: "SEGUNDOS", value: t.seconds },
+    { label: "DIAS", value: days },
+    { label: "HORAS", value: hours },
+    { label: "MINUTOS", value: minutes },
+    { label: "SEGUNDOS", value: seconds },
   ];
 
   return (
     <div className="w-full text-center">
-      {/* Palavra em caligrafia script: "Faltam:" */}
       <h2 className="text-silver-luxury inline-block px-5 py-1 font-script text-[clamp(40px,10.5vw,52px)] leading-[1.3]">
         Faltam:
       </h2>
 
-      {/* Display no padrão DIAS : HORAS : MINUTOS : SEGUNDOS em Prata & Branco Luminoso */}
       <div
-        className="mt-3 flex items-start justify-center gap-1.5 sm:gap-3.5"
+        className="mx-auto mt-3.5 grid w-full max-w-[432px] grid-cols-4 gap-2 sm:gap-3.5"
         role="timer"
         aria-live="off"
         aria-label={
           ready
-            ? `Faltam ${t.days} dias, ${t.hours} horas, ${t.minutes} minutos e ${t.seconds} segundos`
+            ? `Faltam ${days} dias, ${hours} horas, ${minutes} minutos e ${seconds} segundos`
             : "Carregando contagem regressiva"
         }
       >
         {units.map((u, idx) => (
-          <Fragment key={u.label}>
-            <CountdownUnit value={u.value} label={u.label} ready={ready} />
-            {idx < units.length - 1 && (
-              <span
-                className="select-none pt-0.5 font-serif text-[clamp(26px,7vw,40px)] sm:text-[42px] leading-none font-normal text-silver-300/80 animate-pulse"
-                aria-hidden
-              >
-                :
-              </span>
-            )}
-          </Fragment>
+          <CountdownUnit
+            key={u.label}
+            value={u.value}
+            label={u.label}
+            ready={ready}
+            showSeparator={idx < units.length - 1}
+          />
         ))}
       </div>
     </div>
