@@ -63,10 +63,10 @@ related:
 
 ## 4. Erro de Build `no direct app page entry found for /_not-found`
 
-> [!bug] Cache `.next` Inconsistente no Next.js 15
-> Após remoção/renomeação de arquivos de componentes, o `next build` pode falhar na etapa *Collecting page data* com `[Error: Invariant: no direct app page entry found for /_not-found]`.
+> [!bug] Concorrência de `next dev` Ativo com `next build` (ou Cache `.next` Inconsistente)
+> Quando existem processos `next dev` (`start-server.js`) rodando em background no mesmo diretório — ou após remoção/renomeação de componentes com cache `.next` inconsistente — o servidor de desenvolvimento recompila sob demanda e sobrescreve `.next/server/app-paths-manifest.json` sem a entrada `"/_not-found/page"`, fazendo o `next build` falhar na etapa *Collecting page data* com `[Error: Invariant: no direct app page entry found for /_not-found]`.
 
-* **Solução:** Remover a pasta `.next` e executar o build limpo (`Remove-Item -Recurse -Force .next; npm.cmd run build`).
+* **Solução:** Encerrar quaisquer processos `next dev` concorrentes no mesmo repositório, remover a pasta `.next` e executar o build limpo (`Remove-Item -Recurse -Force .next; npm.cmd run build`).
 
 ---
 
@@ -93,7 +93,22 @@ related:
 > [!warning] Escalas Não Declaradas e Fidelidade de Paleta
 > Em `src/app/globals.css`, o bloco `@theme inline` declara apenas `--color-royal-500` a `--color-royal-950` e `--color-silver-50` a `--color-silver-500`. Classes como `bg-royal-50` não existem no tema customizado, e classes padrão do Tailwind como `emerald-*` ou `red-*` violam a paleta estrita do projeto.
 
-* **Solução:** Utilizar exclusivamente os tokens declarados no `@theme inline` (`silver-100`, `royal-800`, `royal-900`, `royal-950`) inclusive em estados de erro (`RsvpSheet.tsx`) e feedback de cópia (`LocationSheet.tsx`, `GiftsSheet.tsx`).
+* **Solução:** Utilizar exclusivamente os tokens declarados no `@theme inline` (`silver-100`, `royal-800`, `royal-900`, `royal-950`) inclusive em estados de erro (`RsvpSheet.tsx`) e feedback de cópia/agenda (`LocationSheet.tsx`, `InvitationContent.tsx`).
+
+---
+
+## 8. Gargalos de GPU/CPU no Mobile (`<feTurbulence>`, `backdrop-filter`, `mix-blend-mode` e Variáveis CSS no Scroll)
+
+> [!warning] Armadilhas de Composição e Paint no Safari/iOS e Android
+> * **SVG `<feTurbulence>` em Data-URI (`--satin-noise`):** Força rasterização em CPU em toda camada onde é aplicado, especialmente dentro de cenas `preserve-3d`.
+> * **Múltiplos `backdrop-filter: blur(...)` + Mutação de Variáveis CSS no Raiz:** Atualizar `--sheen-x`/`--sheen-y` no container pai durante `scroll`/`pointermove` invalida o estilo de toda a subárvore e força recomputação de todos os `backdrop-filter` a cada frame.
+> * **`mix-blend-mode: soft-light` em Overlay Fullscreen & `animate-shimmer`:** Camadas gigantes com blend mode (`.satin-sheen::after`) e animação de `background-position` sobre `background-clip: text` com `filter: drop-shadow` causam *repaint* contínuo a 60fps.
+> * **Loops JS Contínuos no Envelope 3D:** `deviceorientation` + `y: [0, -8, 0]` + reconstrução de `radial-gradient` em `MotionValue` recalculam matrizes 3D e texturas constantemente mesmo em repouso.
+
+* **Solução Aplicada:**
+  * Substituído `--satin-noise` por `--linen-grain` em `repeating-linear-gradient` CSS puro e removidos `blur-xl`, `drop-shadow` em SVGs 3D e `grayscale` sobre `<iframe>`.
+  * Substituído `backdrop-filter` repetido por gradientes acetinados multicamada com reflexo estático `.interactive-sheen::before`, eliminando listeners de `scroll`/`pointermove` na carta.
+  * Desativado o tick do `CountdownTimer` enquanto `revealed === false`, aplicado `will-change: auto !important` em `[data-active="false"]`, `loading="lazy"` nos adesivos abaixo da dobra e calibração mobile em `LuxuryParticles.tsx`.
 
 Veja também: [[00-INDEX]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].
 

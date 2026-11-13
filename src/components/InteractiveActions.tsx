@@ -3,12 +3,11 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useId, useState, type ComponentType, type CSSProperties } from "react";
-import GiftsSheet from "@/components/sheets/GiftsSheet";
 import LocationSheet from "@/components/sheets/LocationSheet";
 import RsvpSheet from "@/components/sheets/RsvpSheet";
 import Sheet from "@/components/ui/Sheet";
 
-type ActionKey = "location" | "rsvp" | "gifts";
+type ActionKey = "location" | "rsvp";
 
 interface ActionItem {
   key: ActionKey;
@@ -111,56 +110,6 @@ function HollowRsvpIcon({ className = "size-9" }: { className?: string }) {
   );
 }
 
-function HollowGiftIcon({ className = "size-9" }: { className?: string }) {
-  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const gradId = `gift-royal-${uid}`;
-  return (
-    <svg viewBox="0 0 48 48" className={className} fill="none" aria-hidden>
-      <defs>
-        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#1E3A8A" />
-          <stop offset="50%" stopColor="#1D4ED8" />
-          <stop offset="100%" stopColor="#1E40AF" />
-        </linearGradient>
-      </defs>
-      {/* Tampa da caixa */}
-      <rect
-        x="8"
-        y="17"
-        width="32"
-        height="6.5"
-        rx="2"
-        stroke={`url(#${gradId})`}
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      {/* Corpo da caixa */}
-      <path
-        d="M 11 23.5 V 38 C 11 39.4 12.1 40.5 13.5 40.5 H 34.5 C 35.9 40.5 37 39.4 37 38 V 23.5"
-        stroke={`url(#${gradId})`}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Fita vertical central */}
-      <line x1="24" y1="17" x2="24" y2="40.5" stroke={`url(#${gradId})`} strokeWidth="2" />
-      {/* Laço da caixa */}
-      <path
-        d="M 24 17 C 21 12 15.5 10 14 13.2 C 12.8 15.6 16.5 17 24 17 Z"
-        stroke={`url(#${gradId})`}
-        strokeWidth="1.9"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M 24 17 C 27 12 32.5 10 34 13.2 C 35.2 15.6 31.5 17 24 17 Z"
-        stroke={`url(#${gradId})`}
-        strokeWidth="1.9"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 const ACTIONS: ActionItem[] = [
   {
     key: "location",
@@ -178,14 +127,6 @@ const ACTIONS: ActionItem[] = [
     align: "right",
     Icon: HollowRsvpIcon,
   },
-  {
-    key: "gifts",
-    line1: "SUGESTÕES",
-    line2: "DE PRESENTES",
-    subtitle: "Lista de mimos e chave Pix",
-    align: "left",
-    Icon: HollowGiftIcon,
-  },
 ];
 
 const SHEETS: Record<ActionKey, { title: string; subtitle: string; Content: ComponentType }> = {
@@ -198,11 +139,6 @@ const SHEETS: Record<ActionKey, { title: string; subtitle: string; Content: Comp
     title: "CONFIRMAR PRESENÇA",
     subtitle: "Confirmação rápida pelo WhatsApp",
     Content: RsvpSheet,
-  },
-  gifts: {
-    title: "SUGESTÕES DE PRESENTES",
-    subtitle: "Ideias com carinho e chave Pix",
-    Content: GiftsSheet,
   },
 };
 
@@ -223,7 +159,7 @@ function MedallionButton({
       whileHover={{ scale: 1.025, y: -3 }}
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 360, damping: 24 }}
-      className={`group relative flex w-full max-w-[320px] sm:max-w-[372px] cursor-pointer items-center outline-none focus-visible:ring-4 focus-visible:ring-white/45 rounded-full ${
+      className={`group relative flex w-full max-w-[328px] sm:max-w-[376px] cursor-pointer items-center outline-none focus-visible:ring-4 focus-visible:ring-white/45 rounded-full ${
         isRight ? "flex-row-reverse self-end" : "flex-row self-start"
       }`}
     >
@@ -320,8 +256,8 @@ export default function InteractiveActions() {
         <AnimatedCurvedArrow className="size-6" />
       </div>
 
-      {/* Lista de Botões Interativos: Local da Festa, Confirmar Presença e Sugestões de Presentes */}
-      <div className="flex w-full max-w-[348px] sm:max-w-[392px] flex-col gap-4 sm:gap-5">
+      {/* Lista de Botões Interativos: Local da Festa e Confirmar Presença */}
+      <div className="flex w-full max-w-[356px] sm:max-w-[400px] flex-col gap-4 sm:gap-5">
         {ACTIONS.map((item) => (
           <MedallionButton key={item.key} item={item} onSelect={() => select(item.key)} />
         ))}

@@ -60,7 +60,7 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
       <motion.div
         aria-hidden
         onClick={onClose}
-        className="absolute inset-0 bg-slate-950/55 backdrop-blur-md"
+        className="absolute inset-0 bg-slate-950/65 md:backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -84,7 +84,7 @@ function SheetPanel({ onClose, title, subtitle, icon, children }: Omit<SheetProp
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", stiffness: 330, damping: 34, mass: 0.9 }}
-        className="bg-satin relative flex max-h-[88dvh] w-full max-w-md md:max-w-lg flex-col overflow-hidden rounded-t-[28px] md:rounded-[28px] shadow-[0_28px_60px_-12px_rgba(15,23,42,0.38)] outline-none"
+        className="bg-satin relative flex max-h-[88dvh] w-full max-w-md md:max-w-lg flex-col overflow-hidden rounded-t-[28px] md:rounded-[28px] shadow-[0_28px_60px_-12px_rgba(15,23,42,0.38)] outline-none will-change-transform"
       >
         {/* Moldura dupla prateada interna + cantoneiras geométricas */}
         <div

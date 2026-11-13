@@ -93,7 +93,7 @@ const CarolHeroCollage = memo(function CarolHeroCollage({
       <div className="relative flex h-[252px] w-[284px] sm:h-[290px] sm:w-[328px] items-end justify-center">
         {/* Halo luminoso suave atrás do globo e da Carol */}
         <div
-          className="pointer-events-none absolute top-4 left-1/2 h-[190px] w-[190px] sm:h-[220px] sm:w-[220px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22)_0%,rgba(96,165,250,0.14)_45%,transparent_72%)] blur-xl"
+          className="pointer-events-none absolute top-4 left-1/2 h-[190px] w-[190px] sm:h-[220px] sm:w-[220px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22)_0%,rgba(96,165,250,0.12)_42%,transparent_70%)]"
           aria-hidden
         />
 

@@ -38,23 +38,24 @@ related:
 
 ---
 
-## Identidade Visual Inviolável
+## Identidade Visual e Regras Editoriais Invioláveis
 
-> [!important] Regras Estritas de Design
+> [!important] Regras Estritas do Projeto
 > * **Paleta Oficial:** **Azul Royal** (`#172554` a `#3B82F6`), **Branco / Off-White Perolado** (`#FFFFFF` / `#F8FAFC`) e **Prata Metálico** (`#E2E8F0` a `#64748B`).
 > * **Proibição de Elementos Florais:** É terminantemente proibido usar flores, folhas ou arranjos florais em qualquer SVG, imagem ou ornamento.
 > * **Ornamento Exclusivo:** Utilizar **lacinhos de fita acetinada** (`BowDecoration.tsx`), acompanhados apenas por estrelas de 4 pontas (`✦`), balões metalizados (`18`), globo espelhado e adesivos temáticos em PNG sem fundo.
+> * **Proibição Estrita de Sugestões de Presentes / Pix:** É terminantemente proibido incluir qualquer menção, botão, modal, ícone, chave Pix ou lista de sugestões de presentes no convite (considerado inconveniente para o evento).
+> * **Data e Traje Oficiais:** **17 de Julho de 2027** (`17/07`), às **20:30**, com traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
 
 ---
 
 ## Experiência Interativa
 
-1. **Gateway 3D de Alta Papelaria (`Envelope3DOpening.tsx`):** Envelope em Azul Royal & Prata com textura de linho (`--linen-grain`), forro geométrico interno, oclusão de dobras, selo de joalheria `"C · 18"` com lacinho acetinado e tração magnética ao ponteiro, legenda em pílula perolada (`glass-pearl-pill`), abertura coreografada por timeline GSAP e disparo de confetes vetoriais (`canvas-confetti`).
-2. **Carta do Convite (`InvitationContent.tsx`):** Folha acetinada em Azul Royal degradê (`bg-royal-letter`) com cantoneiras geométricas (`CornerFiligree`), reflexo metálico reativo via `requestAnimationFrame` (`--sheen-x`, `--sheen-y`), colagem editorial da Carol (`CarolHeroCollage.tsx`), citação de Walt Disney emoldurada, altar da data `17/07` com botão integrado **"Salvar na Agenda"** (Google Agenda / `.ics`), **contador regressivo** em cápsulas de cristal (`CountdownTimer.tsx`) e card de traje **"Esporte Fino"**.
-3. **Ações Rápidas (`InteractiveActions.tsx`):** Medalhões com aro duplo cromado, subtítulos descritivos e micro-indicadores de ação:
+1. **Gateway 3D de Alta Papelaria (`Envelope3DOpening.tsx`):** Envelope em Azul Royal & Prata com forro geométrico interno, oclusão de dobras, selo de joalheria `"C · 18"` com lacinho acetinado e tração magnética no desktop, legenda em pílula perolada (`glass-pearl-pill`), abertura coreografada por timeline GSAP e disparo de confetes vetoriais (`canvas-confetti`) calibrado para 60fps no mobile.
+2. **Carta do Convite (`InvitationContent.tsx`):** Folha acetinada em Azul Royal degradê (`bg-royal-letter`) com trama de linho em gradiente CSS leve (`--linen-grain`), cantoneiras geométricas (`CornerFiligree`), reflexo especular estático de joalheria (`.interactive-sheen`), colagem editorial da Carol (`CarolHeroCollage.tsx`), citação de Walt Disney emoldurada, altar da data `17/07` com botão integrado **"Salvar na Agenda"** (Google Agenda / `.ics`), **contador regressivo** em cápsulas de cristal (`CountdownTimer.tsx`) ativado após a abertura e card de traje **"Esporte Fino"**.
+3. **Ações Rápidas (`InteractiveActions.tsx`):** 2 medalhões em composição diagonal equilibrada (esquerda/direita) com aro duplo cromado, subtítulos descritivos e micro-indicadores de ação:
    * **Local da Festa (`LocationSheet.tsx`):** Cartão perolado de endereço copiável, mapa embed com moldura cromada, rotas via Google Maps/Waze e salvar na agenda (Google Agenda / `.ics`).
    * **Confirmar Presença (`RsvpSheet.tsx`):** Formulário validado com alertas na paleta oficial, seleção de presença, número de acompanhantes, contador de caracteres, micro-celebração estelar (`fireMiniCelebration`) e envio direto para o WhatsApp.
-   * **Sugestões de Presentes (`GiftsSheet.tsx`):** Cartão Private Bank em Azul Royal & Prata com chip metálico, chave Pix copiável com feedback cromado e disparo de micro-estrelas, além de grade de sugestões.
 
 Veja também: [[00-INDEX]], [[01-arquitetura-e-estrutura]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]].
 

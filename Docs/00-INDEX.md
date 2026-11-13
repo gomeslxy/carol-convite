@@ -31,12 +31,14 @@ related:
 
 Convite digital interativo mobile-first para a festa de **18 anos da Carol** (`17 de Julho de 2027`, às `20:30`, horário de Brasília), hospedado em `https://convitecarol.site`.
 
-* **Status Atual:** `Produção / Refatorado (UI/UX Awwwards-Level)` (build Next.js 15 validado sem erros de TypeScript ou geração estática).
+* **Status Atual:** `Produção / Otimizado 60fps (Mobile-First)` (build Next.js 15 validado sem erros de TypeScript ou geração estática).
 * **Ponto Único de Verdade:** `src/config/event.ts` (`EVENT`, `FORMATTED_EVENT_DATE`, `EVENT_TIMESTAMP`).
 
-> [!important] Regras Visuais Invioláveis
+> [!important] Regras Visuais e Editoriais Invioláveis
 > 1. **Paleta Oficial:** Apenas **Azul Royal** (`#172554`–`#3B82F6`), **Branco / Off-White Perolado** (`#FFFFFF` / `#F8FAFC`) e **Prata Metálico** (`#E2E8F0`–`#64748B`).
 > 2. **Proibição Estrita de Flores:** Nenhum elemento floral deve ser adicionado em SVGs, imagens ou ornamentos. A decoração utiliza exclusivamente **lacinhos de fita acetinada** (`src/components/BowDecoration.tsx`), estrelas de 4 pontas, balões e adesivos temáticos.
+> 3. **Proibição Estrita de Sugestões de Presentes / Pix:** É terminantemente proibido incluir qualquer menção, botão, modal, ícone, chave Pix ou lista de sugestões de presentes no convite.
+> 4. **Data e Traje Oficiais:** **17 de Julho** (`17/07/2027`, às `20:30`) e traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
 
 ---
 

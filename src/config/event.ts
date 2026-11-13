@@ -5,20 +5,6 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-export type GiftSuggestionIcon =
-  | "perfume"
-  | "jewelry"
-  | "travel"
-  | "books"
-  | "music"
-  | "shopping";
-
-export interface GiftSuggestion {
-  icon: GiftSuggestionIcon;
-  title: string;
-  description: string;
-}
-
 export interface EventConfig {
   siteUrl: string;
   name: string;
@@ -47,14 +33,6 @@ export interface EventConfig {
     defaultMessage: string;
     deadline: string;
     maxGuests: number;
-  };
-  gifts: {
-    message: string;
-    pixKey: string;
-    pixKeyType: string;
-    pixHolder: string;
-    pixBank: string;
-    suggestions: GiftSuggestion[];
   };
 }
 
@@ -85,22 +63,6 @@ export const EVENT: EventConfig = {
       "Olá, Carol! 💙 Quero confirmar minha presença na sua festa de 18 anos no dia 17/07/2027!",
     deadline: "17 de junho de 2027",
     maxGuests: 6,
-  },
-  gifts: {
-    message:
-      "Sua presença é o meu maior presente! Mas, se desejar me presentear, deixo aqui algumas sugestões com muito carinho.",
-    pixKey: "carol18anos@email.com",
-    pixKeyType: "E-mail",
-    pixHolder: "Carolina Souza",
-    pixBank: "Nubank",
-    suggestions: [
-      { icon: "perfume", title: "Perfumes & Beleza", description: "Fragrâncias suaves e skincare" },
-      { icon: "jewelry", title: "Joias & Acessórios", description: "Prata, pérolas e delicadezas" },
-      { icon: "travel", title: "Cota de Viagem", description: "Ajude no meu próximo destino" },
-      { icon: "books", title: "Livros", description: "Romances e clássicos" },
-      { icon: "music", title: "Música & Tech", description: "Fones, caixinha de som" },
-      { icon: "shopping", title: "Vale-presente", description: "Lojas de moda e beleza" },
-    ],
   },
 };
 

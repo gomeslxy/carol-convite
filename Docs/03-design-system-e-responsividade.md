@@ -20,9 +20,11 @@ related:
 
 # 03 · Design System e Responsividade
 
-> [!important] Identidade Visual Inviolável
+> [!important] Identidade Visual e Regras Editoriais Invioláveis
 > * **Cores:** Exclusivamente **Azul Royal**, **Branco / Off-White Perolado** e **Prata Metálico**.
 > * **Motivos:** **Zero flores**. Apenas **lacinhos de fita acetinada**, estrelas de 4 pontas (`✦`), balões metalizados (`18`), globo espelhado e adesivos temáticos em PNG sem fundo.
+> * **Proibição de Presentes / Pix:** É terminantemente proibido incluir sugestões de presentes, listas de mimos ou chave Pix.
+> * **Data e Traje Oficiais:** **17/07/2027** às **20:30** e traje **Esporte Fino**.
 
 ---
 
@@ -41,20 +43,20 @@ related:
 | `silver-300` / `400` / `500` | `#cbd5e1` / `#94a3b8` / `#64748b` | Bordas metálicas, divisores (`hairline-silver`) e labels |
 
 ### Superfícies, Texturas & Utilitários Principais
-* `--satin-noise` + `--linen-grain`: Combinação de ruído sutil e trama fina de papel linho/algodão em `:root`.
-* `bg-royal-letter`: Fundo principal da carta aberta, combinando `--satin-noise`, `--linen-grain`, radiais azuis luminosos e gradiente linear `#0f172a -> #172554 -> #1e3a8a -> #1e40af -> #172554`.
-* `glass-royal-card`: Cápsulas e quadros editoriais translúcidos (usados na citação de Walt Disney, cápsulas do contador, seletor de agenda, card de traje e placas dos medalhões) com `backdrop-filter: blur(12px)`, borda superior iluminada e sombra profunda.
-* `glass-pearl-pill`: Pílula perolada translúcida usada no CTA do envelope 3D (`"Toque no selo para abrir o convite"`).
-* `.interactive-sheen`: Camada `::before` com reflexo especular dinâmico controlado por `--sheen-x` e `--sheen-y`.
-* `bg-satin`: Superfície perolada usada nos bottom-sheets/modais (`Sheet.tsx`).
-* `text-silver-luxury`: Gradiente metálico prateado com `background-clip: text` e padding generoso (`padding-inline: 0.22em`, `padding-block: 0.18em`) para impedir corte das ascendentes e descendentes da fonte caligráfica.
+* `--linen-grain`: Trama fina de linho/algodão implementada com `repeating-linear-gradient` em CSS puro (sem filtros SVG `<feTurbulence>`).
+* `bg-royal-letter`: Fundo principal da carta aberta, combinando `--linen-grain`, radiais azuis luminosos e gradiente linear `#0f172a -> #172554 -> #1e3a8a -> #1e40af -> #172554`.
+* `glass-royal-card`: Cápsulas e quadros editoriais acetinados em estilo *Liquid Glass 60fps* (usados na citação de Walt Disney, cápsulas do contador, seletor de agenda, card de traje e placas dos medalhões) com gradiente translúcido multicamada, borda especular iluminada e sombra profunda — **sem `backdrop-filter: blur`** para manter 60fps reais no Safari/iOS e Android.
+* `glass-pearl-pill`: Pílula perolada opaca/acetinada usada no CTA do envelope 3D (`"Toque no selo para abrir o convite"`), sem `backdrop-filter` sobre camadas 3D.
+* `.interactive-sheen`: Camada `::before` com reflexo radial especular estático de joalheria no topo dos cartões.
+* `bg-satin`: Superfície perolada limpa usada nos bottom-sheets/modais (`Sheet.tsx`).
+* `text-silver-luxury`: Gradiente metálico prateado estático com `background-clip: text` e padding generoso (`padding-inline: 0.22em`, `padding-block: 0.18em`) para impedir corte das ascendentes e descendentes da fonte caligráfica, sem `filter: drop-shadow` nem `animate-shimmer` em loop.
 
 ---
 
 ## Fidelidade Cromática Estrita nos Feedbacks e Modais
 
 > [!important] Zero Cores Fora da Paleta
-> * **`GiftsSheet.tsx`:** Cartão Pix estilo *Private Bank* com chip metálico SVG (`SilverBankChip`) e botão de confirmação em **Prata Espelhado & Azul Royal** (`bg-silver-100 text-royal-950 ring-2 ring-white`), substituindo o antigo estado esverdeado (`emerald`).
+> * **`LocationSheet.tsx` & `InvitationContent.tsx`:** Badges de confirmação de cópia/agenda em **Prata Espelhado & Azul Royal** (`bg-silver-100 text-royal-950 ring-1 ring-white`).
 > * **`RsvpSheet.tsx`:** Alertas de validação em badge **Azul Royal & Prata** (`bg-royal-900 text-white border border-silver-300/60`), eliminando alertas vermelhos fora da identidade visual.
 
 ---

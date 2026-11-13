@@ -93,7 +93,7 @@ export default function LocationSheet() {
           <iframe
             title={`Mapa — ${venue.name}`}
             src={googleMapsEmbedUrl(venue.mapsQuery)}
-            className="block h-52 w-full grayscale-[35%]"
+            className="block h-52 w-full"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />

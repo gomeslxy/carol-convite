@@ -101,33 +101,10 @@ export default function Envelope3DOpening({
 
   const tiltRotateX = useTransform(smoothY, [-0.5, 0.5], [10, -10]);
   const tiltRotateY = useTransform(smoothX, [-0.5, 0.5], [-13, 13]);
-  const glareX = useTransform(smoothX, [-0.5, 0.5], ["16%", "84%"]);
-  const glareY = useTransform(smoothY, [-0.5, 0.5], ["16%", "84%"]);
-  const glareBackground = useTransform(
-    [glareX, glareY],
-    ([gx, gy]) =>
-      `radial-gradient(56% 52% at ${gx} ${gy}, rgba(255,255,255,0.26) 0%, rgba(147,197,253,0.10) 44%, transparent 76%)`,
-  );
-
-  // Suporte a giroscópio no mobile enquanto ocioso
-  useEffect(() => {
-    if (typeof window === "undefined" || phase !== "idle") return;
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      if (event.gamma === null || event.beta === null) return;
-      const nx = Math.max(-0.5, Math.min(0.5, event.gamma / 42));
-      const ny = Math.max(-0.5, Math.min(0.5, (event.beta - 42) / 42));
-      pointerX.set(nx);
-      pointerY.set(ny);
-      sealRawX.set(nx * 10);
-      sealRawY.set(ny * 10);
-    };
-    window.addEventListener("deviceorientation", handleOrientation, { passive: true });
-    return () => window.removeEventListener("deviceorientation", handleOrientation);
-  }, [phase, pointerX, pointerY, sealRawX, sealRawY]);
 
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (isOpeningRef.current) return;
+      if (isOpeningRef.current || e.pointerType === "touch") return;
       const rect = e.currentTarget.getBoundingClientRect();
       const nx = Math.max(-0.5, Math.min(0.5, (e.clientX - rect.left) / rect.width - 0.5));
       const ny = Math.max(-0.5, Math.min(0.5, (e.clientY - rect.top) / rect.height - 0.5));
@@ -274,29 +251,9 @@ export default function Envelope3DOpening({
         role="button"
         aria-disabled={!isIdle}
         aria-label="Abrir envelope do convite"
-        initial={{ opacity: 0, y: 18, scale: 0.94, rotateX: 8 }}
-        animate={
-          isIdle
-            ? {
-                opacity: 1,
-                y: [0, -8, 0],
-                scale: 1,
-              }
-            : {
-                opacity: 1,
-                y: 0,
-                scale: 1,
-              }
-        }
-        transition={
-          isIdle
-            ? {
-                opacity: { duration: 0.65, ease: "easeOut" },
-                scale: { duration: 0.65, ease: "easeOut" },
-                y: { duration: 4.4, repeat: Infinity, ease: "easeInOut" },
-              }
-            : { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
-        }
+        initial={{ opacity: 0, y: 16, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         style={{
           rotateX: isIdle ? tiltRotateX : 0,
           rotateY: isIdle ? tiltRotateY : 0,
@@ -309,19 +266,15 @@ export default function Envelope3DOpening({
         {/* Sombra 3D Projetada no Piso */}
         <motion.div
           animate={
-            isIdle
-              ? { scaleX: [1, 0.92, 1], opacity: [0.38, 0.24, 0.38] }
-              : isCardForeground
-                ? { scaleX: 0.85, opacity: 0 }
-                : { scaleX: 0.95, opacity: 0.28 }
+            isCardForeground
+              ? { scaleX: 0.85, opacity: 0 }
+              : isIdle
+                ? { scaleX: 1, opacity: 0.34 }
+                : { scaleX: 0.95, opacity: 0.26 }
           }
-          transition={
-            isIdle
-              ? { duration: 4.4, repeat: Infinity, ease: "easeInOut" }
-              : { duration: 0.5, ease: "easeOut" }
-          }
+          transition={{ duration: 0.5, ease: "easeOut" }}
           style={{ transform: "translateZ(-12px)" }}
-          className="pointer-events-none absolute -bottom-8 inset-x-6 h-10 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.48)_0%,rgba(30,58,138,0.22)_55%,transparent_80%)] blur-xl"
+          className="pointer-events-none absolute -bottom-8 inset-x-6 h-10 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.42)_0%,rgba(30,58,138,0.18)_48%,transparent_76%)]"
           aria-hidden
         />
 
@@ -368,13 +321,6 @@ export default function Envelope3DOpening({
             <rect width="520" height="344" fill={`url(#${id("cavity-liner")})`} />
           </svg>
 
-          {/* Textura nobre de papel linho & acetinado */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-65"
-            style={{ backgroundImage: "var(--satin-noise), var(--linen-grain)" }}
-            aria-hidden
-          />
-
           {/* Filete prateado interno no topo da cavidade */}
           <div
             className="pointer-events-none absolute inset-x-3 top-2.5 h-px bg-gradient-to-r from-transparent via-silver-200/45 to-transparent"
@@ -383,81 +329,83 @@ export default function Envelope3DOpening({
         </motion.div>
 
         {/* CAMADA 2: Folha Interna Azul Royal & Prata (translateZ: 2px -> 14px) */}
-        <div
-          style={{
-            transform: `translateZ(${isCardForeground ? 14 : 2}px)`,
-          }}
-          className={`pointer-events-none absolute inset-x-0 bottom-0 -top-[140%] ${
-            isCardForeground ? "z-45 overflow-visible" : "z-20 overflow-hidden"
-          } rounded-b-[14px]`}
-          aria-hidden
-        >
-          <motion.div
-            initial={{ y: "18%", opacity: 0, scale: 0.93 }}
-            animate={
-              isExpanding
-                ? { y: "0%", opacity: 1, scale: 1.16 }
-                : isCentering
-                  ? { y: "0%", opacity: 1, scale: 1.04 }
-                  : isExtracting
-                    ? { y: "-42%", opacity: 1, scale: 0.98 }
-                    : isFlapOpen
-                      ? { y: "4%", opacity: 1, scale: 0.95 }
-                      : { y: "18%", opacity: 0, scale: 0.93 }
-            }
-            transition={{
-              y: { duration: 0.68, ease: [0.22, 1, 0.36, 1] },
-              scale: { duration: 0.68, ease: [0.22, 1, 0.36, 1] },
-              opacity: { duration: 0.25, ease: "easeOut" },
+        {!isIdle && (
+          <div
+            style={{
+              transform: `translateZ(${isCardForeground ? 14 : 2}px)`,
             }}
-            className="bg-royal-letter absolute inset-x-3 sm:inset-x-5 bottom-1.5 h-[234px] sm:h-[290px] md:h-[328px] rounded-[14px] border border-white/40 shadow-[0_24px_54px_-8px_rgba(9,13,22,0.58)] will-change-transform"
+            className={`pointer-events-none absolute inset-x-0 bottom-0 -top-[140%] ${
+              isCardForeground ? "z-45 overflow-visible" : "z-20 overflow-hidden"
+            } rounded-b-[14px]`}
+            aria-hidden
           >
-            {/* Sombra extra de profundidade conforme a carta sai do envelope */}
             <motion.div
-              animate={{ opacity: isExtracting || isCardForeground ? 1 : 0.25 }}
-              transition={{ duration: 0.45 }}
-              className="pointer-events-none absolute -inset-x-2 -bottom-3 top-6 -z-10 rounded-[18px] bg-[radial-gradient(75%_60%_at_50%_55%,rgba(9,13,22,0.52)_0%,transparent_75%)]"
-              aria-hidden
-            />
+              initial={{ y: "18%", opacity: 0, scale: 0.93 }}
+              animate={
+                isExpanding
+                  ? { y: "0%", opacity: 1, scale: 1.16 }
+                  : isCentering
+                    ? { y: "0%", opacity: 1, scale: 1.04 }
+                    : isExtracting
+                      ? { y: "-42%", opacity: 1, scale: 0.98 }
+                      : isFlapOpen
+                        ? { y: "4%", opacity: 1, scale: 0.95 }
+                        : { y: "18%", opacity: 0, scale: 0.93 }
+              }
+              transition={{
+                y: { duration: 0.68, ease: [0.22, 1, 0.36, 1] },
+                scale: { duration: 0.68, ease: [0.22, 1, 0.36, 1] },
+                opacity: { duration: 0.25, ease: "easeOut" },
+              }}
+              className="bg-royal-letter absolute inset-x-3 sm:inset-x-5 bottom-1.5 h-[234px] sm:h-[290px] md:h-[328px] rounded-[14px] border border-white/40 shadow-[0_24px_54px_-8px_rgba(9,13,22,0.58)] will-change-transform"
+            >
+              {/* Sombra extra de profundidade conforme a carta sai do envelope */}
+              <motion.div
+                animate={{ opacity: isExtracting || isCardForeground ? 1 : 0.25 }}
+                transition={{ duration: 0.45 }}
+                className="pointer-events-none absolute -inset-x-2 -bottom-3 top-6 -z-10 rounded-[18px] bg-[radial-gradient(75%_60%_at_50%_55%,rgba(9,13,22,0.52)_0%,transparent_75%)]"
+                aria-hidden
+              />
 
-            {/* Filetes prateados duplos internos */}
-            <div className="pointer-events-none absolute inset-2 sm:inset-2.5 rounded-[11px] border border-white/35" />
-            <div className="pointer-events-none absolute inset-3 sm:inset-3.5 rounded-[8px] border border-white/15" />
+              {/* Filetes prateados duplos internos */}
+              <div className="pointer-events-none absolute inset-2 sm:inset-2.5 rounded-[11px] border border-white/35" />
+              <div className="pointer-events-none absolute inset-3 sm:inset-3.5 rounded-[8px] border border-white/15" />
 
-            <div className="relative flex h-full w-full flex-col items-center justify-center px-4 py-2.5 text-center">
-              <Bow variant="royal" className="w-[34px] sm:w-[40px]" />
+              <div className="relative flex h-full w-full flex-col items-center justify-center px-4 py-2.5 text-center">
+                <Bow variant="royal" className="w-[34px] sm:w-[40px]" />
 
-              <p className="pl-[0.34em] font-serif text-[7px] sm:text-[8.5px] font-medium tracking-[0.34em] text-silver-200/85 uppercase">
-                MEUS {EVENT.age} ANOS
-              </p>
+                <p className="pl-[0.34em] font-serif text-[7px] sm:text-[8.5px] font-medium tracking-[0.34em] text-silver-200/85 uppercase">
+                  MEUS {EVENT.age} ANOS
+                </p>
 
-              <p className="text-silver-luxury px-4 py-0.5 font-script text-[26px] sm:text-[34px] leading-[1.3]">
-                {EVENT.name}
-              </p>
+                <p className="text-silver-luxury px-4 py-0.5 font-script text-[26px] sm:text-[34px] leading-[1.3]">
+                  {EVENT.name}
+                </p>
 
-              <div className="-mt-2">
-                <CarolHeroCollage compact />
-              </div>
+                <div className="-mt-2">
+                  <CarolHeroCollage compact />
+                </div>
 
-              <div className="mt-0.5 w-full max-w-[190px]">
-                <SilverDivider />
-                <div className="mt-0.5 flex items-center justify-center gap-3 font-serif text-silver-100">
-                  <span className="text-[7.5px] sm:text-[8.5px] tracking-[0.16em]">
-                    {FORMATTED_EVENT_DATE.weekdayShort}
-                  </span>
-                  <span className="text-silver-luxury text-[17px] sm:text-[20px] font-normal leading-none">
-                    {FORMATTED_EVENT_DATE.day}
-                  </span>
-                  <span className="text-[7.5px] sm:text-[8.5px] tracking-[0.14em]">
-                    {FORMATTED_EVENT_DATE.time}
-                  </span>
+                <div className="mt-0.5 w-full max-w-[190px]">
+                  <SilverDivider />
+                  <div className="mt-0.5 flex items-center justify-center gap-3 font-serif text-silver-100">
+                    <span className="text-[7.5px] sm:text-[8.5px] tracking-[0.16em]">
+                      {FORMATTED_EVENT_DATE.weekdayShort}
+                    </span>
+                    <span className="text-silver-luxury text-[17px] sm:text-[20px] font-normal leading-none">
+                      {FORMATTED_EVENT_DATE.day}
+                    </span>
+                    <span className="text-[7.5px] sm:text-[8.5px] tracking-[0.14em]">
+                      {FORMATTED_EVENT_DATE.time}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        </div>
+            </motion.div>
+          </div>
+        )}
 
-        {/* CAMADA 3: Bolso Frontal do Envelope com Oclusão de Dobras & Textura Linho (translateZ: 6px) */}
+        {/* CAMADA 3: Bolso Frontal do Envelope com Oclusão de Dobras (translateZ: 6px) */}
         <motion.div
           animate={
             isCardForeground
@@ -473,7 +421,7 @@ export default function Envelope3DOpening({
           <svg
             viewBox="0 0 520 344"
             preserveAspectRatio="none"
-            className="absolute inset-0 h-full w-full drop-shadow-[0_-4px_10px_rgba(9,13,22,0.32)]"
+            className="absolute inset-0 h-full w-full"
             aria-hidden
           >
             <defs>
@@ -580,17 +528,13 @@ export default function Envelope3DOpening({
             />
           </motion.svg>
 
-          {/* Textura de linho fino sobre o bolso */}
+          {/* Reflexo especular diagonal leve */}
           <div
-            className="pointer-events-none absolute inset-0 opacity-75"
-            style={{ backgroundImage: "var(--satin-noise), var(--linen-grain)" }}
-            aria-hidden
-          />
-
-          {/* Reflexo especular dinâmico */}
-          <motion.div
             className="pointer-events-none absolute inset-0 opacity-70"
-            style={{ background: glareBackground }}
+            style={{
+              background:
+                "linear-gradient(125deg, rgba(255,255,255,0.18) 0%, rgba(147,197,253,0.06) 38%, transparent 68%)",
+            }}
             aria-hidden
           />
 
@@ -602,7 +546,7 @@ export default function Envelope3DOpening({
 
             <div className="mt-0.5 flex items-center justify-center gap-2.5">
               <span className="hidden sm:block h-px w-7 bg-gradient-to-r from-transparent to-silver-200/75" />
-              <p className="px-2 py-0.5 font-script text-[clamp(26px,6.2vw,36px)] sm:text-[36px] leading-[1.32] text-silver-100 drop-shadow-[0_2px_6px_rgba(15,23,42,0.45)]">
+              <p className="px-2 py-0.5 font-script text-[clamp(26px,6.2vw,36px)] sm:text-[36px] leading-[1.32] text-silver-100 [text-shadow:0_2px_6px_rgba(15,23,42,0.45)]">
                 Para alguém especial
               </p>
               <span className="hidden sm:block h-px w-7 bg-gradient-to-l from-transparent to-silver-200/75" />
@@ -645,7 +589,7 @@ export default function Envelope3DOpening({
             <svg
               viewBox="0 0 520 194"
               preserveAspectRatio="none"
-              className="h-full w-full overflow-visible drop-shadow-[0_12px_20px_rgba(9,13,22,0.42)]"
+              className="h-full w-full overflow-visible"
               aria-hidden
             >
               <defs>
@@ -681,14 +625,6 @@ export default function Envelope3DOpening({
                 strokeWidth="0.7"
               />
             </svg>
-            <div
-              className="pointer-events-none absolute inset-0 opacity-50"
-              style={{
-                backgroundImage: "var(--linen-grain)",
-                clipPath: "polygon(0 0, 100% 0, 50% 96%)",
-              }}
-              aria-hidden
-            />
           </div>
 
           {/* Face Interna da Aba Superior com Forro Geométrico (Revelada ao abrir a 180°) */}

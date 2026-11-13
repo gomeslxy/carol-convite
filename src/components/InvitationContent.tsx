@@ -11,7 +11,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Bow } from "@/components/BowDecoration";
 import CarolHeroCollage from "@/components/CarolHeroCollage";
@@ -42,8 +41,6 @@ export interface InvitationContentProps {
 
 export default function InvitationContent({ revealed, interactive }: InvitationContentProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const sheenRafRef = useRef<number | null>(null);
-  const pendingSheenRef = useRef<{ x: string; y: string } | null>(null);
 
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [icsSaved, setIcsSaved] = useState(false);
@@ -52,48 +49,8 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
   useEffect(() => {
     return () => {
       if (icsTimerRef.current !== null) window.clearTimeout(icsTimerRef.current);
-      if (sheenRafRef.current !== null) window.cancelAnimationFrame(sheenRafRef.current);
     };
   }, []);
-
-  // Atualização de reflexo especular (--sheen-x / --sheen-y) via rAF sem re-renders React
-  const scheduleSheenUpdate = useCallback((x: string, y: string) => {
-    pendingSheenRef.current = { x, y };
-    if (sheenRafRef.current !== null) return;
-    sheenRafRef.current = window.requestAnimationFrame(() => {
-      sheenRafRef.current = null;
-      const el = rootRef.current;
-      const target = pendingSheenRef.current;
-      if (!el || !target) return;
-      el.style.setProperty("--sheen-x", target.x);
-      el.style.setProperty("--sheen-y", target.y);
-    });
-  }, []);
-
-  const handlePointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!revealed) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      const px = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
-      const py = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
-      scheduleSheenUpdate(`${px.toFixed(1)}%`, `${py.toFixed(1)}%`);
-    },
-    [revealed, scheduleSheenUpdate],
-  );
-
-  // Reflexo sutil durante o scroll no mobile (onde não há ponteiro contínuo)
-  useEffect(() => {
-    if (!interactive) return;
-    const onScroll = () => {
-      const progress = Math.sin(window.scrollY * 0.0045);
-      const sx = 50 + progress * 28;
-      const sy = 25 + Math.cos(window.scrollY * 0.004) * 18;
-      scheduleSheenUpdate(`${sx.toFixed(1)}%`, `${sy.toFixed(1)}%`);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [interactive, scheduleSheenUpdate]);
 
   const handleDownloadIcs = useCallback(() => {
     downloadIcs(EVENT);
@@ -200,14 +157,12 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
     <div
       ref={rootRef}
       data-active={revealed ? "true" : "false"}
-      onPointerMove={handlePointerMove}
       className={`relative mx-auto w-full md:max-w-2xl lg:max-w-[700px] md:rounded-[28px] md:bg-[linear-gradient(135deg,rgba(255,255,255,0.72)_0%,rgba(148,163,184,0.48)_50%,rgba(255,255,255,0.72)_100%)] md:p-[1.5px] transition-opacity duration-300 ${
         revealed ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >
       <div className="card-surface bg-royal-letter relative isolate min-h-dvh md:min-h-0 w-full overflow-hidden md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(15,23,42,0.52),0_14px_30px_-8px_rgba(30,64,175,0.35)] will-change-transform">
-        {/* Reflexo acetinado animado + poeira estelar no fundo Azul Royal */}
-        <div className="satin-sheen pointer-events-none absolute inset-0 opacity-65" aria-hidden />
+        {/* Poeira estelar no fundo Azul Royal */}
         <AmbientSparkles className="opacity-75" />
 
         {/* Moldura interna prateada dupla + 4 cantoneiras geométricas */}
@@ -256,7 +211,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "-3deg",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute top-3 left-1 sm:top-5 sm:left-4 z-[3] w-[66px] sm:w-[98px] md:w-[112px] h-auto drop-shadow-[0_12px_20px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float pointer-events-none absolute top-3 left-1 sm:top-5 sm:left-4 z-[3] w-[66px] sm:w-[98px] md:w-[112px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
         />
 
         {/* Canto Superior Direito: Globo Espelhado + Laço Azul Royal */}
@@ -275,7 +230,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "6deg",
             } as StickerStyle
           }
-          className="animate-sticker-sway pointer-events-none absolute -top-6 -right-6 sm:-top-8 sm:-right-8 z-[2] w-[96px] sm:w-[126px] h-auto opacity-90 drop-shadow-[0_12px_22px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-sway pointer-events-none absolute -top-6 -right-6 sm:-top-8 sm:-right-8 z-[2] w-[96px] sm:w-[126px] h-auto opacity-90 drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
         />
         <div
           style={
@@ -297,6 +252,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={62}
           height={62}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -309,7 +265,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--s-mid": "1.05",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute top-[29%] left-1.5 sm:left-4 z-[3] w-[42px] sm:w-[62px] h-auto drop-shadow-[0_10px_18px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float pointer-events-none absolute top-[29%] left-1.5 sm:left-4 z-[3] w-[42px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.35)]"
         />
 
         {/* Altura da Citação (Direita): Estrela Glitter Prata */}
@@ -318,6 +274,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={62}
           height={62}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -329,7 +286,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "20deg",
             } as StickerStyle
           }
-          className="animate-sticker-float-alt pointer-events-none absolute top-[31%] right-1.5 sm:right-4 z-[3] w-[44px] sm:w-[62px] h-auto drop-shadow-[0_10px_18px_rgba(9,13,22,0.4)]"
+          className="animate-sticker-float-alt pointer-events-none absolute top-[31%] right-1.5 sm:right-4 z-[3] w-[44px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.32)]"
         />
 
         {/* Altura da Data (Esquerda): Cachorrinho de Balão Azul Metalizado */}
@@ -338,6 +295,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={70}
           height={70}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -349,7 +307,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "2deg",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute top-[45%] left-1 sm:left-4 z-[3] w-[48px] sm:w-[70px] h-auto drop-shadow-[0_12px_20px_rgba(9,13,22,0.5)]"
+          className="animate-sticker-float pointer-events-none absolute top-[45%] left-1 sm:left-4 z-[3] w-[48px] sm:w-[70px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.38)]"
         />
 
         {/* Altura da Data (Direita): Bolo Azul com Velinhas */}
@@ -358,6 +316,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={78}
           height={78}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -369,7 +328,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "-3deg",
             } as StickerStyle
           }
-          className="animate-sticker-float-alt pointer-events-none absolute top-[44%] right-1 sm:right-3 z-[3] w-[54px] sm:w-[78px] h-auto drop-shadow-[0_12px_20px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float-alt pointer-events-none absolute top-[44%] right-1 sm:right-3 z-[3] w-[54px] sm:w-[78px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
         />
 
         {/* Altura do Contador (Esquerda): Estrela Glitter Azul Royal */}
@@ -378,6 +337,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={60}
           height={60}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -391,7 +351,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--s-mid": "1.07",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute top-[58%] left-2 sm:left-5 z-[3] w-[42px] sm:w-[60px] h-auto drop-shadow-[0_10px_18px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float pointer-events-none absolute top-[58%] left-2 sm:left-5 z-[3] w-[42px] sm:w-[60px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.35)]"
         />
 
         {/* Altura do Contador (Direita): Coração Azul Claro Metalizado Grande */}
@@ -400,6 +360,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={68}
           height={68}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -413,7 +374,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--s-mid": "1.05",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute top-[59%] right-1.5 sm:right-4 z-[3] w-[46px] sm:w-[68px] h-auto drop-shadow-[0_10px_18px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float pointer-events-none absolute top-[59%] right-1.5 sm:right-4 z-[3] w-[46px] sm:w-[68px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.35)]"
         />
 
         {/* Altura das Ações (Esquerda): Macaco Festeiro */}
@@ -422,6 +383,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={88}
           height={88}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -432,7 +394,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "3deg",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute top-[72%] left-1 sm:left-3 z-[3] w-[62px] sm:w-[88px] h-auto drop-shadow-[0_12px_20px_rgba(9,13,22,0.52)]"
+          className="animate-sticker-float pointer-events-none absolute top-[72%] left-1 sm:left-3 z-[3] w-[62px] sm:w-[88px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.38)]"
         />
 
         {/* Altura das Ações (Direita): Ursinho com Velinha */}
@@ -441,6 +403,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={76}
           height={76}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -452,7 +415,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "-3deg",
             } as StickerStyle
           }
-          className="animate-sticker-float-alt pointer-events-none absolute top-[73%] right-1 sm:right-3 z-[3] w-[52px] sm:w-[76px] h-auto drop-shadow-[0_12px_20px_rgba(9,13,22,0.48)]"
+          className="animate-sticker-float-alt pointer-events-none absolute top-[73%] right-1 sm:right-3 z-[3] w-[52px] sm:w-[76px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
         />
 
         {/* Cantos Inferiores: Estrelas Cromadas */}
@@ -461,6 +424,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
           alt=""
           width={62}
           height={62}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -471,13 +435,14 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "0deg",
             } as StickerStyle
           }
-          className="animate-sticker-float pointer-events-none absolute bottom-5 left-2 sm:bottom-7 sm:left-6 z-[3] w-[46px] sm:w-[62px] h-auto drop-shadow-[0_10px_18px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float pointer-events-none absolute bottom-5 left-2 sm:bottom-7 sm:left-6 z-[3] w-[46px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.34)]"
         />
         <img
           src="/images/silver-glitter-star.png"
           alt=""
           width={62}
           height={62}
+          loading="lazy"
           decoding="async"
           aria-hidden
           style={
@@ -489,7 +454,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               "--r-mid": "22deg",
             } as StickerStyle
           }
-          className="animate-sticker-float-alt pointer-events-none absolute bottom-5 right-2 sm:bottom-7 sm:right-6 z-[3] w-[46px] sm:w-[62px] h-auto drop-shadow-[0_10px_18px_rgba(9,13,22,0.45)]"
+          className="animate-sticker-float-alt pointer-events-none absolute bottom-5 right-2 sm:bottom-7 sm:right-6 z-[3] w-[46px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.34)]"
         />
 
         {/* ════════════════════════════════════════════════════════════════════════
@@ -517,7 +482,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
             </p>
 
             <h1 className="reveal-hero relative mt-1 w-full overflow-visible">
-              <span className="text-silver-luxury inline-block px-6 py-2 font-script text-[clamp(66px,18.5vw,98px)] sm:text-[98px] leading-[1.32] animate-shimmer">
+              <span className="text-silver-luxury inline-block px-6 py-2 font-script text-[clamp(66px,18.5vw,98px)] sm:text-[98px] leading-[1.32]">
                 {EVENT.name}
               </span>
               <span className="sr-only"> — {EVENT.age} anos</span>
@@ -595,7 +560,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
                   <span className="draw-line absolute inset-x-0 bottom-0 h-px origin-right bg-gradient-to-r from-transparent via-white/55 to-white/75" />
                 </div>
 
-                <span className="text-silver-luxury animate-shimmer px-2 font-serif text-[clamp(64px,16.5vw,86px)] sm:text-[86px] leading-[1.05] font-normal">
+                <span className="text-silver-luxury px-2 font-serif text-[clamp(64px,16.5vw,86px)] sm:text-[86px] leading-[1.05] font-normal">
                   {FORMATTED_EVENT_DATE.day}
                 </span>
 
@@ -682,7 +647,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
 
           {/* 4. Contador Regressivo em Cápsulas de Cristal */}
           <section data-reveal className="mt-8 sm:mt-10 w-full" aria-label="Contagem regressiva">
-            <CountdownTimer />
+            <CountdownTimer active={revealed} />
           </section>
 
           {/* 5. Interação com Medalhões */}
@@ -716,7 +681,7 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
               </div>
 
               {EVENT.dressCodeNote && (
-                <div className="relative z-10 mx-auto mt-3.5 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 backdrop-blur-sm">
+                <div className="relative z-10 mx-auto mt-3.5 inline-flex items-center justify-center rounded-full border border-white/25 bg-royal-950/45 px-4 py-1.5">
                   <p className="font-sans text-[11px] font-medium leading-snug text-silver-100">
                     {EVENT.dressCodeNote}
                   </p>

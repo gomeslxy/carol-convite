@@ -16,7 +16,7 @@ npm run build   # build de produção
 
 ## Personalização
 
-Tudo fica em **`src/config/event.ts`**: nome, data/hora (ISO com fuso), local, WhatsApp do RSVP, chave Pix e sugestões de presentes.
+Tudo fica em **`src/config/event.ts`**: nome, data/hora (ISO com fuso), traje, local e WhatsApp do RSVP.
 Dia da semana, mês e ano são calculados automaticamente a partir da data.
 
 ## Estrutura
@@ -27,15 +27,15 @@ src/
 ├─ config/event.ts            dados do evento
 ├─ lib/utils.ts               clipboard, Google Agenda/.ics, Maps, Waze, WhatsApp
 └─ components/
-   ├─ EnvelopeGate.tsx        portas do envelope + confete + trava de scroll
-   ├─ WaxSeal.tsx             selo de cera SVG + texto circular
-   ├─ CountdownTimer.tsx      contador com dígitos rolando
-   ├─ InteractiveActions.tsx  botões + bottom-sheets
-   ├─ BowDecoration.tsx       laços SVG (Bow, CornerRibbon, BowTieIcon)
+   ├─ InvitationExperience.tsx orquestrador de estágios do convite
+   ├─ Envelope3DOpening.tsx   envelope 3D em camadas, selo "C · 18" e confetes
+   ├─ CountdownTimer.tsx      contador regressivo com dígitos em 3D
+   ├─ InteractiveActions.tsx  botões medalhão (Local e RSVP) + sheets
+   ├─ BowDecoration.tsx       laços acetinados SVG (Bow)
    ├─ InvitationContent.tsx   página interna + animações GSAP/ScrollTrigger
-   ├─ Ornaments.tsx           brasão e divisores prateados
+   ├─ Ornaments.tsx           brasão, cantoneiras e divisores prateados
    ├─ SmoothScrollProvider.tsx Lenis + GSAP ticker + trava de scroll
-   ├─ sheets/                 conteúdo dos modais (local, RSVP, presentes)
+   ├─ sheets/                 conteúdo dos modais (local e RSVP)
    └─ ui/Sheet.tsx            bottom-sheet com arrastar para fechar
 ```
 

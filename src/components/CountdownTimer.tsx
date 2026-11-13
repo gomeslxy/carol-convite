@@ -23,11 +23,12 @@ function computeTimeLeft(target: number): TimeLeft {
   };
 }
 
-function useCountdown(target: number): TimeLeft | null {
+function useCountdown(target: number, active: boolean): TimeLeft | null {
   // null no SSR e no primeiro render cliente -> zero Hydration Mismatch
   const [time, setTime] = useState<TimeLeft | null>(null);
 
   useEffect(() => {
+    if (!active) return;
     let timeoutId: number;
 
     const tick = () => {
@@ -37,7 +38,7 @@ function useCountdown(target: number): TimeLeft | null {
 
     tick();
     return () => window.clearTimeout(timeoutId);
-  }, [target]);
+  }, [target, active]);
 
   return time;
 }
@@ -55,7 +56,7 @@ const RollingDigit = memo(function RollingDigit({ digit }: { digit: string }) {
           animate={{ y: "0%", rotateX: 0, scale: 1, opacity: 1 }}
           exit={{ y: "78%", rotateX: -38, scale: 0.9, opacity: 0 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex items-center justify-center text-white will-change-transform drop-shadow-[0_2px_10px_rgba(15,23,42,0.5)]"
+          className="absolute inset-0 flex items-center justify-center text-white will-change-transform [text-shadow:0_2px_10px_rgba(15,23,42,0.5)]"
         >
           {digit}
         </motion.span>
@@ -138,8 +139,8 @@ const CountdownUnit = memo(function CountdownUnit({
   );
 });
 
-export default function CountdownTimer() {
-  const time = useCountdown(EVENT_TIMESTAMP);
+export default function CountdownTimer({ active = true }: { active?: boolean }) {
+  const time = useCountdown(EVENT_TIMESTAMP, active);
   const ready = time !== null;
 
   if (time?.done) {

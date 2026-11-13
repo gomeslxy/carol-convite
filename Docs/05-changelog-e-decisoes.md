@@ -24,6 +24,28 @@ related:
 
 ---
 
+## [2026-11-13] · Sprint de Performance 60fps & Remoção Definitiva de Presentes/Pix
+
+### ADR-011: Remoção Definitiva de Sugestões de Presentes e Chave Pix (Regra Inviolável)
+* **Problema:** O convite incluía um 3º medalhão (`SUGESTÕES DE PRESENTES`), o modal `GiftsSheet.tsx`, dados de chave Pix/lista de presentes em `src/config/event.ts` e o ícone `HollowGiftIcon` em `InteractiveActions.tsx`, considerados inconvenientes para o evento.
+* **Decisão:** Remover 100% dos arquivos, tipos, configurações, ícones e menções a presentes e Pix (`GiftsSheet.tsx` deletado; `EVENT.gifts`, `GiftSuggestion`, `GiftSuggestionIcon` e `HollowGiftIcon` removidos). Reequilibrar `InteractiveActions.tsx` com os 2 medalhões restantes (`LOCAL DA FESTA` à esquerda e `CONFIRMAR PRESENÇA` à direita) em container `max-w-[356px] sm:max-w-[400px]` e registrar a proibição permanente em `AGENTS.md`, `GEMINI.md` e `Docs/`.
+
+### ADR-012: Otimização Extrema de Performance Mobile 60fps (Eliminação de `<feTurbulence>`, `backdrop-filter` em Massa, `mix-blend-mode` Fullscreen e Repaints no Scroll)
+* **Problema:** O acúmulo de efeitos visuais drenava CPU/GPU no Safari/iOS e Android:
+  1. `--satin-noise` (`<feTurbulence>` em SVG data-URI) forçava rasterização em software nas superfícies e camadas `preserve-3d`.
+  2. Mais de 10 instâncias simultâneas de `glass-royal-card` (`backdrop-filter: blur(12px)`) combinadas com mutação contínua de `--sheen-x`/`--sheen-y` no `rootRef` durante `scroll`/`pointermove` causavam recálculo de estilo e *backdrop blur* por frame.
+  3. `.satin-sheen::after` animava uma camada gigante com `mix-blend-mode: soft-light` em tela cheia, e `animate-shimmer` animava `background-position` sobre textos gigantes (`"Carol"`, `"17"`) com `filter: drop-shadow` e `background-clip: text`.
+  4. No `Envelope3DOpening.tsx`, havia loop infinito JS `y: [0, -8, 0]` em todo o container 3D, listener `deviceorientation` a 60Hz no mobile, `glareBackground` recriando strings de gradiente a cada frame, `blur-xl` na sombra de piso e `drop-shadow` em SVGs `preserve-3d`.
+  5. `CountdownTimer` rodava ticks de 1s enquanto o envelope estava fechado, `fireLuxuryCelebration` mantinha um `setInterval` de 2.3s concorrente com a abertura da carta, e `AmbientSparkles` usava excesso de nós com `box-shadow` e `will-change`.
+* **Decisão:**
+  * Substituir `--satin-noise` e SVG `--linen-grain` por `--linen-grain` em CSS `repeating-linear-gradient` puro.
+  * Remover `backdrop-filter` de `glass-royal-card`, `glass-pearl-pill`, badge de traje e overlay mobile do `Sheet.tsx` (mantido apenas `md:backdrop-blur-sm` no desktop), preservando a estética acetinada via gradientes multicamada e bordas especulares, e tornando `.interactive-sheen::before` estático sem listeners de `scroll`/`pointermove`.
+  * Remover `.satin-sheen::after`, `animate-shimmer` e `filter: drop-shadow` de `.text-silver-luxury`.
+  * Remover `deviceorientation`, `glareBackground`, loop infinito JS `y: [0, -8, 0]`, `blur-xl` (também removido em `CarolHeroCollage.tsx`), texturas inline e `drop-shadow` de SVGs no `Envelope3DOpening.tsx`; restringir `handlePointerMove` a ponteiro não-touch e montar o conteúdo da Camada 2 apenas quando `!isIdle`.
+  * Gating de `CountdownTimer` via prop `active={revealed}` e troca de `drop-shadow` por `[text-shadow:...]` em `RollingDigit`; `loading="lazy"` e `drop-shadow` reduzido nos adesivos de `InvitationContent.tsx`; calibração mobile de `fireLuxuryCelebration` sem `setInterval` e redução de `AmbientSparkles` para 6+6 elementos sem `box-shadow`; remoção de `grayscale-[35%]` no `<iframe>` de `LocationSheet.tsx` e remoção de `gsap.ticker.lagSmoothing(0)` em `SmoothScrollProvider.tsx`.
+
+---
+
 ## [2026-11-13] · Elevação UI/UX Awwwards-Level
 
 ### ADR-007: Envelope Físico de Alta Papelaria & Selo Magnético Isolado do Plano `translateZ`
