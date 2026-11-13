@@ -54,8 +54,8 @@ export const EVENT: EventConfig = {
   closingText: "Conto com sua presença!",
   venue: {
     name: "Espaço Royal Eventos",
-    address: "Av. Paulista, 1000 — Bela Vista, São Paulo - SP",
-    mapsQuery: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
+    address: "Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP",
+    mapsQuery: "Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP",
   },
   rsvp: {
     whatsapp: "5519971345909",

@@ -24,6 +24,14 @@ related:
 
 ---
 
+## [2026-11-13] · Atualização do Endereço do Evento
+
+### ADR-013: Atualização do Endereço Oficial em Indaiatuba - SP
+* **Motivação:** Definição do endereço do local do evento informado pelo usuário.
+* **Alteração:** Atualizado `venue.address` e `venue.mapsQuery` em `src/config/event.ts` para `"Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP"`, refletindo automaticamente no `LocationSheet.tsx` (cartão de endereço copiável, links de rotas Google Maps/Waze e iframe embed) e documentado em `Docs/00-visao-geral-e-identidade.md`.
+
+---
+
 ## [2026-11-13] · Sprint de Performance 60fps & Remoção Definitiva de Presentes/Pix
 
 ### ADR-011: Remoção Definitiva de Sugestões de Presentes e Chave Pix (Regra Inviolável)

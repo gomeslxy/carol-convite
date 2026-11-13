@@ -29,7 +29,7 @@ related:
 * **Aniversariante:** Carol (`Caroline Maria`) — **18 anos**
 * **Data e Horário:** **17 de Julho de 2027**, às **20:30** (fuso `America/Sao_Paulo`)
 * **Traje:** **Esporte Fino** — *"Tons de azul royal e prata são reservados à aniversariante."* (`EVENT.dressCodeNote`)
-* **Local Padrão Configurado:** Espaço Royal Eventos — Av. Paulista, 1000, Bela Vista, São Paulo - SP
+* **Local Padrão Configurado:** Espaço Royal Eventos — Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP
 
 > [!quote] Frase Oficial de Abertura
 > “Você pode sonhar, criar, desenhar e construir o lugar mais maravilhoso do mundo. Mas é necessário ter pessoas para transformar seu sonho em realidade.” – Walt Disney
