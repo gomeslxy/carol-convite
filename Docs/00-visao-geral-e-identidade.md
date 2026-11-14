@@ -9,7 +9,7 @@ tags:
   - identidade-visual
   - convite-carol
 status: active
-updated: 2026-11-13
+updated: 2026-11-14
 related:
   - "[[00-INDEX]]"
   - "[[01-arquitetura-e-estrutura]]"
@@ -27,7 +27,7 @@ related:
 ## Dados Oficiais do Evento (`src/config/event.ts`)
 
 * **Aniversariante:** Carol (`Caroline Maria`) — **18 anos**
-* **Data e Horário:** **17 de Julho de 2027**, às **20:30** (fuso `America/Sao_Paulo`)
+* **Data e Horário:** **17 de Julho de 2027**, às **19:30** (fuso `America/Sao_Paulo`)
 * **Traje:** **Esporte Fino** — *"Tons de azul royal e prata são reservados à aniversariante."* (`EVENT.dressCodeNote`)
 * **Local Padrão Configurado:** Espaço Royal Eventos — Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP
 
@@ -45,7 +45,7 @@ related:
 > * **Proibição de Elementos Florais:** É terminantemente proibido usar flores, folhas ou arranjos florais em qualquer SVG, imagem ou ornamento.
 > * **Ornamento Exclusivo:** Utilizar **lacinhos de fita acetinada** (`BowDecoration.tsx`), acompanhados apenas por estrelas de 4 pontas (`✦`), balões metalizados (`18`), globo espelhado e adesivos temáticos em PNG sem fundo.
 > * **Proibição Estrita de Sugestões de Presentes / Pix:** É terminantemente proibido incluir qualquer menção, botão, modal, ícone, chave Pix ou lista de sugestões de presentes no convite (considerado inconveniente para o evento).
-> * **Data e Traje Oficiais:** **17 de Julho de 2027** (`17/07`), às **20:30**, com traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
+> * **Data e Traje Oficiais:** **17 de Julho de 2027** (`17/07`), às **19:30**, com traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
 
 ---
 

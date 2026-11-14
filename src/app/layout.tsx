@@ -25,37 +25,34 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const siteTitle = `${EVENT.name} · ${EVENT.age} Anos — Convite`;
-const siteDescription = `Você é meu convidado especial! ${FORMATTED_EVENT_DATE.weekday}, ${FORMATTED_EVENT_DATE.day} de ${FORMATTED_EVENT_DATE.month.toLowerCase()} de ${FORMATTED_EVENT_DATE.year} às ${FORMATTED_EVENT_DATE.time}.`;
+const siteTitle = `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`;
+const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos no dia 17 de Julho, às ${FORMATTED_EVENT_DATE.time}. Confirme sua presença e confira os detalhes.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(EVENT.siteUrl),
-  title: siteTitle,
+  title: {
+    default: siteTitle,
+    template: `%s | ${EVENT.name} — ${EVENT.age} Anos`,
+  },
   description: siteDescription,
+  authors: [{ name: "Lucas Gomes do Amaral", url: "https://github.com/gomeslxy" }],
+  creator: "Lucas Gomes do Amaral",
+  publisher: "Lucas Gomes do Amaral",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: `${EVENT.name} · ${EVENT.age} Anos`,
-    description: `Save the date — ${FORMATTED_EVENT_DATE.short} · ${FORMATTED_EVENT_DATE.time}. Confirme sua presença!`,
+    title: siteTitle,
+    description: siteDescription,
     url: "/",
-    siteName: `${EVENT.name} · ${EVENT.age} Anos`,
+    siteName: `${EVENT.name} — ${EVENT.age} Anos`,
     type: "website",
     locale: "pt_BR",
-    images: [
-      {
-        url: "/images/carol-cutout.png",
-        width: 800,
-        height: 800,
-        alt: `${EVENT.name} — ${EVENT.age} Anos`,
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${EVENT.name} · ${EVENT.age} Anos`,
-    description: `Save the date — ${FORMATTED_EVENT_DATE.short} · ${FORMATTED_EVENT_DATE.time}.`,
-    images: ["/images/carol-cutout.png"],
+    title: siteTitle,
+    description: siteDescription,
   },
   appleWebApp: {
     capable: true,

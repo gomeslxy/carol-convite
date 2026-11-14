@@ -41,7 +41,7 @@ export const EVENT: EventConfig = {
   name: "Carol",
   initial: "C",
   age: 18,
-  dateISO: "2027-07-17T20:30:00-03:00",
+  dateISO: "2027-07-17T19:30:00-03:00",
   durationHours: 5,
   timeZone: "America/Sao_Paulo",
   quoteText:

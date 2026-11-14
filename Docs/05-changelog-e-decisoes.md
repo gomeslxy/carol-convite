@@ -9,7 +9,7 @@ tags:
   - changelog
   - refatoracao
 status: active
-updated: 2026-11-13
+updated: 2026-11-14
 related:
   - "[[00-INDEX]]"
   - "[[01-arquitetura-e-estrutura]]"
@@ -21,6 +21,19 @@ related:
 
 > [!info] Registro Vivo de Decisões
 > Toda alteração significativa de arquitetura, estado, performance ou UI/UX deve ser registrada aqui em ordem cronológica reversa.
+
+---
+
+## [2026-11-14] · Polimento de Produção, Horário Oficial 19:30 e SEO/Open Graph
+
+### ADR-014: Horário Oficial 19:30, Autoria Oficial e Pacote Completo de SEO/OG/Ícones
+* **Motivação:** Preparação final de lançamento público para `https://convitecarol.site`.
+* **Alterações:**
+  * Atualizado `EVENT.dateISO` em `src/config/event.ts` para `"2027-07-17T19:30:00-03:00"`, propagando automaticamente para a interface, contador regressivo, links do Google Agenda e geração de `.ics`.
+  * Configurada autoria oficial (`Lucas Gomes do Amaral`, `@gomeslxy`, `la181009@gmail.com`, `https://github.com/gomeslxy`) em `package.json`, `README.md` e `metadata` (`authors`, `creator`, `publisher`) em `src/app/layout.tsx`.
+  * Atualizados `title` (`Carol — 18 Anos | Convite Oficial` com `template`), `description`, `openGraph` e `twitter` em `src/app/layout.tsx`.
+  * Criados `src/app/icon.tsx` (64x64), `src/app/apple-icon.tsx` (180x180) e `src/app/opengraph-image.tsx` (1200x630 via `next/og`) na paleta Azul Royal e Prata com laço minimalista e monograma `"C"`.
+  * Criados `src/app/robots.ts` e `src/app/sitemap.ts` apontando para `https://convitecarol.site`.
 
 ---
 

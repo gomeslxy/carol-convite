@@ -10,7 +10,7 @@ tags:
   - react19
   - typescript
 status: active
-updated: 2026-11-13
+updated: 2026-11-14
 related:
   - "[[00-INDEX]]"
   - "[[02-envelope-3d-e-animacoes]]"
@@ -35,7 +35,12 @@ carol/
 │  ├─ app/
 │  │  ├─ globals.css                          # Tema Tailwind v4, linho CSS leve, glass-royal-card 60fps e animações GPU
 │  │  ├─ layout.tsx                           # Server Component: fontes, SEO/OG, SmoothScrollProvider
-│  │  └─ page.tsx                             # Server Component: entrada principal (<InvitationExperience />)
+│  │  ├─ page.tsx                             # Server Component: entrada principal (<InvitationExperience />)
+│  │  ├─ icon.tsx                             # Favicon PNG 64x64 (monograma C em Azul Royal e Prata)
+│  │  ├─ apple-icon.tsx                       # Apple Touch Icon PNG 180x180 para iOS
+│  │  ├─ opengraph-image.tsx                  # Card Open Graph 1200x630 (next/og) para WhatsApp/redes
+│  │  ├─ robots.ts                            # Diretivas de indexação apontando para sitemap.xml
+│  │  └─ sitemap.ts                           # Sitemap XML oficial de https://convitecarol.site
 │  ├─ config/
 │  │  └─ event.ts                             # Fonte única de verdade do evento + cache de data
 │  ├─ lib/
@@ -80,7 +85,7 @@ carol/
 Todo o conteúdo editorial e funcional reside em `EVENT` (`EventConfig`):
 
 * **Identidade:** `name: "Carol"`, `initial: "C"`, `age: 18`, `siteUrl: "https://convitecarol.site"`.
-* **Data e Fuso:** `dateISO: "2027-07-17T20:30:00-03:00"`, `timeZone: "America/Sao_Paulo"`, `durationHours: 5`.
+* **Data e Fuso:** `dateISO: "2027-07-17T19:30:00-03:00"`, `timeZone: "America/Sao_Paulo"`, `durationHours: 5`.
 * **Textos:** Citação de Walt Disney (`quoteText`, `quoteAuthor`), `openingText`, `dressCode: "Esporte Fino"`, `dressCodeNote` e `closingText`.
 * **Local (`venue`):** Nome, endereço e `mapsQuery` consumidos por `LocationSheet.tsx` e `lib/utils.ts`.
 * **RSVP (`rsvp`):** WhatsApp (`5519971345909`), prazo (`17 de junho de 2027`) e limite de acompanhantes (`maxGuests: 6`).

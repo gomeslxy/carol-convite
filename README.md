@@ -43,3 +43,9 @@ src/
 
 Importe o repositório na Vercel — nenhuma variável de ambiente é necessária.
 
+## Autor
+
+- **Lucas Gomes do Amaral** (`@gomeslxy`)
+- **E-mail:** [la181009@gmail.com](mailto:la181009@gmail.com)
+- **GitHub:** [https://github.com/gomeslxy](https://github.com/gomeslxy)
+

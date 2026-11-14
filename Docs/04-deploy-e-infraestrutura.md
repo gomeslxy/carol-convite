@@ -12,7 +12,7 @@ tags:
   - dns
   - seo
 status: active
-updated: 2026-11-13
+updated: 2026-11-14
 related:
   - "[[00-INDEX]]"
   - "[[01-arquitetura-e-estrutura]]"
@@ -64,18 +64,20 @@ Para o domínio raiz `convitecarol.site` e subdomínio `www.convitecarol.site` a
 
 ---
 
-## SEO & Open Graph (`src/app/layout.tsx`)
+## SEO & Open Graph (`src/app/layout.tsx`, `opengraph-image.tsx`, `robots.ts`, `sitemap.ts`)
 
 Para pré-visualização rica ao compartilhar `https://convitecarol.site` no WhatsApp, Instagram ou Telegram:
 
 * `metadataBase`: `new URL(EVENT.siteUrl)` (`https://convitecarol.site`)
+* `title`: `{ default: "Carol — 18 Anos | Convite Oficial", template: "%s | Carol — 18 Anos" }`
+* `description`: `"Você é meu convidado especial para celebrar os meus 18 anos no dia 17 de Julho, às 19:30. Confirme sua presença e confira os detalhes."`
+* `authors` / `creator` / `publisher`: `Lucas Gomes do Amaral` (`https://github.com/gomeslxy`)
 * `alternates.canonical`: `"/"`
-* `openGraph`:
-  * `title`: `"Carol · 18 Anos"`
-  * `description`: `"Save the date — 17 · 07 · 2027 · 20:30. Confirme sua presença!"`
-  * `url`: `"/"`, `siteName`: `"Carol · 18 Anos"`, `locale`: `"pt_BR"`, `type`: `"website"`
-  * `images`: `[{ url: "/images/carol-cutout.png", width: 800, height: 800, alt: "Carol — 18 Anos" }]`
-* `twitter`: `card: "summary_large_image"`
+* `openGraph` & `twitter`:
+  * Imagem gerada dinamicamente em `src/app/opengraph-image.tsx` (`1200x630`, `next/og` `ImageResponse`) em Azul Royal acetinado, moldura e laço minimalista em prata e tipografia `"Carol — 18 Anos • 17 de Julho às 19:30"`.
+  * `url`: `"/"`, `siteName`: `"Carol — 18 Anos"`, `locale`: `"pt_BR"`, `type`: `"website"`, `twitter.card`: `"summary_large_image"`.
+* **Favicons & Ícones:** `src/app/icon.tsx` (`64x64` PNG) e `src/app/apple-icon.tsx` (`180x180` PNG) com monograma `"C"` em Azul Royal e Prata.
+* **Indexação:** `src/app/robots.ts` e `src/app/sitemap.ts` apontando para `https://convitecarol.site`.
 
 Veja também: [[00-INDEX]], [[01-arquitetura-e-estrutura]], [[05-changelog-e-decisoes]].
 

@@ -28,16 +28,16 @@ export default function RsvpSheet() {
     const lines =
       attendance === "yes"
         ? [
-            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel}!`,
-            "",
-            `👤 Nome: ${trimmedName}`,
-            `👥 Total de pessoas: ${guests}`,
-          ]
+          `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel}!`,
+          "",
+          `👤 Nome: ${trimmedName}`,
+          `👥 Total de pessoas: ${guests}`,
+        ]
         : [
-            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
-            "",
-            `👤 Nome: ${trimmedName}`,
-          ];
+          `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
+          "",
+          `👤 Nome: ${trimmedName}`,
+        ];
 
     if (trimmedMsg) {
       lines.push(`💌 Recado: ${trimmedMsg}`);
@@ -93,9 +93,8 @@ export default function RsvpSheet() {
               role="radio"
               aria-checked={active}
               onClick={() => setAttendance(value)}
-              className={`relative flex cursor-pointer items-center justify-center gap-2 rounded-xl px-3 py-3 font-sans text-[13px] font-semibold transition-colors ${
-                active ? "text-white" : "text-slate-500"
-              }`}
+              className={`relative flex cursor-pointer items-center justify-center gap-2 rounded-xl px-3 py-3 font-sans text-[13px] font-semibold transition-colors ${active ? "text-white" : "text-slate-500"
+                }`}
             >
               {active && (
                 <motion.span
