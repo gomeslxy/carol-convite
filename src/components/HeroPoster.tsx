@@ -3,9 +3,11 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { CalendarDays, Clock } from "lucide-react";
 import Image from "next/image";
-import { memo, useId, useMemo, useRef, type CSSProperties } from "react";
+import { memo, useId, useRef, useState, type CSSProperties } from "react";
 import { Bow } from "@/components/BowDecoration";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
+import carolCutoutImage from "../../public/images/carol-cutout.png";
+import partyHatImage from "../../public/images/party-hat.png";
 
 export type FloatStyle = CSSProperties & {
   "--float-duration"?: string;
@@ -383,153 +385,6 @@ function LetterBlock({
   );
 }
 
-/** Chapéu cônico de festa em glitter Azul Royal com pompom volumoso e sombra de contato. */
-function RoyalGlitterPartyHat({ className = "" }: { className?: string }) {
-  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const coneGrad = `hat-cone-${uid}`;
-  const coneClip = `hat-clip-${uid}`;
-  const pomGrad = `hat-pom-${uid}`;
-
-  const glitterDots = useMemo(
-    () => [
-      { x: 58, y: 42, r: 1.2, c: "#93C5FD", twinkle: false },
-      { x: 64, y: 50, r: 1.5, c: "#FFFFFF", twinkle: true, delay: "0.2s" },
-      { x: 52, y: 58, r: 1.2, c: "#60A5FA", twinkle: false },
-      { x: 69, y: 62, r: 1.5, c: "#DBEAFE", twinkle: false },
-      { x: 47, y: 70, r: 1.4, c: "#FFFFFF", twinkle: false },
-      { x: 60, y: 72, r: 1.7, c: "#93C5FD", twinkle: true, delay: "1.1s" },
-      { x: 74, y: 76, r: 1.3, c: "#E2E8F0", twinkle: false },
-      { x: 40, y: 84, r: 1.5, c: "#93C5FD", twinkle: false },
-      { x: 54, y: 86, r: 1.3, c: "#FFFFFF", twinkle: false },
-      { x: 68, y: 88, r: 1.6, c: "#60A5FA", twinkle: true, delay: "0.7s" },
-      { x: 81, y: 90, r: 1.2, c: "#FFFFFF", twinkle: false },
-      { x: 35, y: 98, r: 1.4, c: "#60A5FA", twinkle: false },
-      { x: 48, y: 100, r: 1.8, c: "#FFFFFF", twinkle: true, delay: "1.6s" },
-      { x: 62, y: 102, r: 1.3, c: "#93C5FD", twinkle: false },
-      { x: 77, y: 104, r: 1.6, c: "#60A5FA", twinkle: false },
-      { x: 88, y: 105, r: 1.3, c: "#FFFFFF", twinkle: false },
-      { x: 30, y: 112, r: 1.5, c: "#93C5FD", twinkle: false },
-      { x: 44, y: 114, r: 1.4, c: "#60A5FA", twinkle: false },
-      { x: 58, y: 116, r: 1.7, c: "#FFFFFF", twinkle: true, delay: "2.1s" },
-      { x: 72, y: 117, r: 1.4, c: "#93C5FD", twinkle: false },
-      { x: 86, y: 115, r: 1.5, c: "#E2E8F0", twinkle: false },
-      { x: 96, y: 114, r: 1.2, c: "#60A5FA", twinkle: false },
-      { x: 38, y: 120, r: 1.2, c: "#DBEAFE", twinkle: false },
-      { x: 66, y: 123, r: 1.3, c: "#3B82F6", twinkle: false },
-      { x: 50, y: 66, r: 1.1, c: "#3B82F6", twinkle: false },
-      { x: 63, y: 95, r: 1.2, c: "#DBEAFE", twinkle: false },
-    ],
-    [],
-  );
-
-  const pompomStrands = useMemo(() => {
-    const items: { x2: number; y2: number; color: string; width: number }[] = [];
-    const colors = ["#071739", "#0A2463", "#1E40AF", "#3B82F6", "#60A5FA", "#172554"];
-    for (let i = 0; i < 40; i++) {
-      const angle = (i / 40) * Math.PI * 2;
-      const len = i % 3 === 0 ? 19.5 : i % 2 === 0 ? 16.5 : 13.5;
-      items.push({
-        x2: Number((60 + Math.cos(angle) * len).toFixed(1)),
-        y2: Number((22 + Math.sin(angle) * len).toFixed(1)),
-        color: colors[i % colors.length],
-        width: i % 2 === 0 ? 2.5 : 2.1,
-      });
-    }
-    return items;
-  }, []);
-
-  return (
-    <svg
-      width={120}
-      height={140}
-      viewBox="0 0 120 140"
-      className={`pointer-events-none h-auto aspect-[120/140] select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.44)] ${className}`}
-      aria-hidden
-    >
-      <defs>
-        <linearGradient id={coneGrad} x1="16%" y1="28%" x2="88%" y2="85%">
-          <stop offset="0%" stopColor="#3B82F6" />
-          <stop offset="28%" stopColor="#1D4ED8" />
-          <stop offset="68%" stopColor="#0A2463" />
-          <stop offset="100%" stopColor="#071739" />
-        </linearGradient>
-        <radialGradient id={pomGrad} cx="38%" cy="34%" r="68%">
-          <stop offset="0%" stopColor="#60A5FA" />
-          <stop offset="45%" stopColor="#1E40AF" />
-          <stop offset="100%" stopColor="#071739" />
-        </radialGradient>
-        <clipPath id={coneClip}>
-          <path d="M 60 24 L 18 122 Q 60 134 102 122 Z" />
-        </clipPath>
-      </defs>
-
-      {/* Sombra projetada suave sobre o cabelo */}
-      <ellipse cx="60" cy="127" rx="43" ry="7.5" fill="#040B1A" opacity="0.46" />
-
-      <path
-        d="M 60 24 L 18 122 Q 60 134 102 122 Z"
-        fill={`url(#${coneGrad})`}
-        stroke="#071739"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-
-      <g clipPath={`url(#${coneClip})`}>
-        {/* Reflexo acetinado cônico lateral esquerdo */}
-        <path d="M 59 25 L 25 122 L 42 126 Z" fill="#93C5FD" opacity="0.24" />
-        <path d="M 59 25 L 33 123 L 39 124 Z" fill="#FFFFFF" opacity="0.14" />
-
-        {glitterDots.map((d, i) =>
-          d.twinkle ? (
-            <circle
-              key={i}
-              cx={d.x}
-              cy={d.y}
-              r={d.r}
-              fill={d.c}
-              style={{
-                transformOrigin: `${d.x}px ${d.y}px`,
-                animationDelay: d.delay,
-              }}
-              className="animate-twinkle"
-            />
-          ) : (
-            <circle key={i} cx={d.x} cy={d.y} r={d.r} fill={d.c} opacity="0.92" />
-          ),
-        )}
-
-        {/* Filete metálico prata-azul na borda inferior do cone */}
-        <path
-          d="M 18 121.5 Q 60 133.5 102 121.5"
-          fill="none"
-          stroke="#CBD5E1"
-          strokeOpacity="0.6"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </g>
-
-      {/* Pom-pom volumoso multi-camada */}
-      <g>
-        {pompomStrands.map((s, i) => (
-          <line
-            key={i}
-            x1="60"
-            y1="22"
-            x2={s.x2}
-            y2={s.y2}
-            stroke={s.color}
-            strokeWidth={s.width}
-            strokeLinecap="round"
-          />
-        ))}
-        <circle cx="60" cy="22" r="11" fill={`url(#${pomGrad})`} />
-        <circle cx="56.5" cy="18.5" r="3.6" fill="#93C5FD" opacity="0.62" />
-      </g>
-    </svg>
-  );
-}
-
 /** Cluster de 5 balões brilhantes em Azul Royal/Marinho (renderização leve 60fps). */
 function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -656,6 +511,7 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
  */
 export default function HeroPoster({ revealed }: { revealed: boolean }) {
   const posterRef = useRef<HTMLElement>(null);
+  const [portraitError, setPortraitError] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: posterRef,
@@ -1038,7 +894,7 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
           className="relative z-[14] mx-auto aspect-[833/1024] w-[252px] sm:w-[344px]"
         >
           <Image
-            src="/images/carol-cutout.png"
+            src={carolCutoutImage}
             alt={`${EVENT.name} — ${EVENT.age} anos`}
             width={833}
             height={1024}
@@ -1046,11 +902,17 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
             fetchPriority="high"
             loading="eager"
             decoding="sync"
-            data-critical-asset="true"
+            data-critical-asset="carol"
             sizes="(max-width: 639px) 252px, 344px"
             draggable={false}
-            className="block size-full object-contain drop-shadow-[0_12px_24px_rgba(7,23,57,0.28)]"
+            onError={() => setPortraitError(true)}
+            className={`block size-full object-contain drop-shadow-[0_12px_24px_rgba(7,23,57,0.28)] ${
+              portraitError ? "opacity-0" : ""
+            }`}
             style={{
+              transform: "translate3d(0, 0, 0)",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
               WebkitMaskImage: "linear-gradient(to bottom, black 86%, transparent 100%)",
               maskImage: "linear-gradient(to bottom, black 86%, transparent 100%)",
             }}
@@ -1071,9 +933,27 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
             initial={{ opacity: 0, scale: 0.4, y: -14 }}
             animate={revealed ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.4, y: -14 }}
             transition={{ type: "spring", stiffness: 130, damping: 13, delay: revealed ? 1.95 : 0 }}
-            className="pointer-events-none absolute -top-[13.5%] right-[11.2%] z-[18] w-[33.5%] rotate-[24deg]"
+            className="pointer-events-none absolute -top-[18.5%] right-[11.5%] z-[18] w-[33%] rotate-[23deg]"
           >
-            <RoyalGlitterPartyHat className="w-full" />
+            <Image
+              src={partyHatImage}
+              alt=""
+              width={331}
+              height={472}
+              priority
+              fetchPriority="high"
+              loading="eager"
+              decoding="sync"
+              data-critical-asset="partyHat"
+              sizes="(max-width: 639px) 84px, 114px"
+              draggable={false}
+              className="block h-auto w-full select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.38)]"
+              style={{
+                transform: "translate3d(0, 0, 0)",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
+              }}
+            />
           </motion.div>
         </motion.div>
       </div>

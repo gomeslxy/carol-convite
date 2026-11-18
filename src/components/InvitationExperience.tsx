@@ -12,43 +12,43 @@ type Stage = "closed" | "opening" | "open";
 const MIN_PRELOADER_MS = 450;
 const PRELOADER_TIMEOUT_MS = 3000;
 
-const CRITICAL_IMAGE_FALLBACKS = [
-  "/images/brasao-barroco-c.png",
-  "/images/cover-ornament-backdrop-right.png",
-  "/images/carol-cutout.png",
-] as const;
-
-interface ImageDescriptor {
-  src: string;
-  srcset?: string;
-  sizes?: string;
-  domEl?: HTMLImageElement;
-}
+const CRITICAL_IMAGE_FALLBACKS: Readonly<Record<string, string>> = {
+  crest: "/images/brasao-barroco-c.png",
+  backdrop: "/images/cover-ornament-backdrop-right.png",
+  carol: "/images/carol-cutout.png",
+  partyHat: "/images/party-hat.png",
+};
 
 /**
- * Pré-carrega e decodifica em memória (`new Image()` + `img.decode()`)
- * uma imagem crítica antes de liberar a tela inicial.
+ * Aguarda o carregamento (`load`/`error`) de um `HTMLImageElement` já existente ou criado em memória,
+ * respeitando `AbortSignal` para evitar memory leaks em unmount/timeout.
  */
-async function decodeCriticalImage({
-  src,
-  srcset,
-  sizes,
-  domEl,
-}: ImageDescriptor): Promise<void> {
-  const img = new window.Image();
-  if (sizes) img.sizes = sizes;
-  if (srcset) img.srcset = srcset;
-  img.src = src;
+function waitForImageLoad(img: HTMLImageElement, signal: AbortSignal): Promise<void> {
+  if (img.complete) return Promise.resolve();
+  if (signal.aborted) return Promise.resolve();
 
-  if (!img.complete) {
-    await new Promise<void>((resolve) => {
-      const done = () => resolve();
-      img.addEventListener("load", done, { once: true });
-      img.addEventListener("error", done, { once: true });
-      if (img.complete) resolve();
-    });
-  }
+  return new Promise<void>((resolve) => {
+    const cleanup = () => {
+      img.removeEventListener("load", onDone);
+      img.removeEventListener("error", onDone);
+      signal.removeEventListener("abort", onDone);
+    };
+    const onDone = () => {
+      cleanup();
+      resolve();
+    };
 
+    img.addEventListener("load", onDone, { once: true });
+    img.addEventListener("error", onDone, { once: true });
+    signal.addEventListener("abort", onDone, { once: true });
+
+    if (img.complete) {
+      onDone();
+    }
+  });
+}
+
+async function safeDecodeImage(img: HTMLImageElement): Promise<void> {
   if (img.naturalWidth > 0 && typeof img.decode === "function") {
     try {
       await img.decode();
@@ -56,53 +56,72 @@ async function decodeCriticalImage({
       /* ignora falha de decode em navegadores ou respostas inválidas */
     }
   }
-
-  if (domEl && domEl.complete && domEl.naturalWidth > 0 && typeof domEl.decode === "function") {
-    try {
-      await domEl.decode();
-    } catch {
-      /* ignora falha de decode no elemento montado */
-    }
-  }
 }
 
-async function preloadCriticalAssets(): Promise<void> {
+/**
+ * Garante carregamento e pré-decodificação em memória (`img.decode()`) do elemento DOM montado
+ * e via `new Image()` (reaproveitando o mesmo candidato AVIF/WebP em cache, sem download duplicado).
+ */
+async function decodeDomCriticalImage(
+  domEl: HTMLImageElement,
+  signal: AbortSignal,
+): Promise<void> {
+  await waitForImageLoad(domEl, signal);
+  if (signal.aborted) return;
+
+  await safeDecodeImage(domEl);
+  if (signal.aborted) return;
+
+  const resolvedSrc = domEl.currentSrc || domEl.getAttribute("src") || domEl.src;
+  if (!resolvedSrc) return;
+
+  const probe = new window.Image();
+  probe.decoding = "sync";
+  const sizes = domEl.getAttribute("sizes");
+  const srcset = domEl.getAttribute("srcset");
+  if (sizes) probe.sizes = sizes;
+  if (srcset) probe.srcset = srcset;
+  probe.src = resolvedSrc;
+
+  await waitForImageLoad(probe, signal);
+  if (signal.aborted) return;
+  await safeDecodeImage(probe);
+}
+
+async function decodeFallbackUrl(src: string, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return;
+  const img = new window.Image();
+  img.decoding = "sync";
+  img.src = src;
+
+  await waitForImageLoad(img, signal);
+  if (signal.aborted) return;
+  await safeDecodeImage(img);
+}
+
+async function preloadCriticalAssets(signal: AbortSignal): Promise<void> {
   if (typeof window === "undefined") return;
 
   const domImages = Array.from(
-    document.querySelectorAll<HTMLImageElement>('img[data-critical-asset="true"]'),
+    document.querySelectorAll<HTMLImageElement>("img[data-critical-asset]"),
   );
 
-  const descriptors: ImageDescriptor[] = [];
-  const coveredFallbacks = new Set<string>();
+  const coveredKeys = new Set<string>();
+  const tasks: Promise<void>[] = [];
 
   for (const el of domImages) {
-    const rawSrc = el.getAttribute("src") ?? el.src;
-    const srcset = el.getAttribute("srcset") ?? undefined;
-    const sizes = el.getAttribute("sizes") ?? undefined;
-    const effectiveSrc = el.currentSrc || rawSrc;
+    const key = el.getAttribute("data-critical-asset");
+    if (key) coveredKeys.add(key);
+    tasks.push(decodeDomCriticalImage(el, signal));
+  }
 
-    for (const fallback of CRITICAL_IMAGE_FALLBACKS) {
-      if (
-        rawSrc.includes(encodeURIComponent(fallback)) ||
-        rawSrc.includes(fallback)
-      ) {
-        coveredFallbacks.add(fallback);
-      }
-    }
-
-    if (effectiveSrc) {
-      descriptors.push({ src: effectiveSrc, srcset, sizes, domEl: el });
+  for (const [key, fallbackSrc] of Object.entries(CRITICAL_IMAGE_FALLBACKS)) {
+    if (!coveredKeys.has(key)) {
+      tasks.push(decodeFallbackUrl(fallbackSrc, signal));
     }
   }
 
-  for (const fallback of CRITICAL_IMAGE_FALLBACKS) {
-    if (!coveredFallbacks.has(fallback)) {
-      descriptors.push({ src: fallback });
-    }
-  }
-
-  await Promise.all(descriptors.map((desc) => decodeCriticalImage(desc)));
+  await Promise.all(tasks);
 }
 
 /**
@@ -118,20 +137,29 @@ export default function InvitationExperience() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [stage, setStage] = useState<Stage>("closed");
 
-  // Mantém overflow: hidden no body durante o Preloader (CoverGate mantém após ele)
+  // Mantém overflow: hidden no body durante o Preloader (CoverGate assume após ele)
   useScrollLock(!isAppReady);
 
   useEffect(() => {
     let cancelled = false;
     let minTimerId: number | undefined;
     let safetyTimerId: number | undefined;
+    let rafId: number | undefined;
+    const controller = new AbortController();
 
-    const finish = () => {
+    const commitReady = () => {
       if (cancelled) return;
       cancelled = true;
+      controller.abort();
       if (minTimerId !== undefined) window.clearTimeout(minTimerId);
       if (safetyTimerId !== undefined) window.clearTimeout(safetyTimerId);
+      if (rafId !== undefined) window.cancelAnimationFrame(rafId);
       setIsAppReady(true);
+    };
+
+    const finishAfterPaint = () => {
+      if (cancelled) return;
+      rafId = window.requestAnimationFrame(commitReady);
     };
 
     const waitMinDelay = new Promise<void>((resolve) => {
@@ -143,16 +171,18 @@ export default function InvitationExperience() {
         ? document.fonts.ready.then(() => undefined).catch(() => undefined)
         : Promise.resolve();
 
-    const waitImages = preloadCriticalAssets().catch(() => undefined);
+    const waitImages = preloadCriticalAssets(controller.signal).catch(() => undefined);
 
-    safetyTimerId = window.setTimeout(finish, PRELOADER_TIMEOUT_MS);
+    safetyTimerId = window.setTimeout(commitReady, PRELOADER_TIMEOUT_MS);
 
-    Promise.all([waitMinDelay, waitFonts, waitImages]).then(finish);
+    Promise.all([waitMinDelay, waitFonts, waitImages]).then(finishAfterPaint);
 
     return () => {
       cancelled = true;
+      controller.abort();
       if (minTimerId !== undefined) window.clearTimeout(minTimerId);
       if (safetyTimerId !== undefined) window.clearTimeout(safetyTimerId);
+      if (rafId !== undefined) window.cancelAnimationFrame(rafId);
     };
   }, []);
 

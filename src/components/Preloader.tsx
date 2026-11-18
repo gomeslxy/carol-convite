@@ -27,7 +27,7 @@ export default function Preloader() {
           ease: LUXURY_EASE,
         },
       }}
-      className="bg-paper-fine fixed inset-0 z-[100] flex h-dvh w-screen flex-col items-center justify-center overflow-hidden select-none"
+      className="bg-paper-fine pointer-events-none fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden touch-none select-none"
       role="status"
       aria-live="polite"
       aria-label={`Carregando convite de ${EVENT.name}`}

@@ -22,8 +22,13 @@ const ScrollLockContext = createContext<ScrollLockContextValue | null>(null);
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   const lenisRef = useRef<Lenis | null>(null);
   const lockCount = useRef(0);
+  const unlockResizeRafRef = useRef<number | null>(null);
 
   const lock = useCallback(() => {
+    if (unlockResizeRafRef.current !== null) {
+      window.cancelAnimationFrame(unlockResizeRafRef.current);
+      unlockResizeRafRef.current = null;
+    }
     lockCount.current += 1;
     if (lockCount.current === 1) {
       document.documentElement.classList.add("scroll-locked");
@@ -32,11 +37,21 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const unlock = useCallback(() => {
-    lockCount.current = Math.max(0, lockCount.current - 1);
+    if (lockCount.current === 0) return;
+    lockCount.current -= 1;
     if (lockCount.current === 0) {
       document.documentElement.classList.remove("scroll-locked");
       lenisRef.current?.start();
       lenisRef.current?.resize();
+      if (unlockResizeRafRef.current !== null) {
+        window.cancelAnimationFrame(unlockResizeRafRef.current);
+      }
+      unlockResizeRafRef.current = window.requestAnimationFrame(() => {
+        unlockResizeRafRef.current = null;
+        if (lockCount.current === 0) {
+          lenisRef.current?.resize();
+        }
+      });
     }
   }, []);
 
@@ -70,6 +85,10 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.cancelAnimationFrame(rafId);
+      if (unlockResizeRafRef.current !== null) {
+        window.cancelAnimationFrame(unlockResizeRafRef.current);
+        unlockResizeRafRef.current = null;
+      }
       instance.destroy();
       lenisRef.current = null;
     };
