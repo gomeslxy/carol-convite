@@ -1,9 +1,0 @@
-{
-  "/_not-found/page": "/_not-found",
-  "/robots.txt/route": "/robots.txt",
-  "/sitemap.xml/route": "/sitemap.xml",
-  "/icon/route": "/icon",
-  "/apple-icon/route": "/apple-icon",
-  "/opengraph-image/route": "/opengraph-image",
-  "/page": "/"
-}

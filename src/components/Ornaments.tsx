@@ -33,8 +33,10 @@ export const CornerFiligree = memo(function CornerFiligree({
 
   return (
     <svg
+      width={64}
+      height={64}
       viewBox="0 0 64 64"
-      className={`pointer-events-none overflow-visible ${className}`}
+      className={`pointer-events-none aspect-square overflow-visible ${className}`}
       style={{ transform: CORNER_TRANSFORM[position] }}
       aria-hidden
     >

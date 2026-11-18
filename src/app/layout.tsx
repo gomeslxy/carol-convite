@@ -9,6 +9,7 @@ const greatVibes = Great_Vibes({
   weight: "400",
   variable: "--font-great-vibes",
   display: "swap",
+  preload: true,
 });
 
 const cinzel = Cinzel({
@@ -16,13 +17,15 @@ const cinzel = Cinzel({
   weight: ["400", "500", "600", "700"],
   variable: "--font-cinzel",
   display: "swap",
+  preload: true,
 });
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
   display: "swap",
+  preload: true,
 });
 
 const siteTitle = `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`;

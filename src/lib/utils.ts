@@ -100,3 +100,139 @@ export const wazeUrl = (query: string) => `https://waze.com/ul?q=${encodeURIComp
 export const whatsappUrl = (phone: string, message: string) =>
   `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
 
+/* ───────────────────────── Segurança & Sanitização RSVP ───────────────────────── */
+
+export const RSVP_LIMITS = {
+  name: 80,
+  companion: 80,
+  message: 280,
+} as const;
+
+const HTML_TAG_REGEX = /<[^>]*>/g;
+const ANGLE_BRACKET_REGEX = /[<>]/g;
+const URI_PAYLOAD_REGEX = /(?:javascript|data|vbscript)\s*:/gi;
+const SINGLE_LINE_CONTROL_REGEX = /[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g;
+const MULTILINE_CONTROL_REGEX = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g;
+
+/**
+ * Sanitiza texto de linha única: remove tags HTML, colchetes angulares, payloads de script,
+ * caracteres de controle/invisíveis, normaliza espaços consecutivos e aplica trim/limite.
+ */
+export function sanitizeSingleLineInput(value: string, maxLength?: number): string {
+  if (typeof value !== "string") return "";
+
+  let clean = value
+    .replace(HTML_TAG_REGEX, " ")
+    .replace(ANGLE_BRACKET_REGEX, "")
+    .replace(URI_PAYLOAD_REGEX, "")
+    .replace(SINGLE_LINE_CONTROL_REGEX, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (typeof maxLength === "number" && maxLength > 0) {
+    clean = clean.slice(0, maxLength).trim();
+  }
+
+  return clean;
+}
+
+/**
+ * Sanitiza texto multilinha preservando quebras de linha legítimas, removendo tags HTML,
+ * payloads de script, caracteres de controle e normalizando espaços múltiplos.
+ */
+export function sanitizeMultilineInput(value: string, maxLength?: number): string {
+  if (typeof value !== "string") return "";
+
+  let clean = value
+    .replace(/\r\n?|\u2028|\u2029/g, "\n")
+    .replace(HTML_TAG_REGEX, " ")
+    .replace(ANGLE_BRACKET_REGEX, "")
+    .replace(URI_PAYLOAD_REGEX, "")
+    .replace(MULTILINE_CONTROL_REGEX, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (typeof maxLength === "number" && maxLength > 0) {
+    clean = clean.slice(0, maxLength).trim();
+  }
+
+  return clean;
+}
+
+export interface RsvpPayloadInput {
+  name: unknown;
+  attendance: unknown;
+  guests: unknown;
+  companions: unknown;
+  message: unknown;
+  maxGuests: number;
+}
+
+export type RsvpValidationResult =
+  | {
+      ok: true;
+      data: {
+        name: string;
+        attendance: "yes" | "no";
+        guests: number;
+        companions: string[];
+        message: string;
+      };
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+/**
+ * Valida e normaliza todos os campos do RSVP antes da montagem da mensagem/envio.
+ */
+export function validateRsvpInput(input: RsvpPayloadInput): RsvpValidationResult {
+  if (typeof input.name !== "string") {
+    return { ok: false, error: "Formato de nome inválido." };
+  }
+
+  if (input.attendance !== "yes" && input.attendance !== "no") {
+    return { ok: false, error: "Selecione uma opção de presença válida." };
+  }
+
+  const sanitizedName = sanitizeSingleLineInput(input.name, RSVP_LIMITS.name);
+  const letterCount = sanitizedName.match(/\p{L}/gu)?.length ?? 0;
+
+  if (sanitizedName.length < 2 || letterCount < 2) {
+    return { ok: false, error: "Por favor, informe seu nome completo para confirmar." };
+  }
+
+  const maxAllowed = Math.max(1, Math.floor(input.maxGuests));
+  const rawGuests = typeof input.guests === "number" && Number.isFinite(input.guests) ? input.guests : 1;
+  const safeGuests = Math.max(1, Math.min(maxAllowed, Math.floor(rawGuests)));
+
+  const rawCompanions = Array.isArray(input.companions) ? input.companions : [];
+  const sanitizedCompanions =
+    input.attendance === "yes"
+      ? rawCompanions
+          .slice(0, Math.max(0, safeGuests - 1))
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => sanitizeSingleLineInput(item, RSVP_LIMITS.companion))
+          .filter((item) => item.length > 0)
+      : [];
+
+  const sanitizedMessage =
+    typeof input.message === "string"
+      ? sanitizeMultilineInput(input.message, RSVP_LIMITS.message)
+      : "";
+
+  return {
+    ok: true,
+    data: {
+      name: sanitizedName,
+      attendance: input.attendance,
+      guests: input.attendance === "yes" ? safeGuests : 0,
+      companions: sanitizedCompanions,
+      message: sanitizedMessage,
+    },
+  };
+}
+

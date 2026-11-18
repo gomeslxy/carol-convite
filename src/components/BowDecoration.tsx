@@ -370,9 +370,11 @@ export const Bow = memo(function Bow({
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   return (
     <svg
+      width={160}
+      height={126}
       viewBox="0 0 160 126"
       xmlns="http://www.w3.org/2000/svg"
-      className={`drop-shadow-[0_6px_10px_rgba(9,13,22,0.38)] ${className}`}
+      className={`h-auto aspect-[160/126] drop-shadow-[0_6px_10px_rgba(9,13,22,0.38)] ${className}`}
       style={style}
       role={title ? "img" : "presentation"}
       aria-hidden={title ? undefined : true}

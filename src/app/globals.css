@@ -127,7 +127,19 @@ html.lenis body {
   animation: sticker-float-alt var(--float-duration, 5.6s) ease-in-out infinite;
 }
 
+.animate-crest-float {
+  will-change: transform;
+}
+
+.animate-brooch-shimmer {
+  will-change: transform, opacity;
+}
+
 /* Pausa animações decorativas quando o convite ainda está atrás da capa */
+[data-active="false"] * {
+  will-change: auto !important;
+}
+
 [data-active="false"] .animate-sticker-float,
 [data-active="false"] .animate-sticker-float-alt,
 [data-active="false"] .animate-twinkle,

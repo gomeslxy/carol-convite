@@ -1,8 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import CoverGate from "@/components/CoverGate";
-import InvitationContent from "@/components/InvitationContent";
+
+const InvitationContent = dynamic(() => import("@/components/InvitationContent"));
 
 type Stage = "closed" | "opening" | "open";
 

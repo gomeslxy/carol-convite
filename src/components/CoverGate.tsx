@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
-import { gsap } from "gsap";
 import Image from "next/image";
 import {
   useCallback,
@@ -74,8 +73,10 @@ function EditorialCornerBracket({
 }) {
   return (
     <svg
+      width={48}
+      height={48}
       viewBox="0 0 48 48"
-      className={`pointer-events-none select-none overflow-visible ${className}`}
+      className={`pointer-events-none aspect-square select-none overflow-visible ${className}`}
       style={{ transform: CORNER_ROTATION[position] }}
       aria-hidden
     >
@@ -181,6 +182,8 @@ function CurvedCrestCaption({ visible }: { visible: boolean }) {
 
   return (
     <motion.svg
+      width={CREST_WIDTH}
+      height={CREST_HEIGHT}
       viewBox={`0 0 ${CREST_WIDTH} ${CREST_HEIGHT}`}
       initial={false}
       animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 1.06 }}
@@ -221,7 +224,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
   const prefersReducedMotion = useReducedMotion();
 
   const isOpeningRef = useRef(false);
-  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const timersRef = useRef<number[]>([]);
   const onOpenStartRef = useRef(onOpenStart);
   const onOpenCompleteRef = useRef(onOpenComplete);
 
@@ -231,12 +234,23 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
   // Destrava o scroll assim que as portas já abriram o centro para evitar sensação de travamento
   useScrollLock(phase !== "opening");
 
+  const clearTimers = useCallback(() => {
+    for (const id of timersRef.current) {
+      window.clearTimeout(id);
+    }
+    timersRef.current = [];
+  }, []);
+
+  const scheduleTimer = useCallback((cb: () => void, delayMs: number) => {
+    const id = window.setTimeout(cb, delayMs);
+    timersRef.current.push(id);
+  }, []);
+
   useEffect(() => {
     return () => {
-      timelineRef.current?.kill();
-      timelineRef.current = null;
+      clearTimers();
     };
-  }, []);
+  }, [clearTimers]);
 
   const sealRawX = useMotionValue(0);
   const sealRawY = useMotionValue(0);
@@ -263,6 +277,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
   const handleTriggerOpen = useCallback(() => {
     if (isOpeningRef.current) return;
     isOpeningRef.current = true;
+    clearTimers();
 
     sealRawX.set(0);
     sealRawY.set(0);
@@ -279,39 +294,28 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
     if (reducedMotion) {
       setPhase("opening");
       onOpenStartRef.current();
-      const tl = gsap.timeline();
-      tl.call(() => onOpenCompleteRef.current(), undefined, 0.25);
-      timelineRef.current = tl;
+      scheduleTimer(() => onOpenCompleteRef.current(), 250);
       return;
     }
 
     // 1. Destrave limpo do broche + ondas de choque + fagulhas estelares (sem confetes)
     setPhase("unsealing");
 
-    const tl = gsap.timeline();
-    timelineRef.current = tl;
-
     // 2. Abertura lenta e fluida das portas (e liberação imediata do scroll)
-    tl.call(
-      () => {
-        setPhase("opening");
-      },
-      undefined,
-      0.58,
-    );
+    scheduleTimer(() => {
+      setPhase("opening");
+    }, 580);
 
     // 3. Disparo do HeroPoster em plena visibilidade
-    tl.call(
-      () => {
-        onOpenStartRef.current();
-      },
-      undefined,
-      0.95,
-    );
+    scheduleTimer(() => {
+      onOpenStartRef.current();
+    }, 950);
 
     // 4. Desmontagem do overlay após as portas deixarem a tela
-    tl.call(() => onOpenCompleteRef.current(), undefined, 2.6);
-  }, [prefersReducedMotion, sealRawX, sealRawY]);
+    scheduleTimer(() => {
+      onOpenCompleteRef.current();
+    }, 2600);
+  }, [clearTimers, prefersReducedMotion, scheduleTimer, sealRawX, sealRawY]);
 
   const isIdle = phase === "idle";
   const isUnsealing = phase === "unsealing";
@@ -398,6 +402,8 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
               {UNSEAL_SPARKS.map((spark, idx) => (
                 <motion.svg
                   key={`spark-${idx}`}
+                  width={spark.size}
+                  height={spark.size}
                   viewBox="0 0 24 24"
                   initial={{ x: 0, y: 0, scale: 0.25, opacity: 0.95, rotate: 0 }}
                   animate={{
@@ -412,7 +418,6 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
                     delay: spark.delay,
                     ease: LUXURY_EASE,
                   }}
-                  style={{ width: spark.size, height: spark.size }}
                   className="pointer-events-none absolute z-30"
                   aria-hidden
                 >
@@ -459,7 +464,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
                   decoding="sync"
                   sizes="(max-width: 767px) 186px, 206px"
                   draggable={false}
-                  className="relative z-10 size-full object-contain transition-[filter] duration-300 ease-out [filter:drop-shadow(0_14px_22px_rgba(7,23,57,0.24))_drop-shadow(0_5px_9px_rgba(10,36,99,0.16))_drop-shadow(0_2px_3px_rgba(7,23,57,0.12))] group-hover:[filter:drop-shadow(0_20px_30px_rgba(7,23,57,0.30))_drop-shadow(0_8px_14px_rgba(10,36,99,0.20))_drop-shadow(0_3px_5px_rgba(7,23,57,0.14))]"
+                  className="relative z-10 size-full object-contain [filter:drop-shadow(0_14px_22px_rgba(7,23,57,0.24))_drop-shadow(0_5px_9px_rgba(10,36,99,0.16))_drop-shadow(0_2px_3px_rgba(7,23,57,0.12))]"
                 />
 
                 {isIdle && !prefersReducedMotion && (

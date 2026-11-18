@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { CalendarDays, Clock } from "lucide-react";
+import Image from "next/image";
 import { memo, useId, useMemo, useRef, type CSSProperties } from "react";
 import { Bow } from "@/components/BowDecoration";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
@@ -112,8 +113,10 @@ const MirrorDiscoBall = memo(function MirrorDiscoBall({
     <div className={`relative select-none ${className}`} aria-hidden>
       {topStar && (
         <svg
+          width={40}
+          height={40}
           viewBox="0 0 40 40"
-          className="pointer-events-none absolute -top-[21%] left-1/2 z-20 w-[34%] -translate-x-1/2"
+          className="pointer-events-none absolute -top-[21%] left-1/2 z-20 h-auto w-[34%] aspect-square -translate-x-1/2"
         >
           <polygon
             points="20,2 25.2,13.4 37.6,14.8 28.4,23.2 30.8,35.6 20,29.4 9.2,35.6 11.6,23.2 2.4,14.8 14.8,13.4"
@@ -125,7 +128,7 @@ const MirrorDiscoBall = memo(function MirrorDiscoBall({
         </svg>
       )}
 
-      <svg viewBox="0 0 200 200" className="w-full h-auto">
+      <svg width={200} height={200} viewBox="0 0 200 200" className="w-full h-auto aspect-square">
         <defs>
           <clipPath id={clipId}>
             <circle cx="100" cy="100" r="95" />
@@ -222,9 +225,11 @@ export const GlitterBlueStar = memo(function GlitterBlueStar({
 
   return (
     <svg
+      width={100}
+      height={100}
       viewBox="0 0 100 100"
       style={style}
-      className={`${animClass} pointer-events-none select-none ${className}`}
+      className={`${animClass} pointer-events-none h-auto aspect-square select-none ${className}`}
       aria-hidden
     >
       <defs>
@@ -280,9 +285,11 @@ export const MetallicSilverStar = memo(function MetallicSilverStar({
 
   return (
     <svg
+      width={100}
+      height={100}
       viewBox="0 0 100 100"
       style={style}
-      className={`${animClass} pointer-events-none select-none ${className}`}
+      className={`${animClass} pointer-events-none h-auto aspect-square select-none ${className}`}
       aria-hidden
     >
       {facets.map(([pts, fill], idx) => (
@@ -433,8 +440,10 @@ function RoyalGlitterPartyHat({ className = "" }: { className?: string }) {
 
   return (
     <svg
+      width={120}
+      height={140}
       viewBox="0 0 120 140"
-      className={`pointer-events-none select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.44)] ${className}`}
+      className={`pointer-events-none h-auto aspect-[120/140] select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.44)] ${className}`}
       aria-hidden
     >
       <defs>
@@ -537,8 +546,10 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
 
   return (
     <svg
+      width={230}
+      height={230}
       viewBox="0 0 230 230"
-      className={`pointer-events-none select-none ${className}`}
+      className={`pointer-events-none w-full h-auto aspect-square select-none ${className}`}
       aria-hidden
     >
       <defs>
@@ -1026,13 +1037,15 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
           transition={{ duration: 1.65, delay: revealed ? 0.95 : 0, ease: [0.16, 1, 0.3, 1] }}
           className="relative z-[14] mx-auto aspect-[833/1024] w-[252px] sm:w-[344px]"
         >
-          <img
+          <Image
             src="/images/carol-cutout.png"
             alt={`${EVENT.name} — ${EVENT.age} anos`}
             width={833}
             height={1024}
             loading="lazy"
             decoding="async"
+            sizes="(max-width: 639px) 252px, 344px"
+            draggable={false}
             className="block size-full object-contain drop-shadow-[0_12px_24px_rgba(7,23,57,0.28)]"
             style={{
               WebkitMaskImage: "linear-gradient(to bottom, black 86%, transparent 100%)",

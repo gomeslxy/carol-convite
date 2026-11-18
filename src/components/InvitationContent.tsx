@@ -20,33 +20,38 @@ import {
   Shirt,
   Users,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
   type FormEvent,
 } from "react";
-import CountdownTimer from "@/components/CountdownTimer";
 import HeroPoster, {
   GlitterBlueStar,
   MetallicSilverStar,
-  type FloatStyle,
 } from "@/components/HeroPoster";
 import { fireMiniCelebration } from "@/components/LuxuryParticles";
 import { CornerFiligree } from "@/components/Ornaments";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
 import {
+  RSVP_LIMITS,
   copyToClipboard,
   downloadIcs,
   googleCalendarUrl,
   googleMapsEmbedUrl,
   googleMapsUrl,
+  validateRsvpInput,
   wazeUrl,
   whatsappUrl,
 } from "@/lib/utils";
+
+const CountdownTimer = dynamic(() => import("@/components/CountdownTimer"));
+
+const RSVP_COOLDOWN_KEY = "carol-18-rsvp-cooldown-v1";
+const RSVP_COOLDOWN_MS = 15_000;
 
 type Attendance = "yes" | "no";
 
@@ -87,19 +92,23 @@ function SectionHeading({ title }: { title: string }) {
 
 export default function InvitationContent({ revealed }: InvitationContentProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const ids = {
     name: useId(),
     nameError: useId(),
     guests: useId(),
     message: useId(),
+    honeypot: useId(),
   };
 
-  // Estados de Agenda e Endereço
+  // Estados de Agenda, Endereço e Mapa Lazy
   const [icsSaved, setIcsSaved] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
+  const [shouldLoadMap, setShouldLoadMap] = useState(false);
   const icsTimerRef = useRef<number | null>(null);
   const copyTimerRef = useRef<number | null>(null);
+  const submitTimerRef = useRef<number | null>(null);
 
   // Estados do Formulário RSVP
   const [name, setName] = useState("");
@@ -107,15 +116,83 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
   const [guests, setGuests] = useState(1);
   const [companions, setCompanions] = useState<string[]>([]);
   const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownRemainingSec, setCooldownRemainingSec] = useState(0);
+  const isSubmittingRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [submittedRsvp, setSubmittedRsvp] = useState<SubmittedRsvp | null>(null);
 
   useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(RSVP_COOLDOWN_KEY);
+      const parsed = stored ? Number(stored) : 0;
+      if (Number.isFinite(parsed) && parsed > Date.now()) {
+        setCooldownUntil(parsed);
+      }
+    } catch {
+      /* ambiente sem acesso ao localStorage */
+    }
+
     return () => {
       if (icsTimerRef.current !== null) window.clearTimeout(icsTimerRef.current);
       if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+      if (submitTimerRef.current !== null) window.clearTimeout(submitTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) {
+      setCooldownRemainingSec(0);
+      return;
+    }
+
+    const syncRemaining = () => {
+      const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setCooldownRemainingSec(0);
+        setCooldownUntil(0);
+        return false;
+      }
+      setCooldownRemainingSec(remaining);
+      return true;
+    };
+
+    if (!syncRemaining()) return;
+
+    const intervalId = window.setInterval(() => {
+      if (!syncRemaining()) {
+        window.clearInterval(intervalId);
+      }
+    }, 500);
+
+    return () => window.clearInterval(intervalId);
+  }, [cooldownUntil]);
+
+  useEffect(() => {
+    if (!revealed || shouldLoadMap) return;
+    const el = mapContainerRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldLoadMap(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoadMap(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "320px 0px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [revealed, shouldLoadMap]);
 
   // Mantém o array de nomes de acompanhantes sincronizado com `guests - 1`
   const updateGuestsCount = useCallback((next: number) => {
@@ -130,9 +207,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
   }, []);
 
   const handleCompanionChange = useCallback((index: number, value: string) => {
+    const cleanValue = value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.companion);
     setCompanions((prev) => {
       const next = [...prev];
-      next[index] = value;
+      next[index] = cleanValue;
       return next;
     });
   }, []);
@@ -164,72 +242,128 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
     }
   }, []);
 
-  const buildWhatsappHref = useMemo(() => {
-    const trimmedName = name.trim();
-    const trimmedMsg = message.trim();
-    const activeCompanions = companions
-      .slice(0, Math.max(0, guests - 1))
-      .map((c) => c.trim())
-      .filter(Boolean);
-    const dateLabel = FORMATTED_EVENT_DATE.short.replace(/\s·\s/g, "/");
+  const buildWhatsappHrefFromData = useCallback(
+    (data: {
+      name: string;
+      attendance: Attendance;
+      guests: number;
+      companions: string[];
+      message: string;
+    }) => {
+      const dateLabel = FORMATTED_EVENT_DATE.short.replace(/\s·\s/g, "/");
 
-    const lines =
-      attendance === "yes"
-        ? [
-          `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel} às ${FORMATTED_EVENT_DATE.time}!`,
-          "",
-          `👤 Nome: ${trimmedName}`,
-          `👥 Total de pessoas: ${guests}`,
-          ...(activeCompanions.length > 0
-            ? [`🎟️ Acompanhantes: ${activeCompanions.join(", ")}`]
-            : []),
-        ]
-        : [
-          `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
-          "",
-          `👤 Nome: ${trimmedName}`,
-        ];
+      const lines =
+        data.attendance === "yes"
+          ? [
+              `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel} às ${FORMATTED_EVENT_DATE.time}!`,
+              "",
+              `👤 Nome: ${data.name}`,
+              `👥 Total de pessoas: ${data.guests}`,
+              ...(data.companions.length > 0
+                ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
+                : []),
+            ]
+          : [
+              `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
+              "",
+              `👤 Nome: ${data.name}`,
+            ];
 
-    if (trimmedMsg) {
-      lines.push(`💌 Recado: ${trimmedMsg}`);
-    }
+      if (data.message) {
+        lines.push(`💌 Recado: ${data.message}`);
+      }
 
-    return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
-  }, [name, attendance, guests, companions, message]);
+      return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
+    },
+    [],
+  );
 
   const handleRsvpSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const trimmedName = name.trim();
+    if (isSubmittingRef.current) return;
 
-    if (trimmedName.length < 2) {
-      setFormError("Por favor, informe seu nome completo para confirmar.");
+    // Honeypot anti-bot: bloqueia silenciosamente com retorno de sucesso falso
+    if (honeypot.trim().length > 0) {
+      setFormError(null);
+      setSubmittedRsvp({
+        name: "Convidado",
+        attendance,
+        guests: attendance === "yes" ? guests : 0,
+        companions: [],
+        whatsappHref: "#",
+      });
+      return;
+    }
+
+    const now = Date.now();
+    if (cooldownUntil > now) {
+      const secs = Math.max(1, Math.ceil((cooldownUntil - now) / 1000));
+      setFormError(`Aguarde ${secs}s antes de enviar outra confirmação.`);
+      return;
+    }
+
+    const validation = validateRsvpInput({
+      name,
+      attendance,
+      guests,
+      companions,
+      message,
+      maxGuests: EVENT.rsvp.maxGuests,
+    });
+
+    if (!validation.ok) {
+      setFormError(validation.error);
       nameInputRef.current?.focus();
       return;
     }
 
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
     setFormError(null);
-    const filledCompanions = companions
-      .slice(0, Math.max(0, guests - 1))
-      .map((c) => c.trim())
-      .filter(Boolean);
 
-    if (attendance === "yes") {
+    const cleanData = validation.data;
+    setName(cleanData.name);
+    setMessage(cleanData.message);
+    if (cleanData.attendance === "yes") {
+      setCompanions((prev) =>
+        prev.map((item, idx) => cleanData.companions[idx] ?? item.replace(/[<>]/g, "").trim()),
+      );
+    }
+
+    const nextCooldown = Date.now() + RSVP_COOLDOWN_MS;
+    setCooldownUntil(nextCooldown);
+    try {
+      window.localStorage.setItem(RSVP_COOLDOWN_KEY, String(nextCooldown));
+    } catch {
+      /* ambiente sem acesso ao localStorage */
+    }
+
+    const cleanWhatsappHref = buildWhatsappHrefFromData(cleanData);
+
+    if (cleanData.attendance === "yes") {
       fireMiniCelebration({ x: 0.5, y: 0.72 });
     }
 
     setSubmittedRsvp({
-      name: trimmedName,
-      attendance,
-      guests: attendance === "yes" ? guests : 0,
-      companions: attendance === "yes" ? filledCompanions : [],
-      whatsappHref: buildWhatsappHref,
+      name: cleanData.name,
+      attendance: cleanData.attendance,
+      guests: cleanData.guests,
+      companions: cleanData.companions,
+      whatsappHref: cleanWhatsappHref,
     });
 
-    window.open(buildWhatsappHref, "_blank", "noopener,noreferrer");
+    window.open(cleanWhatsappHref, "_blank", "noopener,noreferrer");
+
+    if (submitTimerRef.current !== null) window.clearTimeout(submitTimerRef.current);
+    submitTimerRef.current = window.setTimeout(() => {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+      submitTimerRef.current = null;
+    }, 600);
   };
 
   const inputCls =
-    "min-h-11 w-full rounded-xl border border-[#0A2463]/20 bg-white/95 px-4 py-2.5 font-sans text-[14.5px] text-royal-navy placeholder:text-silver-400 outline-none transition focus:border-royal-deep focus:bg-white focus:ring-4 focus:ring-royal-deep/10";
+    "min-h-11 w-full rounded-xl border border-[#0A2463]/20 bg-white/95 px-4 py-2.5 font-sans text-[14.5px] text-royal-navy placeholder:text-silver-400 outline-none transition-colors focus:border-royal-deep focus:bg-white focus:ring-4 focus:ring-royal-deep/10";
 
   const cardSurfaceCls =
     "border border-royal-deep/15 bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16),0_4px_12px_-4px_rgba(10,36,99,0.08)]";
@@ -369,7 +503,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   href={googleCalendarUrl(EVENT)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-royal-deep/20 bg-white/85 px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold text-royal-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition hover:border-royal-deep hover:bg-white"
+                  className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-royal-deep/20 bg-white/85 px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold text-royal-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors hover:border-royal-deep hover:bg-white"
                 >
                   <ExternalLink className="size-3.5 shrink-0 text-royal-deep" />
                   <span>Google Agenda</span>
@@ -487,18 +621,25 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   </p>
                 )}
 
-                {/* Mapa Embed com contenção estrita de layout/paint para 60fps no scroll */}
+                {/* Mapa Embed com contenção estrita de layout/paint e carregamento lazy por proximidade */}
                 <div
+                  ref={mapContainerRef}
                   style={{ contain: "strict" }}
                   className="mt-5 h-52 sm:h-60 overflow-hidden rounded-xl border border-royal-deep/15 bg-silver-100 shadow-sm"
                 >
-                  <iframe
-                    title={`Mapa — ${EVENT.venue.name}`}
-                    src={googleMapsEmbedUrl(EVENT.venue.mapsQuery)}
-                    className="block size-full"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                  {shouldLoadMap ? (
+                    <iframe
+                      title={`Mapa — ${EVENT.venue.name}`}
+                      src={googleMapsEmbedUrl(EVENT.venue.mapsQuery)}
+                      className="block size-full"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center bg-silver-100 font-sans text-[12px] font-medium text-royal-navy/60">
+                      Carregando mapa…
+                    </div>
+                  )}
                 </div>
 
                 {/* Botões funcionais: Google Maps, Waze e Copiar Endereço */}
@@ -509,7 +650,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     href={googleMapsUrl(EVENT.venue.mapsQuery)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-navy px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(7,23,57,0.6)] transition hover:bg-royal-deep"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-navy px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(7,23,57,0.6)] transition-colors hover:bg-royal-deep"
                   >
                     <MapPin className="size-4 shrink-0" />
                     <span>Google Maps</span>
@@ -521,7 +662,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     href={wazeUrl(EVENT.venue.mapsQuery)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-deep px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(10,36,99,0.55)] transition hover:bg-royal-800"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-deep px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(10,36,99,0.55)] transition-colors hover:bg-royal-800"
                   >
                     <Navigation className="size-4 shrink-0" />
                     <span>Waze</span>
@@ -605,13 +746,42 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 transition={{ ...REVEAL_TRANSITION, delay: 0.1 }}
                 className={`mt-4 w-full rounded-2xl p-5 sm:p-7 text-left ${cardSurfaceCls}`}
               >
-                <form onSubmit={handleRsvpSubmit} className="space-y-4" noValidate>
-                  {/* Seletor de Presença */}
+                <form onSubmit={handleRsvpSubmit} className="relative space-y-4" noValidate>
+                  {/* Campo Honeypot anti-bot (oculto visualmente e fora da tabulação) */}
                   <div
-                    className="grid grid-cols-2 gap-2 rounded-xl border border-royal-deep/15 bg-[#EEF2F7] p-1.5"
+                    className="pointer-events-none absolute -left-[9999px] h-px w-px overflow-hidden opacity-0"
+                    aria-hidden="true"
+                  >
+                    <label htmlFor={ids.honeypot}>Website</label>
+                    <input
+                      id={ids.honeypot}
+                      name="website"
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Seletor de Presença (indicador deslizante 100% GPU via transform) */}
+                  <div
+                    className="relative grid grid-cols-2 gap-2 rounded-xl border border-royal-deep/15 bg-[#EEF2F7] p-1.5"
                     role="radiogroup"
                     aria-label="Confirmação de presença"
                   >
+                    <div
+                      className="pointer-events-none absolute inset-1.5 grid grid-cols-2 gap-2"
+                      aria-hidden
+                    >
+                      <motion.span
+                        initial={false}
+                        animate={{ x: attendance === "yes" ? "0%" : "calc(100% + 0.5rem)" }}
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        className="h-full w-full rounded-lg bg-royal-navy shadow-[0_6px_16px_-6px_rgba(7,23,57,0.65)]"
+                      />
+                    </div>
+
                     {(
                       [
                         { value: "yes", label: "Sim, estarei lá!", Icon: Heart },
@@ -626,21 +796,14 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                           role="radio"
                           aria-checked={active}
                           onClick={() => setAttendance(value)}
-                          className={`relative flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
+                          className={`relative z-10 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
                             }`}
                         >
-                          {active && (
-                            <motion.span
-                              layoutId="rsvp-inline-pill"
-                              className="absolute inset-0 rounded-lg bg-royal-navy shadow-[0_6px_16px_-6px_rgba(7,23,57,0.65)]"
-                              transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                            />
-                          )}
                           <Icon
-                            className="relative z-10 size-4 shrink-0"
+                            className="size-4 shrink-0"
                             fill={active && value === "yes" ? "currentColor" : "none"}
                           />
-                          <span className="relative z-10">{label}</span>
+                          <span>{label}</span>
                         </button>
                       );
                     })}
@@ -657,10 +820,12 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     <input
                       ref={nameInputRef}
                       id={ids.name}
+                      type="text"
                       required
+                      maxLength={RSVP_LIMITS.name}
                       value={name}
                       onChange={(e) => {
-                        setName(e.target.value);
+                        setName(e.target.value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.name));
                         if (formError) setFormError(null);
                       }}
                       placeholder="Digite seu nome completo"
@@ -714,7 +879,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                               aria-label="Diminuir quantidade de pessoas"
                               onClick={() => updateGuestsCount(guests - 1)}
                               disabled={guests <= 1}
-                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition-[transform,opacity] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <Minus className="size-4" />
                             </button>
@@ -742,7 +907,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                               aria-label="Aumentar quantidade de pessoas"
                               onClick={() => updateGuestsCount(guests + 1)}
                               disabled={guests >= EVENT.rsvp.maxGuests}
-                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition-[transform,opacity] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <Plus className="size-4" />
                             </button>
@@ -760,6 +925,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                               <input
                                 key={`companion-${idx}`}
                                 type="text"
+                                maxLength={RSVP_LIMITS.companion}
                                 value={companions[idx] ?? ""}
                                 onChange={(e) => handleCompanionChange(idx, e.target.value)}
                                 placeholder={`Nome completo do acompanhante ${idx + 1}`}
@@ -786,29 +952,38 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                         </span>
                       </label>
                       <span className="font-sans text-[10.5px] tabular-nums text-silver-500">
-                        {message.length}/280
+                        {message.length}/{RSVP_LIMITS.message}
                       </span>
                     </div>
                     <textarea
                       id={ids.message}
                       value={message}
-                      onChange={(e) => setMessage(e.target.value)}
+                      onChange={(e) =>
+                        setMessage(e.target.value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.message))
+                      }
                       rows={2}
-                      maxLength={280}
+                      maxLength={RSVP_LIMITS.message}
                       placeholder="Deixe uma mensagem especial…"
                       className={`${inputCls} resize-none`}
                     />
                   </div>
 
-                  {/* Botão de Envio */}
+                  {/* Botão de Envio com trava imediata e cooldown anti-spam */}
                   <motion.button
                     type="submit"
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-royal-navy px-5 py-3 font-sans text-[13.5px] font-bold tracking-wide text-white shadow-[0_12px_24px_-10px_rgba(7,23,57,0.7)] transition hover:bg-royal-deep"
+                    disabled={isSubmitting || cooldownRemainingSec > 0}
+                    whileHover={isSubmitting || cooldownRemainingSec > 0 ? undefined : { y: -1 }}
+                    whileTap={isSubmitting || cooldownRemainingSec > 0 ? undefined : { scale: 0.97 }}
+                    className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-royal-navy px-5 py-3 font-sans text-[13.5px] font-bold tracking-wide text-white shadow-[0_12px_24px_-10px_rgba(7,23,57,0.7)] transition-colors hover:bg-royal-deep disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <MessageCircle className="size-[18px] shrink-0" strokeWidth={2} />
-                    <span>Confirmar Presença pelo WhatsApp</span>
+                    <span>
+                      {isSubmitting
+                        ? "Enviando confirmação..."
+                        : cooldownRemainingSec > 0
+                          ? `Aguarde ${cooldownRemainingSec}s para reenviar`
+                          : "Confirmar Presença pelo WhatsApp"}
+                    </span>
                   </motion.button>
                 </form>
 
@@ -848,9 +1023,12 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                         whileHover={{ y: -1 }}
                         whileTap={{ scale: 0.97 }}
                         href={submittedRsvp.whatsappHref}
+                        onClick={(e) => {
+                          if (submittedRsvp.whatsappHref === "#") e.preventDefault();
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition hover:bg-royal-deep"
+                        className="mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition-colors hover:bg-royal-deep"
                       >
                         <CalendarDays className="size-4 shrink-0" />
                         <span>Abrir WhatsApp novamente</span>
