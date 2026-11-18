@@ -52,7 +52,7 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
 
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
     const shapes = createLuxuryShapes(confetti);
-    const ticks = isMobile ? 190 : 240;
+    const ticks = isMobile ? 165 : 240;
 
     const base: confettiType.Options = {
       colors: ROYAL_AND_SILVER_PALETTE,
@@ -64,7 +64,7 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
     // 1. Explosão central sincronizada com a abertura das portas
     confetti({
       ...base,
-      particleCount: isMobile ? 34 : 56,
+      particleCount: isMobile ? 26 : 48,
       spread: 130,
       angle: 90,
       startVelocity: 32,
@@ -78,13 +78,13 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
     confetti({
       ...base,
       colors: ["#FFFFFF", "#E2E8F0", "#94A3B8", "#0A2463", "#1D4ED8"],
-      particleCount: isMobile ? 20 : 32,
+      particleCount: isMobile ? 14 : 26,
       spread: 360,
       startVelocity: 22,
       decay: 0.91,
       gravity: 0.42,
       scalar: 0.82,
-      ticks: isMobile ? 180 : 210,
+      ticks: isMobile ? 155 : 210,
       origin: { x: 0.5, y: 0.48 },
     });
 
@@ -93,7 +93,7 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
       if (cancelled) return;
       confetti({
         ...base,
-        particleCount: isMobile ? 20 : 30,
+        particleCount: isMobile ? 14 : 24,
         angle: 62,
         spread: 50,
         startVelocity: 40,
@@ -105,7 +105,7 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
       });
       confetti({
         ...base,
-        particleCount: isMobile ? 20 : 30,
+        particleCount: isMobile ? 14 : 24,
         angle: 118,
         spread: 50,
         startVelocity: 40,
@@ -115,7 +115,7 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
         ticks,
         origin: { x: 0.9, y: 0.68 },
       });
-    }, 240);
+    }, 220);
   };
 
   void run();
@@ -128,17 +128,18 @@ export function fireLuxuryCelebration(preloaded?: typeof confettiType | null): (
  */
 export function fireMiniCelebration(origin: { x: number; y: number } = { x: 0.5, y: 0.6 }): void {
   void import("canvas-confetti").then(({ default: confetti }) => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
     const shapes = createLuxuryShapes(confetti);
     confetti({
       colors: ["#FFFFFF", "#E2E8F0", "#CBD5E1", "#60A5FA", "#1D4ED8", "#0A2463"],
       shapes,
-      particleCount: 28,
+      particleCount: isMobile ? 18 : 28,
       spread: 76,
       startVelocity: 26,
       decay: 0.9,
       gravity: 0.58,
       scalar: 0.78,
-      ticks: 165,
+      ticks: isMobile ? 140 : 165,
       origin,
       zIndex: 90,
       disableForReducedMotion: true,

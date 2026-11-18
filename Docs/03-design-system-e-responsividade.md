@@ -21,8 +21,8 @@ related:
 # 03 · Design System e Responsividade
 
 > [!important] Identidade Visual e Regras Editoriais Invioláveis
-> * **Cores:** Exclusivamente **Azul Royal / Marinho Nobre**, **Branco / Papel Off-White Gelo** e **Prata Metálico**.
-> * **Motivos:** **Zero flores**. Apenas **lacinhos de fita acetinada**, filigranas geométricas imperiais, estrelas facetadas (`GlitterBlueStar` e `MetallicSilverStar`), globos espelhados e balões glossy azul royal.
+> * **Cores:** Exclusivamente **Azul Royal / Marinho Nobre**, **Branco / Papel Off-White Gelo** e **Prata Metálico** (**zero dourado ou champagne**).
+> * **Motivos:** Na capa (`CoverGate.tsx`), o brasão barroco perolado integra ramos botânicos estilizados, flores delicadas e arabescos em Azul Royal, Safira e Prata + cantoneiras barrocas; no pôster e conteúdo utilizam-se **lacinhos de fita acetinada**, filigranas geométricas imperiais (`CornerFiligree`), estrelas facetadas (`GlitterBlueStar` e `MetallicSilverStar`), globos espelhados e balões glossy azul royal.
 > * **Proibição de Presentes / Pix:** É terminantemente proibido incluir sugestões de presentes, listas de mimos ou chave Pix.
 > * **Data e Traje Oficiais:** **17/07/2027** às **19:30** e traje **Esporte Fino**.
 
@@ -62,10 +62,10 @@ related:
 
 ```mermaid
 flowchart LR
-    M["Mobile (< 768px / md)"] --> M1["CoverGate: Portas 50vw x 100dvh + Brasão clamp(124px, 34vw, 152px) + texto curvo ao redor"]
-    M --> M2["HeroPoster contínuo no papel claro sem corte reto inferior"]
+    M["Mobile (< 768px / md)"] --> M1["CoverGate: Portas 50vw x 100dvh + Brasão clamp(226px, 64vw, 268px) + texto curvo lateral direito"]
+    M --> M2["HeroPoster contínuo no papel claro com acessórios 100% percentuais sobre carol-cutout (833x1024)"]
     M --> M3["Seções integradas (Contagem, Local com Mapa e RSVP) em coluna única fluida"]
-    D["Desktop (>= 768px / md)"] --> D1["CoverGate: Portas 50vw x 100dvh + Brasão 164px + texto curvo + tração magnética"]
+    D["Desktop (>= 768px / md)"] --> D1["CoverGate: Portas 50vw x 100dvh + Brasão 300px + texto curvo direito + tração magnética"]
     D --> D2["Cartão único contínuo centralizado (max-w-2xl / 700px) em papel texturizado"]
 ```
 

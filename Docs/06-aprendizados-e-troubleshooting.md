@@ -119,11 +119,12 @@ related:
 
 * **Solução:** Envolver cada `<GlitterBlueStar>` e `<MetallicSilverStar>` com um `<motion.div style={{ y: starsUpParallax }}>` externo enquanto o `<svg>` interno mantém sua animação CSS GPU (`animate-sticker-float`), compondo os dois movimentos em camadas separadas sem conflito.
 
-## 10. Recorte Alfa de Assets Escuros & Texto Curvo em `<textPath>` (`CoverGate.tsx`)
+## 10. Recorte Alfa de Assets Escuros/Claros & Texto Curvo Sincronizado (`CoverGate.tsx`)
 
-> [!tip] Remoção de Halo Escuro e Leitura Ereta em Arco Inferior
-> * **Recorte de JPEG com Fundo Preto sobre Papel Claro (`#F4F5F7`):** Um *threshold* simples deixa bordas escuras anti-aliased visíveis sobre o papel claro. Ao aplicar *flood-fill* conectado a partir das bordas e descontaminação cromática dos pixels de transição (substituindo o RGB pré-multiplicado com preto pela cor média local do contorno perolado), a transparência assenta perfeitamente sobre `#F4F5F7` sem halo.
-> * **Texto Curvo Ereto (`CurvedCrestCaption`):** Para contornar a base do brasão com leitura da esquerda para a direita sem inverter as letras, o `<path>` do `<textPath>` deve usar sentido anti-horário (`sweep-flag="0"`, `M 10,120 A 110,110 0 0 0 230,120`), mantendo `startOffset="50%"` e `textAnchor="middle"`.
+> [!tip] Remoção de Halo, Preservação de Brilhos Internos & `<textPath>` Sem Cortes
+> * **Recorte com Fundo Isolado + Ilhas Internas (`brasao-barroco-c.png`):** Ao recortar ilustrações detalhadas sobre fundo branco (`#FFFFFF`) que possuem destaques perolados internos (`>= 250`), nunca remova ilhas claras indiscriminadamente perto do selo — aplique *flood-fill* conectado a partir das bordas e limite a limpeza de buracos fechados apenas a regiões grandes (`size >= 150`) fora do raio máximo da borda ondulada (`minR >= 298`), aplicando descontaminação cromática de 2px na fronteira.
+> * **Texto Curvo Sincronizado à Direita (`CurvedCrestCaption`):** Usar o mesmo `viewBox` das dimensões reais do PNG (`760x882`) dentro do container `aspect-[760/882]` trava matematicamente o arco `<path>` (`centro 446.1, 429.4 | R = 288`) ao contorno externo direito do medalhão em qualquer resolução (`360px` a desktop), eliminando desalinhamentos e garantindo espaço livre entre os ramos superiores e inferiores.
+> * **Ancoragem Percentual de Adereços (`HeroPoster.tsx`):** Posicionar acessórios sobre fotos recortadas usando `top`/`left`/`right` e `w-[...%]` exclusivamente em `%` dentro de um único container com `aspect-[833/1024]` garante paridade absoluta entre mobile e desktop, impedindo que chapéu e laço escorreguem para a testa ou olhos.
 > * **`will-change` sob Demanda:** Aplicar `will-change: transform` somente nos estágios `unsealing` / `opening` evita alocação prematura de camadas GPU enquanto a capa está em repouso.
 
 Veja também: [[00-INDEX]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].

@@ -56,7 +56,7 @@ const RollingDigit = memo(function RollingDigit({ digit }: { digit: string }) {
           animate={{ y: "0%", rotateX: 0, scale: 1, opacity: 1 }}
           exit={{ y: "78%", rotateX: -38, scale: 0.9, opacity: 0 }}
           transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex items-center justify-center text-royal-navy will-change-transform"
+          className="absolute inset-0 flex items-center justify-center text-royal-navy"
         >
           {digit}
         </motion.span>

@@ -35,8 +35,8 @@ Convite digital interativo mobile-first para a festa de **18 anos da Carol** (`1
 * **Ponto Único de Verdade:** `src/config/event.ts` (`EVENT`, `FORMATTED_EVENT_DATE`, `EVENT_TIMESTAMP`).
 
 > [!important] Regras Visuais e Editoriais Invioláveis
-> 1. **Paleta Oficial:** Apenas **Azul Royal / Marinho Nobre** (`#071739`, `#0A2463`, `#172554`–`#3B82F6`), **Branco / Papel Off-White Texturizado** (`#FFFFFF` / `#F8FAFC` / `#F1F2F4` / `#EEF2F7`) e **Prata Metálico** (`#E2E8F0`–`#64748B`).
-> 2. **Proibição Estrita de Flores:** Nenhum elemento floral deve ser adicionado em SVGs, imagens ou ornamentos. A decoração utiliza exclusivamente **lacinhos de fita acetinada** (`src/components/BowDecoration.tsx`), filigranas geométricas imperiais, estrelas facetadas, globos espelhados e balões glossy.
+> 1. **Paleta Oficial:** Apenas **Azul Royal / Marinho Nobre** (`#071739`, `#0A2463`, `#172554`–`#3B82F6`), **Branco / Papel Off-White Texturizado** (`#FFFFFF` / `#F8FAFC` / `#F1F2F4` / `#EEF2F7`) e **Prata Metálico** (`#E2E8F0`–`#64748B`), com **zero dourado/champagne**.
+> 2. **Motivos & Ornamentos:** Na capa (`CoverGate`), o brasão barroco perolado integra ramos botânicos estilizados, flores e arabescos em Azul Royal, Safira e Prata (conforme referência clássica de entrada) e cantoneiras barrocas nos cantos; no pôster e nas seções internas (`HeroPoster`, `InvitationContent`), utilizam-se **lacinhos de fita acetinada** (`src/components/BowDecoration.tsx`), cantoneiras geométricas (`CornerFiligree`), estrelas facetadas, globos espelhados e balões glossy.
 > 3. **Proibição Estrita de Sugestões de Presentes / Pix:** É terminantemente proibido incluir qualquer menção, botão, modal, ícone, chave Pix ou lista de sugestões de presentes no convite.
 > 4. **Data e Traje Oficiais:** **17 de Julho** (`17/07/2027`, às `19:30`) e traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
 

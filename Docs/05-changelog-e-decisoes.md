@@ -24,6 +24,22 @@ related:
 
 ---
 
+## [2026-11-17] · Auditoria Completa: Novo Brasão IA, Retrato Cirúrgico & 60fps
+
+### ADR-019: Novo Brasão IA Royal & Prata (`760x882`), Texto Curvo à Direita, Física *Spring* e Ancoragem Percentual no Retrato
+* **Motivação:** Elevar o impacto visual da `CoverGate` com um brasão barroco perolado cercado por ramos botânicos e arabescos em Azul Royal/Safira/Prata (substituindo 100% dos vestígios dourados/champagne), posicionar `TOQUE PARA ABRIR` contornando exclusivamente a lateral direita do selo, corrigir definitivamente o deslocamento do chapéu e do laço na foto da bebê em `HeroPoster`, e refinar a performance GPU 60fps adaptativa.
+* **Alterações:**
+  * **Novo Brasão IA & Recorte Alfa (`public/images/brasao-barroco-c.png`):** Gerado via `image-generator` combinando o medalhão perolado `"C"` com arranjo ornamental externo em Azul Royal (`#0A2463`/`#1E40AF`), Azul Gelo (`#93C5FD`) e Prata Metálico (`#CBD5E1`/`#F8FAFC`), com **zero dourado/champagne**. Extraído com `sharp` (flood-fill conectado + limpeza de ilhas internas externas + descontaminação de 2px em bordas anti-aliased + PNG palette-96 em `760x882`, ~297 KB), mantendo recorte limpo sem halo sobre `#F4F5F7` e `#071739`.
+  * **Redesign `CoverGate.tsx` & `globals.css`:**
+    * Removido o arco fino superior e o texto curvo inferior; implementado `CurvedCrestCaption` com `<svg viewBox="0 0 760 882">` travado às coordenadas reais do selo (`centro 446.1, 429.4 | R = 288 | -53° a +23°`), exibindo **`TOQUE PARA ABRIR`** em `Cinzel` (`#071739`, `animate-breathe-soft`) contornando suavemente a lateral direita sem cortes em viewports `360px`–`430px`.
+    * Adicionadas vinheta perimetral nas duas portas, sombra realista reforçada na junção central, cantoneiras barrocas `EditorialCornerOrnament` em Azul Royal & Prata, halo luminoso (`animate-halo-pulse`), reflexo especular diagonal (*shimmer*) no medalhão circular (`animate-brooch-shimmer`, sem requisição extra), micropartículas cintilantes adaptativas (`AMBIENT_CREST_SPARKS`: 6 no mobile, 10 no desktop, desabilitadas em `prefers-reduced-motion`) e abertura das portas por física *spring* (`stiffness: 62, damping: 16, mass: 1`).
+  * **Correção Cirúrgica no Retrato (`HeroPoster.tsx`):**
+    * Foto P&B (`public/images/carol-cutout.png`) travada em `aspect-[833/1024]` com `loading="lazy"` e `decoding="async"`, usando apenas coordenadas e larguras em `%`: `<Bow variant="royal" />` ancorado na faixa/cabelo superior esquerdo (`top-[11%] left-[25.5%] w-[15.5%] -rotate-[22deg]`) e `RoyalGlitterPartyHat` no topo/lateral superior direito (`-top-[13.5%] right-[11.2%] w-[33.5%] rotate-[24deg]`), com sombra projetada curva sobre o cabelo, glitter azul royal cintilante e pompom volumoso de 40 fios.
+  * **Performance 60fps & Higiene (`HeroPoster.tsx`, `LuxuryParticles.tsx`, `CountdownTimer.tsx`, `BowDecoration.tsx`):**
+    * Adicionado gating `useReducedMotion` no *parallax* de `HeroPoster.tsx`, aro especular em `MirrorDiscoBall`, nós e fases orgânicas distintas nos 5 balões de `RoyalGlossyBalloons`, redução do orçamento de partículas no mobile em `LuxuryParticles.tsx`, remoção de `will-change-transform` fixo em `CountdownTimer.tsx` e remoção de exports internos não utilizados (`BowGlyph`, `BowGlyphProps`) em `BowDecoration.tsx`.
+
+---
+
 ## [2026-11-17] · Revisão UI, Motion & Performance da Tela de Entrada (`CoverGate`)
 
 ### ADR-018: Integração do Brasão Barroco PNG Transparente, Refino Editorial & First Paint Instantâneo
