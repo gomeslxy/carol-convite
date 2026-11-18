@@ -113,8 +113,11 @@ export const EVENT: EventConfig = {
 ```
 src/
 ├── app/
+│   ├── api/
+│   │   └── rsvp/
+│   │       └── route.ts         # Endpoint POST opcional (RSVP_WEBHOOK_URL) para persistência de confirmações
 │   ├── globals.css              # Variáveis CSS, temas perolados, gradientes e texturas
-│   ├── layout.tsx               # Metadados SEO, Open Graph, JSON-LD, favicons e fontes tipográficas
+│   ├── layout.tsx               # Metadados SEO, Open Graph, JSON-LD, themeColor (#F4F5F7) e fontes tipográficas
 │   ├── opengraph-image.tsx      # Banner Open Graph dinâmico (1200x630) derivado de event.ts
 │   ├── page.tsx                 # Ponto de entrada da aplicação
 │   ├── robots.ts                # Regras de indexação apontando para sitemap.xml
@@ -125,7 +128,7 @@ src/
 │   ├── CountdownTimer.tsx       # Contador regressivo com relevo 3D
 │   ├── CoverGate.tsx            # Capa bipartida com portas e broche metálico interativo
 │   ├── HeroPoster.tsx           # Pôster hero animado com iluminação e tipografia
-│   ├── InvitationContent.tsx    # Seções de detalhes, mapa, calendário e RSVP
+│   ├── InvitationContent.tsx    # Seções de detalhes, mapa, calendário e RSVP (com acompanhantes obrigatórios e recibo local)
 │   ├── InvitationExperience.tsx # Orquestrador de pré-carregamento e transições de abertura
 │   ├── LuxuryParticles.tsx      # Celebração sob demanda via canvas-confetti no RSVP
 │   ├── Ornaments.tsx            # Divisores e cantoneiras prateadas editoriais
@@ -134,9 +137,11 @@ src/
 ├── config/
 │   └── event.ts                 # Configurações do evento e formatadores de data determinísticos
 └── lib/
-    ├── og-image.tsx             # Gerador compartilhado do banner social (Open Graph / Twitter)
-    └── utils.ts                 # Utilitários para Maps, Waze, Google Calendar, .ics (RFC 5545) e WhatsApp
+    ├── og-image.tsx             # Gerador compartilhado do banner social (Open Graph / Twitter) com Cinzel Bold
+    └── utils.ts                 # Utilitários para Maps, Waze, Google Calendar, .ics (RFC 5545), WhatsApp e validação RSVP
 ```
+
+> **Persistência Opcional do RSVP:** Caso defina a variável de ambiente `RSVP_WEBHOOK_URL` na Vercel (ex.: Apps Script do Google Sheets), o endpoint `/api/rsvp` registrará automaticamente todas as confirmações antes mesmo de o convidado concluir o envio no WhatsApp. Sem essa variável, o fluxo continua operando 100% normalmente com recibo salvo em `localStorage` e redirecionamento para o WhatsApp.
 
 ---
 

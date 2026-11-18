@@ -4,8 +4,8 @@
   "description": "Convite oficial para a celebração de 18 anos da Carol.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A2463",
-  "theme_color": "#0A2463",
+  "background_color": "#F4F5F7",
+  "theme_color": "#F4F5F7",
   "icons": [
     {
       "src": "/favicon-32x32.png",

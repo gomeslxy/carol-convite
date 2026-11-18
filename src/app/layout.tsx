@@ -27,6 +27,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 const siteTitle = `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`;
+const socialTitle = `${EVENT.name} • ${EVENT.age} Anos — ${FORMATTED_EVENT_DATE.day} de Julho de ${FORMATTED_EVENT_DATE.year} às ${FORMATTED_EVENT_DATE.time}`;
 const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos — ${FORMATTED_EVENT_DATE.long}, às ${FORMATTED_EVENT_DATE.time}, no ${EVENT.venue.name}. Confirme sua presença e confira os detalhes.`;
 
 const eventJsonLd = {
@@ -78,7 +79,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   // Imagens OG/Twitter vêm de `opengraph-image.tsx` / `twitter-image.tsx` (geradas a partir de `event.ts`).
   openGraph: {
-    title: siteTitle,
+    title: socialTitle,
     description: siteDescription,
     url: "/",
     siteName: `${EVENT.name} — ${EVENT.age} Anos`,
@@ -87,7 +88,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: siteTitle,
+    title: socialTitle,
     description: siteDescription,
   },
   appleWebApp: {
@@ -102,7 +103,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0A2463",
+  themeColor: "#F4F5F7",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

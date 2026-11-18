@@ -13,6 +13,44 @@ export const OG_ALT = `${EVENT.name} — ${EVENT.age} Anos • ${FORMATTED_EVENT
 
 const CREST_PATH = join(process.cwd(), "public", "images", "brasao-barroco-c.png");
 
+const GOOGLE_FONTS_TTF_UA =
+  "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; de-at) AppleWebKit/533.21.1 (KHTML, like Gecko) Version/5.0.5 Safari/533.21.1";
+
+let cachedCinzelBold: Promise<ArrayBuffer | null> | null = null;
+
+function loadCinzelBoldFont(): Promise<ArrayBuffer | null> {
+  if (cachedCinzelBold) return cachedCinzelBold;
+
+  cachedCinzelBold = (async () => {
+    try {
+      const cssRes = await fetch(
+        "https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap",
+        {
+          headers: { "User-Agent": GOOGLE_FONTS_TTF_UA },
+          signal: AbortSignal.timeout(4000),
+        },
+      );
+      if (!cssRes.ok) return null;
+
+      const cssText = await cssRes.text();
+      const match =
+        cssText.match(/src:\s*url\(([^)]+)\)\s*format\(['"]?(?:truetype|opentype)['"]?\)/i) ??
+        cssText.match(/url\((https?:\/\/[^)]+\.(?:ttf|otf))\)/i);
+      const fontUrl = match?.[1]?.replace(/['"]/g, "").trim();
+      if (!fontUrl) return null;
+
+      const fontRes = await fetch(fontUrl, { signal: AbortSignal.timeout(4000) });
+      if (!fontRes.ok) return null;
+
+      return await fontRes.arrayBuffer();
+    } catch {
+      return null;
+    }
+  })();
+
+  return cachedCinzelBold;
+}
+
 /** "Alameda ..., Indaiatuba - SP" → "Indaiatuba - SP" */
 const venueCity = EVENT.venue.address.split(",").pop()?.trim() ?? "";
 
@@ -26,8 +64,11 @@ const CORNER_BASE = {
 const CORNER_LINE = "2px solid rgba(226, 232, 240, 0.82)";
 
 export async function renderOgImage(): Promise<ImageResponse> {
-  const crestBase64 = (await readFile(CREST_PATH)).toString("base64");
-  const crestSrc = `data:image/png;base64,${crestBase64}`;
+  const [crestBuffer, cinzelBold] = await Promise.all([
+    readFile(CREST_PATH),
+    loadCinzelBoldFont(),
+  ]);
+  const crestSrc = `data:image/png;base64,${crestBuffer.toString("base64")}`;
 
   const dateLine = `${FORMATTED_EVENT_DATE.day} DE ${FORMATTED_EVENT_DATE.month} DE ${FORMATTED_EVENT_DATE.year} · ${FORMATTED_EVENT_DATE.time}`;
 
@@ -82,6 +123,7 @@ export async function renderOgImage(): Promise<ImageResponse> {
               style={{
                 display: "flex",
                 marginTop: 10,
+                fontFamily: '"Cinzel", Georgia, serif',
                 fontSize: 64,
                 fontWeight: 700,
                 letterSpacing: "0.16em",
@@ -120,6 +162,7 @@ export async function renderOgImage(): Promise<ImageResponse> {
               style={{
                 display: "flex",
                 marginTop: 20,
+                fontFamily: '"Cinzel", Georgia, serif',
                 fontSize: 30,
                 fontWeight: 700,
                 letterSpacing: "0.12em",
@@ -157,6 +200,20 @@ export async function renderOgImage(): Promise<ImageResponse> {
         </div>
       </div>
     ),
-    { ...OG_SIZE },
+    {
+      ...OG_SIZE,
+      ...(cinzelBold
+        ? {
+            fonts: [
+              {
+                name: "Cinzel",
+                data: cinzelBold,
+                weight: 700,
+                style: "normal",
+              },
+            ],
+          }
+        : {}),
+    },
   );
 }

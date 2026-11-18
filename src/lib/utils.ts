@@ -261,6 +261,8 @@ export type RsvpValidationResult =
   | {
       ok: false;
       error: string;
+      field?: "name" | "companion";
+      companionIndex?: number;
     };
 
 /**
@@ -268,7 +270,7 @@ export type RsvpValidationResult =
  */
 export function validateRsvpInput(input: RsvpPayloadInput): RsvpValidationResult {
   if (typeof input.name !== "string") {
-    return { ok: false, error: "Formato de nome inválido." };
+    return { ok: false, error: "Formato de nome inválido.", field: "name" };
   }
 
   if (input.attendance !== "yes" && input.attendance !== "no") {
@@ -279,7 +281,7 @@ export function validateRsvpInput(input: RsvpPayloadInput): RsvpValidationResult
   const letterCount = sanitizedName.match(/\p{L}/gu)?.length ?? 0;
 
   if (sanitizedName.length < 2 || letterCount < 2) {
-    return { ok: false, error: "Por favor, informe seu nome completo para confirmar." };
+    return { ok: false, error: "Por favor, informe seu nome completo para confirmar.", field: "name" };
   }
 
   const maxAllowed = Math.max(1, Math.floor(input.maxGuests));
@@ -287,14 +289,27 @@ export function validateRsvpInput(input: RsvpPayloadInput): RsvpValidationResult
   const safeGuests = Math.max(1, Math.min(maxAllowed, Math.floor(rawGuests)));
 
   const rawCompanions = Array.isArray(input.companions) ? input.companions : [];
-  const sanitizedCompanions =
-    input.attendance === "yes"
-      ? rawCompanions
-          .slice(0, Math.max(0, safeGuests - 1))
-          .filter((item): item is string => typeof item === "string")
-          .map((item) => sanitizeSingleLineInput(item, RSVP_LIMITS.companion))
-          .filter((item) => item.length > 0)
-      : [];
+  const sanitizedCompanions: string[] = [];
+
+  if (input.attendance === "yes" && safeGuests > 1) {
+    const expectedCompanions = safeGuests - 1;
+    for (let i = 0; i < expectedCompanions; i += 1) {
+      const rawItem = typeof rawCompanions[i] === "string" ? rawCompanions[i] : "";
+      const cleanCompanion = sanitizeSingleLineInput(rawItem, RSVP_LIMITS.companion);
+      const companionLetters = cleanCompanion.match(/\p{L}/gu)?.length ?? 0;
+
+      if (cleanCompanion.length < 2 || companionLetters < 2) {
+        return {
+          ok: false,
+          error: `Por favor, informe o nome completo do acompanhante ${i + 1} (ou reduza o total de pessoas).`,
+          field: "companion",
+          companionIndex: i,
+        };
+      }
+
+      sanitizedCompanions.push(cleanCompanion);
+    }
+  }
 
   const sanitizedMessage =
     typeof input.message === "string"

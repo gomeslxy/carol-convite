@@ -51,9 +51,15 @@ import {
 const CountdownTimer = dynamic(() => import("@/components/CountdownTimer"));
 
 const RSVP_COOLDOWN_KEY = "carol-18-rsvp-cooldown-v1";
+const RSVP_RECEIPT_KEY = "carol-18-rsvp-receipt-v1";
 const RSVP_COOLDOWN_MS = 15_000;
 
 type Attendance = "yes" | "no";
+
+interface RsvpErrorField {
+  field: "name" | "companion";
+  companionIndex?: number;
+}
 
 interface SubmittedRsvp {
   name: string;
@@ -92,11 +98,12 @@ function SectionHeading({ title }: { title: string }) {
 
 export default function InvitationContent({ revealed }: InvitationContentProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const companionInputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const ids = {
     name: useId(),
-    nameError: useId(),
+    formError: useId(),
     guests: useId(),
     message: useId(),
     honeypot: useId(),
@@ -122,7 +129,42 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
   const [cooldownRemainingSec, setCooldownRemainingSec] = useState(0);
   const isSubmittingRef = useRef(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<RsvpErrorField | null>(null);
   const [submittedRsvp, setSubmittedRsvp] = useState<SubmittedRsvp | null>(null);
+
+  const buildWhatsappHrefFromData = useCallback(
+    (data: {
+      name: string;
+      attendance: Attendance;
+      guests: number;
+      companions: string[];
+      message: string;
+    }) => {
+      const lines =
+        data.attendance === "yes"
+          ? [
+            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
+            "",
+            `👤 Nome: ${data.name}`,
+            `👥 Total de pessoas: ${data.guests}`,
+            ...(data.companions.length > 0
+              ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
+              : []),
+          ]
+          : [
+            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
+            "",
+            `👤 Nome: ${data.name}`,
+          ];
+
+      if (data.message) {
+        lines.push(`💌 Recado: ${data.message}`);
+      }
+
+      return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
+    },
+    [],
+  );
 
   useEffect(() => {
     try {
@@ -131,8 +173,33 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
       if (Number.isFinite(parsed) && parsed > Date.now()) {
         setCooldownUntil(parsed);
       }
+
+      const storedReceipt = window.localStorage.getItem(RSVP_RECEIPT_KEY);
+      if (storedReceipt) {
+        const raw: unknown = JSON.parse(storedReceipt);
+        if (typeof raw === "object" && raw !== null) {
+          const rec = raw as Record<string, unknown>;
+          const restored = validateRsvpInput({
+            name: rec.name,
+            attendance: rec.attendance,
+            guests: rec.guests,
+            companions: rec.companions,
+            message: rec.message ?? "",
+            maxGuests: EVENT.rsvp.maxGuests,
+          });
+          if (restored.ok) {
+            setSubmittedRsvp({
+              name: restored.data.name,
+              attendance: restored.data.attendance,
+              guests: restored.data.guests,
+              companions: restored.data.companions,
+              whatsappHref: buildWhatsappHrefFromData(restored.data),
+            });
+          }
+        }
+      }
     } catch {
-      /* ambiente sem acesso ao localStorage */
+      /* ambiente sem acesso ao localStorage ou JSON inválido */
     }
 
     return () => {
@@ -140,7 +207,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
       if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
       if (submitTimerRef.current !== null) window.clearTimeout(submitTimerRef.current);
     };
-  }, []);
+  }, [buildWhatsappHrefFromData]);
 
   useEffect(() => {
     if (cooldownUntil <= Date.now()) {
@@ -195,16 +262,27 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
   }, [revealed, shouldLoadMap]);
 
   // Mantém o array de nomes de acompanhantes sincronizado com `guests - 1`
-  const updateGuestsCount = useCallback((next: number) => {
-    const clamped = Math.max(1, Math.min(EVENT.rsvp.maxGuests, next));
-    setGuests(clamped);
-    setCompanions((prev) => {
-      const needed = Math.max(0, clamped - 1);
-      if (prev.length === needed) return prev;
-      if (prev.length > needed) return prev.slice(0, needed);
-      return [...prev, ...Array<string>(needed - prev.length).fill("")];
-    });
-  }, []);
+  const updateGuestsCount = useCallback(
+    (next: number) => {
+      const clamped = Math.max(1, Math.min(EVENT.rsvp.maxGuests, next));
+      setGuests(clamped);
+      setCompanions((prev) => {
+        const needed = Math.max(0, clamped - 1);
+        if (prev.length === needed) return prev;
+        if (prev.length > needed) return prev.slice(0, needed);
+        return [...prev, ...Array<string>(needed - prev.length).fill("")];
+      });
+      if (
+        errorField?.field === "companion" &&
+        typeof errorField.companionIndex === "number" &&
+        errorField.companionIndex >= clamped - 1
+      ) {
+        setFormError(null);
+        setErrorField(null);
+      }
+    },
+    [errorField],
+  );
 
   const handleCompanionChange = useCallback((index: number, value: string) => {
     const cleanValue = value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.companion);
@@ -213,6 +291,8 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
       next[index] = cleanValue;
       return next;
     });
+    setFormError((prev) => (prev ? null : prev));
+    setErrorField((prev) => (prev ? null : prev));
   }, []);
 
   const handleDownloadIcs = useCallback(() => {
@@ -242,40 +322,6 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
     }
   }, []);
 
-  const buildWhatsappHrefFromData = useCallback(
-    (data: {
-      name: string;
-      attendance: Attendance;
-      guests: number;
-      companions: string[];
-      message: string;
-    }) => {
-      const lines =
-        data.attendance === "yes"
-          ? [
-            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
-            "",
-            `👤 Nome: ${data.name}`,
-            `👥 Total de pessoas: ${data.guests}`,
-            ...(data.companions.length > 0
-              ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
-              : []),
-          ]
-          : [
-            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
-            "",
-            `👤 Nome: ${data.name}`,
-          ];
-
-      if (data.message) {
-        lines.push(`💌 Recado: ${data.message}`);
-      }
-
-      return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
-    },
-    [],
-  );
-
   const handleRsvpSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSubmittingRef.current) return;
@@ -283,6 +329,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
     // Honeypot anti-bot: bloqueia silenciosamente com retorno de sucesso falso
     if (honeypot.trim().length > 0) {
       setFormError(null);
+      setErrorField(null);
       setSubmittedRsvp({
         name: "Convidado",
         attendance,
@@ -297,6 +344,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
     if (cooldownUntil > now) {
       const secs = Math.max(1, Math.ceil((cooldownUntil - now) / 1000));
       setFormError(`Aguarde ${secs}s antes de enviar outra confirmação.`);
+      setErrorField(null);
       return;
     }
 
@@ -311,13 +359,25 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
 
     if (!validation.ok) {
       setFormError(validation.error);
-      nameInputRef.current?.focus();
+      setErrorField({
+        field: validation.field ?? "name",
+        companionIndex: validation.companionIndex,
+      });
+      if (
+        validation.field === "companion" &&
+        typeof validation.companionIndex === "number"
+      ) {
+        companionInputsRef.current[validation.companionIndex]?.focus();
+      } else {
+        nameInputRef.current?.focus();
+      }
       return;
     }
 
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     setFormError(null);
+    setErrorField(null);
 
     const cleanData = validation.data;
     setName(cleanData.name);
@@ -332,9 +392,26 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
     setCooldownUntil(nextCooldown);
     try {
       window.localStorage.setItem(RSVP_COOLDOWN_KEY, String(nextCooldown));
+      window.localStorage.setItem(
+        RSVP_RECEIPT_KEY,
+        JSON.stringify({
+          name: cleanData.name,
+          attendance: cleanData.attendance,
+          guests: cleanData.guests,
+          companions: cleanData.companions,
+          message: cleanData.message,
+        }),
+      );
     } catch {
       /* ambiente sem acesso ao localStorage */
     }
+
+    void fetch("/api/rsvp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...cleanData, honeypot: "" }),
+      keepalive: true,
+    }).catch(() => undefined);
 
     const cleanWhatsappHref = buildWhatsappHrefFromData(cleanData);
 
@@ -366,9 +443,13 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
   const cardSurfaceCls =
     "border border-royal-deep/15 bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16),0_4px_12px_-4px_rgba(10,36,99,0.08)]";
 
+  const focusRingCls =
+    "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-royal-deep/25";
+
   return (
     <div
       data-active={revealed ? "true" : "false"}
+      inert={!revealed}
       className={`relative mx-auto w-full md:max-w-2xl lg:max-w-[700px] md:rounded-[28px] md:bg-[linear-gradient(135deg,rgba(255,255,255,0.9)_0%,rgba(148,163,184,0.48)_50%,rgba(255,255,255,0.9)_100%)] md:p-[1.5px] ${revealed ? "pointer-events-auto" : "pointer-events-none"
         }`}
     >
@@ -531,7 +612,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   href={googleCalendarUrl(EVENT)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-royal-deep/20 bg-white/85 px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold text-royal-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors hover:border-royal-deep hover:bg-white"
+                  className={`flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-royal-deep/20 bg-white/85 px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold text-royal-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors hover:border-royal-deep hover:bg-white ${focusRingCls}`}
                 >
                   <ExternalLink className="size-3.5 shrink-0 text-royal-deep" />
                   <span>Google Agenda</span>
@@ -543,7 +624,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   whileTap={{ scale: 0.96 }}
                   onClick={handleDownloadIcs}
                   aria-live="polite"
-                  className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors ${icsSaved
+                  className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors ${focusRingCls} ${icsSaved
                     ? "border-royal-navy bg-royal-navy text-white"
                     : "border-royal-deep/20 bg-white/85 text-royal-navy hover:border-royal-deep hover:bg-white"
                     }`}
@@ -678,7 +759,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     href={googleMapsUrl(EVENT.venue.mapsQuery)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-navy px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(7,23,57,0.6)] transition-colors hover:bg-royal-deep"
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-navy px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(7,23,57,0.6)] transition-colors hover:bg-royal-deep ${focusRingCls}`}
                   >
                     <MapPin className="size-4 shrink-0" />
                     <span>Google Maps</span>
@@ -690,7 +771,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     href={wazeUrl(EVENT.venue.mapsQuery)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-deep px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(10,36,99,0.55)] transition-colors hover:bg-royal-800"
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-deep px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(10,36,99,0.55)] transition-colors hover:bg-royal-800 ${focusRingCls}`}
                   >
                     <Navigation className="size-4 shrink-0" />
                     <span>Waze</span>
@@ -702,7 +783,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     whileTap={{ scale: 0.96 }}
                     onClick={handleCopyAddress}
                     aria-live="polite"
-                    className={`col-span-2 sm:col-span-1 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2.5 font-sans text-[12.5px] font-semibold transition-colors ${copiedAddress
+                    className={`col-span-2 sm:col-span-1 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2.5 font-sans text-[12.5px] font-semibold transition-colors ${focusRingCls} ${copiedAddress
                       ? "border-royal-navy bg-royal-navy text-white shadow-[0_8px_18px_-8px_rgba(7,23,57,0.45)]"
                       : "border-royal-deep/20 bg-white/95 text-royal-navy hover:border-royal-deep hover:bg-white"
                       }`}
@@ -823,8 +904,14 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                           type="button"
                           role="radio"
                           aria-checked={active}
-                          onClick={() => setAttendance(value)}
-                          className={`relative z-10 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
+                          onClick={() => {
+                            setAttendance(value);
+                            if (value === "no" && errorField?.field === "companion") {
+                              setFormError(null);
+                              setErrorField(null);
+                            }
+                          }}
+                          className={`relative z-10 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${focusRingCls} ${active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
                             }`}
                         >
                           <Icon
@@ -855,29 +942,18 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                       onChange={(e) => {
                         setName(e.target.value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.name));
                         if (formError) setFormError(null);
+                        if (errorField) setErrorField(null);
                       }}
                       placeholder="Digite seu nome completo"
                       autoComplete="name"
-                      aria-invalid={!!formError}
-                      aria-describedby={formError ? ids.nameError : undefined}
-                      className={`${inputCls} ${formError ? "border-royal-navy ring-4 ring-royal-deep/15" : ""}`}
+                      aria-invalid={errorField?.field === "name"}
+                      aria-describedby={errorField?.field === "name" && formError ? ids.formError : undefined}
+                      className={`${inputCls} ${
+                        errorField?.field === "name"
+                          ? "border-royal-navy ring-4 ring-royal-deep/15"
+                          : ""
+                      }`}
                     />
-                    <AnimatePresence>
-                      {formError && (
-                        <motion.div
-                          id={ids.nameError}
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          transition={{ duration: 0.2 }}
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-silver-300/70 bg-royal-navy px-3 py-1.5 font-sans text-[12px] font-medium text-white shadow-sm"
-                          role="alert"
-                        >
-                          <AlertCircle className="size-3.5 shrink-0 text-silver-200" />
-                          <span>{formError}</span>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
 
                   {/* Quantidade e Nomes dos Acompanhantes */}
@@ -907,7 +983,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                               aria-label="Diminuir quantidade de pessoas"
                               onClick={() => updateGuestsCount(guests - 1)}
                               disabled={guests <= 1}
-                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition-[transform,opacity] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+                              className={`grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition-[transform,opacity] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 ${focusRingCls}`}
                             >
                               <Minus className="size-4" />
                             </button>
@@ -935,7 +1011,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                               aria-label="Aumentar quantidade de pessoas"
                               onClick={() => updateGuestsCount(guests + 1)}
                               disabled={guests >= EVENT.rsvp.maxGuests}
-                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition-[transform,opacity] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+                              className={`grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition-[transform,opacity] active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 ${focusRingCls}`}
                             >
                               <Plus className="size-4" />
                             </button>
@@ -949,20 +1025,55 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                               <span>Nome dos Acompanhantes ({guests - 1})</span>
                             </div>
 
-                            {Array.from({ length: guests - 1 }).map((_, idx) => (
-                              <input
-                                key={`companion-${idx}`}
-                                type="text"
-                                maxLength={RSVP_LIMITS.companion}
-                                value={companions[idx] ?? ""}
-                                onChange={(e) => handleCompanionChange(idx, e.target.value)}
-                                placeholder={`Nome completo do acompanhante ${idx + 1}`}
-                                aria-label={`Nome completo do acompanhante ${idx + 1}`}
-                                className={inputCls}
-                              />
-                            ))}
+                            {Array.from({ length: guests - 1 }).map((_, idx) => {
+                              const hasCompError =
+                                errorField?.field === "companion" &&
+                                errorField.companionIndex === idx;
+                              return (
+                                <input
+                                  key={`companion-${idx}`}
+                                  ref={(el) => {
+                                    companionInputsRef.current[idx] = el;
+                                  }}
+                                  type="text"
+                                  required
+                                  maxLength={RSVP_LIMITS.companion}
+                                  value={companions[idx] ?? ""}
+                                  onChange={(e) => handleCompanionChange(idx, e.target.value)}
+                                  placeholder={`Nome completo do acompanhante ${idx + 1}`}
+                                  aria-label={`Nome completo do acompanhante ${idx + 1}`}
+                                  aria-invalid={hasCompError}
+                                  aria-describedby={
+                                    hasCompError && formError ? ids.formError : undefined
+                                  }
+                                  className={`${inputCls} ${
+                                    hasCompError
+                                      ? "border-royal-navy ring-4 ring-royal-deep/15"
+                                      : ""
+                                  }`}
+                                />
+                              );
+                            })}
                           </div>
                         )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Alerta de Validação (Nome ou Acompanhantes) */}
+                  <AnimatePresence>
+                    {formError && (
+                      <motion.div
+                        id={ids.formError}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.2 }}
+                        className="inline-flex w-full items-center gap-2 rounded-xl border border-silver-300/70 bg-royal-navy px-3.5 py-2.5 font-sans text-[12px] font-medium text-white shadow-sm"
+                        role="alert"
+                      >
+                        <AlertCircle className="size-4 shrink-0 text-silver-200" />
+                        <span>{formError}</span>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1002,7 +1113,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     disabled={isSubmitting || cooldownRemainingSec > 0}
                     whileHover={isSubmitting || cooldownRemainingSec > 0 ? undefined : { y: -1 }}
                     whileTap={isSubmitting || cooldownRemainingSec > 0 ? undefined : { scale: 0.97 }}
-                    className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-royal-navy px-5 py-3 font-sans text-[13.5px] font-bold tracking-wide text-white shadow-[0_12px_24px_-10px_rgba(7,23,57,0.7)] transition-colors hover:bg-royal-deep disabled:cursor-not-allowed disabled:opacity-70"
+                    className={`flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-royal-navy px-5 py-3 font-sans text-[13.5px] font-bold tracking-wide text-white shadow-[0_12px_24px_-10px_rgba(7,23,57,0.7)] transition-colors hover:bg-royal-deep disabled:cursor-not-allowed disabled:opacity-70 ${focusRingCls}`}
                   >
                     <MessageCircle className="size-[18px] shrink-0" strokeWidth={2} />
                     <span>
@@ -1056,7 +1167,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                         }}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition-colors hover:bg-royal-deep"
+                        className={`mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition-colors hover:bg-royal-deep ${focusRingCls}`}
                       >
                         <MessageCircle className="size-4 shrink-0" />
                         <span>Abrir WhatsApp novamente</span>
