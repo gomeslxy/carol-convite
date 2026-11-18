@@ -1042,8 +1042,11 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
             alt={`${EVENT.name} — ${EVENT.age} anos`}
             width={833}
             height={1024}
-            loading="lazy"
-            decoding="async"
+            priority
+            fetchPriority="high"
+            loading="eager"
+            decoding="sync"
+            data-critical-asset="true"
             sizes="(max-width: 639px) 252px, 344px"
             draggable={false}
             className="block size-full object-contain drop-shadow-[0_12px_24px_rgba(7,23,57,0.28)]"
