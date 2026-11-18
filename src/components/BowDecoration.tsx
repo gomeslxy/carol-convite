@@ -59,12 +59,12 @@ const PALETTES: Record<BowVariant, RibbonPalette> = {
   },
 };
 
-export interface BowGlyphProps {
+interface BowGlyphProps {
   variant: BowVariant;
   idPrefix: string;
 }
 
-export function BowGlyph({ variant, idPrefix }: BowGlyphProps) {
+function BowGlyph({ variant, idPrefix }: BowGlyphProps) {
   const p = PALETTES[variant];
   const loopLId = `${idPrefix}-loop-l`;
   const loopRId = `${idPrefix}-loop-r`;

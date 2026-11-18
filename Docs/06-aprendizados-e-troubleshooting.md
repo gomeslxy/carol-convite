@@ -128,5 +128,21 @@ related:
 > * **Ancoragem Percentual de Adereços (`HeroPoster.tsx`):** Posicionar acessórios sobre fotos recortadas usando `top`/`left`/`right` e `w-[...%]` exclusivamente em `%` dentro de um único container com `aspect-[833/1024]` garante paridade absoluta entre mobile e desktop, impedindo que chapéu e laço escorreguem para a testa ou olhos.
 > * **`will-change` sob Demanda:** Aplicar `will-change: transform` somente nos estágios `unsealing` / `opening` evita alocação prematura de camadas GPU enquanto a capa está em repouso.
 
+## 11. Gargalos de Scroll & `whileInView` Invisível em Seções Altas (`InvitationContent.tsx` & `HeroPoster.tsx`)
+
+> [!bug] Scroll Travado + Blocos Inferiores Sem Animação Visível
+> Rolar após a abertura da capa apresentava engasgos perceptíveis e vários cards/títulos abaixo da dobra já apareciam estáticos ou sem transição clara.
+
+* **Causas Raiz Identificadas:**
+  1. Dezenas de loops CSS infinitos simultâneos (`animate-twinkle`, balões aninhados, estrelas marginais) combinados com filtros SVG `drop-shadow` em globos espelhados móveis de ~100 polígonos, trama `--paper-weave` tripla e `will-change: transform` permanente em dezenas de nós sobrecarregavam a rasterização de GPU durante o scroll.
+  2. `Lenis` com `duration: 1.15` acoplado ao `gsap.ticker` adicionava inércia excessiva e custo extra de frame; `overflow-hidden` no papel e o `<iframe>` do Google Maps sem isolamento de layout provocavam recálculos durante a rolagem.
+  3. Usar `whileInView` com `viewport={{ once: true, amount: 0.2 }}` em uma `<section>` pai muito alta (~750px) disparava a animação tarde demais (ou quando apenas o topo estava visível), ocultando ou cortando o *stagger* dos filhos.
+* **Solução:**
+  * Remover `drop-shadow` animado dos globos, loops internos de estrelas e aninhamento nos balões; simplificar `--paper-weave` e remover `will-change` permanente.
+  * Rodar `Lenis` em `lerp: 0.12` com `requestAnimationFrame` nativo, usar `overflow-x-clip` em `bg-poster-paper` e `contain: "strict"` no container do `<iframe>` do mapa.
+  * Aplicar `whileInView` individual por bloco (`viewport={{ once: true, amount: 0.14 }}`, duração `0.95s`) para que cada elemento anime exatamente ao entrar na área útil da tela.
+
+Veja também: [[02-envelope-3d-e-animacoes]], [[05-changelog-e-decisoes]].
+
 Veja também: [[00-INDEX]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].
 

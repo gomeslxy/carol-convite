@@ -24,6 +24,19 @@ related:
 
 ---
 
+## [2026-11-17] · Scroll 60fps, `whileInView` por Bloco & Remoção de Confete na Capa
+
+### ADR-021: Fluidez de Scroll em 60fps, `CoverGate` Sem Confete e Animações Inferiores Individuais
+* **Contexto:** Após o redesign da capa e da coreografia de entrada, o scroll pelas seções inferiores apresentava engasgos e os blocos abaixo da dobra não exibiam claramente suas animações de entrada; além disso, o disparo de confete no clique do broche foi considerado excessivo.
+* **Decisões:**
+  1. **`CoverGate.tsx` & `LuxuryParticles.tsx`:** Removida a função `fireLuxuryCelebration` (confete ao abrir o broche), mantendo apenas `fireMiniCelebration` (`particleCount: 18`) no RSVP. Scroll é destravado antecipadamente logo que as portas começam a abrir (`useScrollLock(phase !== "opening")`, em `0.58s`), com `onOpenStart` em `0.95s`, deslizamento das portas em `1.95s`, fagulhas em `1.35s` e desmontagem em `2.6s`. Adicionado contorno `#F4F5F7` (`paintOrder: "stroke fill"`) em `CurvedCrestCaption`.
+  2. **Otimização GPU em `HeroPoster.tsx`, `globals.css` e `CountdownTimer.tsx`:** Removidos filtros `drop-shadow` em movimento dos `MirrorDiscoBall`s (`10`/`8` linhas + `3` glints), loops internos de `animate-twinkle` nas estrelas e animações aninhadas por balão em `RoyalGlossyBalloons`; `--paper-weave` foi simplificado para uma única trama diagonal leve e `will-change: transform` permanente foi removido de `.animate-sticker-float`, `.animate-sticker-float-alt` e `RollingDigit`.
+  3. **Lenis RAF Nativo (`SmoothScrollProvider.tsx`):** Substituída a sincronização com `gsap.ticker` e `duration: 1.15` por `lerp: 0.12`, `wheelMultiplier: 1`, `touchMultiplier: 1` e loop nativo `requestAnimationFrame` com `cancelAnimationFrame` no cleanup.
+  4. **Animações e Contenção em `InvitationContent.tsx`:** Trocado `whileInView` em seções pais de `~750px` (`amount: 0.2`) por `whileInView` individual em cada bloco (`viewport={{ once: true, amount: 0.14 }}`, duração `0.95s`), substituído `overflow-hidden` por `overflow-x-clip`, desativada flutuação infinita nas 6 estrelas marginais inferiores (`animClass=""`) e adicionado `contain: "strict"` no container do `<iframe>` do Google Maps (`h-52 sm:h-60`).
+* **Impacto:** Scroll fluido e responsivo em desktop/mobile, animações abaixo da dobra visíveis no momento em que cada card entra na viewport e redução drástica de repaints/camadas GPU.
+
+---
+
 ## [2026-11-17] · Separação Broche Puro vs. Decoração na Página (`CoverGate`)
 
 ### ADR-020: Broche Barroco Isolado Sem Fundo/Flores + Decoração Independente na Página (Laços, Riscos Chiques, Estrelas e Toque Floral)
@@ -31,7 +44,8 @@ related:
 * **Alterações:**
   * **Broche Puro Sem Fundo (`public/images/brasao-barroco-c.png`):** Restaurado o selo barroco perolado limpo (`576×610`, ~242 KB, zero flores externas e zero fundo) com neutralização integral de pixels quentes/dourados para **Prata/Madrepérola Frio** e monograma **"C"** em **Azul Royal**.
   * **Remoção do Halo Circular (`CoverGate.tsx` & `globals.css`):** Removido o disco `radial-gradient` (`animate-halo-pulse`) atrás do broche; mantido apenas o `drop-shadow` recortado do selo e o shimmer restrito ao medalhão interno `"C"` (`w-[42%]`), eliminando também o keyframe `halo-pulse` em `globals.css`.
-  * **Decoração Independente da Página (`CoverPageCenterOrnament` em `CoverGate.tsx` & `BowDecoration.tsx`):** Re-exportado `BowGlyph` em `BowDecoration.tsx` e criada a composição vetorial central (`540×740`) dividida perfeitamente ao meio entre a porta esquerda (`viewBox="0 0 270 740"`) e a porta direita (`viewBox="270 0 270 740"`), atrás do broche: 3 laços acetinados Azul Royal (`BowGlyph`), moldura geométrica vertical alongada, riscos caligráficos fluidos, estrelas facetadas/brilhantes (`FacetedPageStar`, `FourPointStar`) e toques botânicos delicados (~20%), mantendo livre a lateral direita do selo para **`TOQUE PARA ABRIR`** (`CurvedCrestCaption` em `viewBox="0 0 576 610"`, `R = 324`).
+  * **Metade Cortada Colada na Divisória & Animações Lentas (`CoverGate.tsx`, `HeroPoster.tsx`, `LuxuryParticles.tsx`, `InvitationContent.tsx`):** A ilustração foi cortada ao meio (`public/images/cover-ornament-backdrop-right.png`, `370×1404`, ~123 KB) e sua metade direita foi colada exatamente na divisória central vertical da porta direita (`left-0`, `object-left`), deixando a zona curva de `TOQUE PARA ABRIR` 100% limpa. Todas as animações de entrada e abertura foram desaceleradas para contemplação: destrave em `0.75s` com ondas de choque duplas (`1.5s`/`1.75s`), 14 fagulhas (`1.45s`) e confetes em 3 ondas lentas (`0ms`, `450ms`, `980ms`), abertura das portas em `2.35s` (`[0.16, 1, 0.3, 1]`), disparo do `HeroPoster` em `1.20s` (globos em `1.85s`, estrelas `0.35s..1.60s`, letreiro `0.30s..1.62s`, data `1.35s`, retrato `1.65s`, laço/chapéu `1.75s`/`1.95s`, balões `1.75s`) e seções inferiores em `1.25s` (`staggerChildren: 0.22`).
+  * **Limpeza:** Removidas `--animate-spark-twinkle` / `@keyframes spark-twinkle` não utilizadas em `globals.css` e restaurada a visibilidade privada de `BowGlyph` em `BowDecoration.tsx`.
 
 ---
 

@@ -1,7 +1,6 @@
 "use client";
 
 import Lenis from "@studio-freight/lenis";
-import { gsap } from "gsap";
 import {
   createContext,
   useCallback,
@@ -48,15 +47,18 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const instance = new Lenis({
-      duration: prefersReduced ? 0.4 : 1.15,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      lerp: prefersReduced ? 1 : 0.12,
       smoothWheel: !prefersReduced,
-      wheelMultiplier: 0.95,
-      touchMultiplier: 1.4,
+      wheelMultiplier: 1,
+      touchMultiplier: 1,
     });
 
-    const tick = (time: number) => instance.raf(time * 1000);
-    gsap.ticker.add(tick);
+    let rafId = 0;
+    const raf = (time: number) => {
+      instance.raf(time);
+      rafId = window.requestAnimationFrame(raf);
+    };
+    rafId = window.requestAnimationFrame(raf);
 
     lenisRef.current = instance;
     if (lockCount.current > 0) {
@@ -67,7 +69,7 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
     }
 
     return () => {
-      gsap.ticker.remove(tick);
+      window.cancelAnimationFrame(rafId);
       instance.destroy();
       lenisRef.current = null;
     };

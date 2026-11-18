@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   CalendarDays,
@@ -63,29 +63,14 @@ export interface InvitationContentProps {
   revealed: boolean;
 }
 
-const SECTION_VARIANTS: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.09,
-    },
-  },
-};
+const REVEAL_TRANSITION = {
+  duration: 0.95,
+  ease: [0.16, 1, 0.3, 1],
+} as const;
 
-const ITEM_VARIANTS: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.65,
-      ease: [0.22, 1, 0.36, 1],
-    },
-  },
-};
-
-const VIEWPORT_CONFIG = { once: true, amount: 0.2 } as const;
+const REVEAL_INITIAL = { opacity: 0, y: 32, scale: 0.97 } as const;
+const REVEAL_VISIBLE = { opacity: 1, y: 0, scale: 1 } as const;
+const VIEWPORT_CONFIG = { once: true, amount: 0.14 } as const;
 
 /** Título editorial serifado ladeado por filetes horizontais no estilo do pôster. */
 function SectionHeading({ title }: { title: string }) {
@@ -256,7 +241,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
         }`}
     >
       {/* Fundo único contínuo em papel texturizado claro (#F1F2F4) do topo do pôster até o rodapé */}
-      <div className="bg-poster-paper relative isolate min-h-dvh md:min-h-0 w-full overflow-hidden md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(7,23,57,0.30),0_14px_30px_-8px_rgba(10,36,99,0.14)]">
+      <div className="bg-poster-paper relative isolate min-h-dvh md:min-h-0 w-full overflow-x-clip md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(7,23,57,0.30),0_14px_30px_-8px_rgba(10,36,99,0.14)]">
         {/* Camada sutil de brilho atmosférico em GPU (zero filtros SVG pesados) */}
         <div
           className="pointer-events-none absolute inset-0 z-0 opacity-70"
@@ -276,97 +261,48 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
             CONTINUAÇÃO CONTÍNUA NO MESMO PAPEL TEXTURIZADO (Ritmo Editorial)
            ════════════════════════════════════════════════════════════════════════ */}
         <div className="relative z-[5] pt-8 pb-16 sm:pt-12 sm:pb-20">
-          {/* Estrelas laterais nas margens externas conectando visualmente o pôster às seções */}
+          {/* Estrelas laterais estáticas nas margens externas (zero repaints no scroll) */}
           <GlitterBlueStar
-            style={
-              {
-                animationDelay: "0.25s",
-                "--float-duration": "5s",
-                "--ty": "-6px",
-                "--r-start": "-12deg",
-                "--r-mid": "-4deg",
-              } as FloatStyle
-            }
-            className="absolute top-10 -left-2 sm:top-12 sm:left-4 z-[2] w-[30px] sm:w-[50px] opacity-85 sm:opacity-95"
+            animClass=""
+            className="absolute top-10 -left-2 sm:top-12 sm:left-4 z-[2] w-[30px] sm:w-[50px] -rotate-12 opacity-85 sm:opacity-95"
           />
           <MetallicSilverStar
-            style={
-              {
-                animationDelay: "0.5s",
-                "--float-duration": "4.8s",
-                "--ty": "-5px",
-                "--r-start": "10deg",
-                "--r-mid": "18deg",
-              } as FloatStyle
-            }
-            className="absolute top-28 -right-2 sm:top-32 sm:right-4 z-[2] w-[28px] sm:w-[46px] opacity-85 sm:opacity-95"
+            animClass=""
+            className="absolute top-28 -right-2 sm:top-32 sm:right-4 z-[2] w-[28px] sm:w-[46px] rotate-12 opacity-85 sm:opacity-95"
           />
 
           <MetallicSilverStar
-            style={
-              {
-                animationDelay: "0.35s",
-                "--float-duration": "5.3s",
-                "--ty": "-6px",
-                "--r-start": "-8deg",
-                "--r-mid": "2deg",
-              } as FloatStyle
-            }
-            className="absolute top-[37%] -left-2 sm:left-4 z-[2] w-[28px] sm:w-[48px] opacity-80 sm:opacity-90"
+            animClass=""
+            className="absolute top-[37%] -left-2 sm:left-4 z-[2] w-[28px] sm:w-[48px] -rotate-6 opacity-80 sm:opacity-90"
           />
           <GlitterBlueStar
-            style={
-              {
-                animationDelay: "0.7s",
-                "--float-duration": "4.7s",
-                "--ty": "-6px",
-                "--r-start": "12deg",
-                "--r-mid": "20deg",
-              } as FloatStyle
-            }
-            className="absolute top-[42%] -right-2 sm:right-4 z-[2] w-[32px] sm:w-[54px] opacity-85 sm:opacity-95"
+            animClass=""
+            className="absolute top-[42%] -right-2 sm:right-4 z-[2] w-[32px] sm:w-[54px] rotate-12 opacity-85 sm:opacity-95"
           />
 
           <GlitterBlueStar
-            style={
-              {
-                animationDelay: "0.4s",
-                "--float-duration": "5.1s",
-                "--ty": "-5px",
-                "--r-start": "-14deg",
-                "--r-mid": "-5deg",
-              } as FloatStyle
-            }
-            className="absolute bottom-44 -left-2 sm:bottom-52 sm:left-4 z-[2] w-[32px] sm:w-[52px] opacity-85 sm:opacity-95"
+            animClass=""
+            className="absolute bottom-44 -left-2 sm:bottom-52 sm:left-4 z-[2] w-[32px] sm:w-[52px] -rotate-12 opacity-85 sm:opacity-95"
           />
           <MetallicSilverStar
-            style={
-              {
-                animationDelay: "0.6s",
-                "--float-duration": "4.6s",
-                "--ty": "-4px",
-                "--r-start": "8deg",
-                "--r-mid": "16deg",
-              } as FloatStyle
-            }
-            className="absolute bottom-24 -right-2 sm:bottom-28 sm:right-4 z-[2] w-[28px] sm:w-[46px] opacity-85 sm:opacity-95"
+            animClass=""
+            className="absolute bottom-24 -right-2 sm:bottom-28 sm:right-4 z-[2] w-[28px] sm:w-[46px] rotate-6 opacity-85 sm:opacity-95"
           />
 
           <main className="relative z-[5] mx-auto flex w-full max-w-[540px] flex-col items-center px-5 sm:px-10 text-center">
             {/* ──────────────────────────────────────────────────────────────────────
                 2. APRESENTAÇÃO & CONTAGEM REGRESSIVA
                ────────────────────────────────────────────────────────────────────── */}
-            <motion.section
-              variants={SECTION_VARIANTS}
-              initial="hidden"
-              whileInView={revealed ? "visible" : "hidden"}
-              viewport={VIEWPORT_CONFIG}
+            <section
               className="flex w-full flex-col items-center"
               aria-label="Apresentação e contagem regressiva"
             >
               {/* Pílula Azul-Marinho CAROL • 18 ANOS ladeada por linhas */}
               <motion.div
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={REVEAL_TRANSITION}
                 className="flex w-full max-w-[360px] items-center gap-3 sm:gap-4"
               >
                 <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
@@ -378,7 +314,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
 
               {/* Citação de Walt Disney e boas-vindas integradas ao papel */}
               <motion.div
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={REVEAL_TRANSITION}
                 className={`mt-7 w-full max-w-[460px] rounded-2xl px-5 py-6 sm:px-7 sm:py-7 ${cardSurfaceCls}`}
               >
                 <span
@@ -406,13 +345,22 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
               </motion.div>
 
               {/* Contador ao vivo no estilo do pôster */}
-              <motion.div variants={ITEM_VARIANTS} className="mt-9 flex w-full justify-center">
+              <motion.div
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={REVEAL_TRANSITION}
+                className="mt-9 flex w-full justify-center"
+              >
                 <CountdownTimer active={revealed} />
               </motion.div>
 
               {/* Ações rápidas de Calendário */}
               <motion.div
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={{ ...REVEAL_TRANSITION, delay: 0.08 }}
                 className="mt-5 grid w-full max-w-[360px] grid-cols-2 gap-2.5"
               >
                 <motion.a
@@ -467,25 +415,30 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   </AnimatePresence>
                 </motion.button>
               </motion.div>
-            </motion.section>
+            </section>
 
             {/* ──────────────────────────────────────────────────────────────────────
                 3. LOCAL DA FESTA
                ────────────────────────────────────────────────────────────────────── */}
-            <motion.section
-              variants={SECTION_VARIANTS}
-              initial="hidden"
-              whileInView={revealed ? "visible" : "hidden"}
-              viewport={VIEWPORT_CONFIG}
+            <section
               className="mt-14 sm:mt-16 flex w-full flex-col items-center"
               aria-label="Local da festa"
             >
-              <motion.div variants={ITEM_VARIANTS} className="w-full">
+              <motion.div
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={REVEAL_TRANSITION}
+                className="w-full"
+              >
                 <SectionHeading title="Local da Festa" />
               </motion.div>
 
               <motion.div
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={{ ...REVEAL_TRANSITION, delay: 0.08 }}
                 className={`relative mt-5 w-full rounded-2xl p-5 sm:p-7 text-center ${cardSurfaceCls}`}
               >
                 <CornerFiligree
@@ -534,12 +487,15 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   </p>
                 )}
 
-                {/* Mapa Embed com moldura prateada/marinho */}
-                <div className="mt-5 overflow-hidden rounded-xl border border-royal-deep/15 bg-silver-100 shadow-sm">
+                {/* Mapa Embed com contenção estrita de layout/paint para 60fps no scroll */}
+                <div
+                  style={{ contain: "strict" }}
+                  className="mt-5 h-52 sm:h-60 overflow-hidden rounded-xl border border-royal-deep/15 bg-silver-100 shadow-sm"
+                >
                   <iframe
                     title={`Mapa — ${EVENT.venue.name}`}
                     src={googleMapsEmbedUrl(EVENT.venue.mapsQuery)}
-                    className="block h-52 sm:h-60 w-full"
+                    className="block size-full"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
@@ -612,25 +568,30 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   </motion.button>
                 </div>
               </motion.div>
-            </motion.section>
+            </section>
 
             {/* ──────────────────────────────────────────────────────────────────────
                 4. CONFIRMAÇÃO DE PRESENÇA / RSVP
                ────────────────────────────────────────────────────────────────────── */}
-            <motion.section
-              variants={SECTION_VARIANTS}
-              initial="hidden"
-              whileInView={revealed ? "visible" : "hidden"}
-              viewport={VIEWPORT_CONFIG}
+            <section
               className="mt-14 sm:mt-16 flex w-full flex-col items-center"
               aria-label="Confirmação de presença"
             >
-              <motion.div variants={ITEM_VARIANTS} className="w-full">
+              <motion.div
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={REVEAL_TRANSITION}
+                className="w-full"
+              >
                 <SectionHeading title="Confirmar Presença" />
               </motion.div>
 
               <motion.p
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={{ ...REVEAL_TRANSITION, delay: 0.06 }}
                 className="mt-3 font-sans text-[12.5px] sm:text-[13.5px] text-slate-600"
               >
                 Por gentileza, confirme sua presença até{" "}
@@ -638,7 +599,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
               </motion.p>
 
               <motion.div
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={{ ...REVEAL_TRANSITION, delay: 0.1 }}
                 className={`mt-4 w-full rounded-2xl p-5 sm:p-7 text-left ${cardSurfaceCls}`}
               >
                 <form onSubmit={handleRsvpSubmit} className="space-y-4" noValidate>
@@ -895,27 +859,27 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   )}
                 </AnimatePresence>
               </motion.div>
-            </motion.section>
+            </section>
 
             {/* ──────────────────────────────────────────────────────────────────────
                 5. RODAPÉ EDITORIAL
                ────────────────────────────────────────────────────────────────────── */}
-            <motion.footer
-              variants={SECTION_VARIANTS}
-              initial="hidden"
-              whileInView={revealed ? "visible" : "hidden"}
-              viewport={VIEWPORT_CONFIG}
-              className="mt-14 sm:mt-16 flex w-full flex-col items-center"
-            >
+            <footer className="mt-14 sm:mt-16 flex w-full flex-col items-center">
               <motion.p
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={REVEAL_TRANSITION}
                 className="font-serif text-[22px] sm:text-[26px] font-bold tracking-wide text-royal-navy"
               >
                 {EVENT.closingText}
               </motion.p>
 
               <motion.div
-                variants={ITEM_VARIANTS}
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={{ ...REVEAL_TRANSITION, delay: 0.1 }}
                 className="mt-4 flex w-full max-w-[300px] items-center gap-3 sm:gap-4"
               >
                 <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
@@ -924,7 +888,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 </span>
                 <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
               </motion.div>
-            </motion.footer>
+            </footer>
           </main>
         </div>
       </div>

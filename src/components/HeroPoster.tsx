@@ -90,8 +90,8 @@ function buildDiscoTiles(rows: number): DiscoTile[] {
   return tiles;
 }
 
-const BIG_DISCO_TILES = buildDiscoTiles(12);
-const MINI_DISCO_TILES = buildDiscoTiles(9);
+const BIG_DISCO_TILES = buildDiscoTiles(10);
+const MINI_DISCO_TILES = buildDiscoTiles(8);
 
 /** Globo Espelhado Vetorial 3D com reflexos dinâmicos. */
 const MirrorDiscoBall = memo(function MirrorDiscoBall({
@@ -113,7 +113,7 @@ const MirrorDiscoBall = memo(function MirrorDiscoBall({
       {topStar && (
         <svg
           viewBox="0 0 40 40"
-          className="pointer-events-none absolute -top-[21%] left-1/2 z-20 w-[34%] -translate-x-1/2 drop-shadow-[0_2px_4px_rgba(7,23,57,0.35)]"
+          className="pointer-events-none absolute -top-[21%] left-1/2 z-20 w-[34%] -translate-x-1/2"
         >
           <polygon
             points="20,2 25.2,13.4 37.6,14.8 28.4,23.2 30.8,35.6 20,29.4 9.2,35.6 11.6,23.2 2.4,14.8 14.8,13.4"
@@ -125,10 +125,7 @@ const MirrorDiscoBall = memo(function MirrorDiscoBall({
         </svg>
       )}
 
-      <svg
-        viewBox="0 0 200 200"
-        className="w-full h-auto drop-shadow-[0_12px_24px_rgba(7,23,57,0.26)]"
-      >
+      <svg viewBox="0 0 200 200" className="w-full h-auto">
         <defs>
           <clipPath id={clipId}>
             <circle cx="100" cy="100" r="95" />
@@ -164,51 +161,52 @@ const MirrorDiscoBall = memo(function MirrorDiscoBall({
           strokeWidth="1"
         />
 
-        {/* Brilhos especulares sutis sobre ladrilhos iluminados */}
-        {tiles
-          .filter((t) => t.sparkle)
-          .slice(0, 5)
-          .map((t, idx) => (
-            <g
-              key={`glint-${t.id}`}
-              style={{
-                transformOrigin: `${t.cx}px ${t.cy}px`,
-                animationDelay: `${idx * 0.65}s`,
-              }}
-              className="animate-disco-glint"
-            >
-              <path
-                d={`M ${t.cx} ${t.cy - 9} L ${t.cx + 2} ${t.cy - 2} L ${t.cx + 9} ${t.cy} L ${t.cx + 2} ${t.cy + 2} L ${t.cx} ${t.cy + 9} L ${t.cx - 2} ${t.cy + 2} L ${t.cx - 9} ${t.cy} L ${t.cx - 2} ${t.cy - 2} Z`}
-                fill="#FFFFFF"
-                opacity="0.92"
-              />
-            </g>
-          ))}
+        {/* Brilhos especulares sutis apenas nos globos principais */}
+        {!mini &&
+          tiles
+            .filter((t) => t.sparkle)
+            .slice(0, 3)
+            .map((t, idx) => (
+              <g
+                key={`glint-${t.id}`}
+                style={{
+                  transformOrigin: `${t.cx}px ${t.cy}px`,
+                  animationDelay: `${idx * 0.8}s`,
+                }}
+                className="animate-disco-glint"
+              >
+                <path
+                  d={`M ${t.cx} ${t.cy - 9} L ${t.cx + 2} ${t.cy - 2} L ${t.cx + 9} ${t.cy} L ${t.cx + 2} ${t.cy + 2} L ${t.cx} ${t.cy + 9} L ${t.cx - 2} ${t.cy + 2} L ${t.cx - 9} ${t.cy} L ${t.cx - 2} ${t.cy - 2} Z`}
+                  fill="#FFFFFF"
+                  opacity="0.92"
+                />
+              </g>
+            ))}
       </svg>
     </div>
   );
 });
 
 const GLITTER_SPECKS = [
-  { x: 50, y: 20, r: 1.5, c: "#93C5FD", twinkle: true, delay: "0s" },
-  { x: 46, y: 31, r: 1.8, c: "#FFFFFF", twinkle: false, delay: "0s" },
-  { x: 55, y: 35, r: 1.3, c: "#60A5FA", twinkle: false, delay: "0s" },
-  { x: 38, y: 42, r: 1.6, c: "#E2E8F0", twinkle: true, delay: "0.7s" },
-  { x: 63, y: 44, r: 1.5, c: "#93C5FD", twinkle: false, delay: "0s" },
-  { x: 24, y: 41, r: 1.4, c: "#FFFFFF", twinkle: true, delay: "1.4s" },
-  { x: 76, y: 42, r: 1.4, c: "#60A5FA", twinkle: false, delay: "0s" },
-  { x: 50, y: 50, r: 2.0, c: "#FFFFFF", twinkle: true, delay: "0.3s" },
-  { x: 43, y: 56, r: 1.4, c: "#93C5FD", twinkle: false, delay: "0s" },
-  { x: 58, y: 57, r: 1.6, c: "#E2E8F0", twinkle: false, delay: "0s" },
-  { x: 35, y: 65, r: 1.5, c: "#60A5FA", twinkle: false, delay: "0s" },
-  { x: 65, y: 66, r: 1.4, c: "#FFFFFF", twinkle: true, delay: "1.9s" },
-  { x: 29, y: 78, r: 1.4, c: "#93C5FD", twinkle: false, delay: "0s" },
-  { x: 71, y: 78, r: 1.5, c: "#FFFFFF", twinkle: false, delay: "0s" },
-  { x: 51, y: 67, r: 1.3, c: "#93C5FD", twinkle: false, delay: "0s" },
-  { x: 49, y: 41, r: 1.2, c: "#3B82F6", twinkle: false, delay: "0s" },
+  { x: 50, y: 20, r: 1.5, c: "#93C5FD" },
+  { x: 46, y: 31, r: 1.8, c: "#FFFFFF" },
+  { x: 55, y: 35, r: 1.3, c: "#60A5FA" },
+  { x: 38, y: 42, r: 1.6, c: "#E2E8F0" },
+  { x: 63, y: 44, r: 1.5, c: "#93C5FD" },
+  { x: 24, y: 41, r: 1.4, c: "#FFFFFF" },
+  { x: 76, y: 42, r: 1.4, c: "#60A5FA" },
+  { x: 50, y: 50, r: 2.0, c: "#FFFFFF" },
+  { x: 43, y: 56, r: 1.4, c: "#93C5FD" },
+  { x: 58, y: 57, r: 1.6, c: "#E2E8F0" },
+  { x: 35, y: 65, r: 1.5, c: "#60A5FA" },
+  { x: 65, y: 66, r: 1.4, c: "#FFFFFF" },
+  { x: 29, y: 78, r: 1.4, c: "#93C5FD" },
+  { x: 71, y: 78, r: 1.5, c: "#FFFFFF" },
+  { x: 51, y: 67, r: 1.3, c: "#93C5FD" },
+  { x: 49, y: 41, r: 1.2, c: "#3B82F6" },
 ] as const;
 
-/** Estrela de 5 pontas com glitter e cintilação delicada em Azul Royal / Marinho. */
+/** Estrela de 5 pontas com glitter em Azul Royal / Marinho (otimizada 60fps sem drop-shadow). */
 export const GlitterBlueStar = memo(function GlitterBlueStar({
   className = "",
   style,
@@ -226,7 +224,7 @@ export const GlitterBlueStar = memo(function GlitterBlueStar({
     <svg
       viewBox="0 0 100 100"
       style={style}
-      className={`${animClass} pointer-events-none select-none drop-shadow-[0_4px_8px_rgba(7,23,57,0.28)] ${className}`}
+      className={`${animClass} pointer-events-none select-none ${className}`}
       aria-hidden
     >
       <defs>
@@ -249,30 +247,15 @@ export const GlitterBlueStar = memo(function GlitterBlueStar({
       />
 
       <g clipPath={`url(#${clipId})`}>
-        {GLITTER_SPECKS.map((s, idx) =>
-          s.twinkle ? (
-            <circle
-              key={idx}
-              cx={s.x}
-              cy={s.y}
-              r={s.r}
-              fill={s.c}
-              style={{
-                transformOrigin: `${s.x}px ${s.y}px`,
-                animationDelay: s.delay,
-              }}
-              className="animate-twinkle"
-            />
-          ) : (
-            <circle key={idx} cx={s.x} cy={s.y} r={s.r} fill={s.c} opacity="0.88" />
-          ),
-        )}
+        {GLITTER_SPECKS.map((s, idx) => (
+          <circle key={idx} cx={s.x} cy={s.y} r={s.r} fill={s.c} opacity="0.9" />
+        ))}
       </g>
     </svg>
   );
 });
 
-/** Estrela 3D facetada em Prata Metálico Espelhado (10 facetas chanfradas) com cintilação de crista. */
+/** Estrela 3D facetada em Prata Metálico Espelhado (10 facetas chanfradas). */
 export const MetallicSilverStar = memo(function MetallicSilverStar({
   className = "",
   style,
@@ -299,7 +282,7 @@ export const MetallicSilverStar = memo(function MetallicSilverStar({
     <svg
       viewBox="0 0 100 100"
       style={style}
-      className={`${animClass} pointer-events-none select-none drop-shadow-[0_4px_7px_rgba(15,23,42,0.28)] ${className}`}
+      className={`${animClass} pointer-events-none select-none ${className}`}
       aria-hidden
     >
       {facets.map(([pts, fill], idx) => (
@@ -313,12 +296,10 @@ export const MetallicSilverStar = memo(function MetallicSilverStar({
         strokeWidth="1.2"
         strokeLinejoin="round"
       />
-      {/* Cintilação especular delicada no vértice superior */}
       <path
         d="M50 18 L51.5 23 L56.5 24.5 L51.5 26 L50 31 L48.5 26 L43.5 24.5 L48.5 23 Z"
         fill="#FFFFFF"
-        style={{ transformOrigin: "50px 24.5px", animationDelay: "0.8s" }}
-        className="animate-twinkle"
+        opacity="0.92"
       />
     </svg>
   );
@@ -368,19 +349,19 @@ function LetterBlock({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.72, y: tile.yOffset + 18, rotate: tile.rotate * 1.8 }}
+      initial={{ opacity: 0, scale: 0.56, y: tile.yOffset + 30, rotate: tile.rotate * 2.1 }}
       animate={
         revealed
           ? { opacity: 1, scale: tile.tall ? 1.06 : 1, y: tile.yOffset, rotate: tile.rotate }
-          : { opacity: 0, scale: 0.72, y: tile.yOffset + 18, rotate: tile.rotate * 1.8 }
+          : { opacity: 0, scale: 0.56, y: tile.yOffset + 30, rotate: tile.rotate * 2.1 }
       }
       whileHover={{ scale: 1.09, rotate: 0, y: tile.yOffset - 4 }}
       whileTap={{ scale: 0.94 }}
       transition={{
         type: "spring",
-        stiffness: 240,
-        damping: 18,
-        delay: revealed ? 0.08 + index * 0.045 : 0,
+        stiffness: 120,
+        damping: 14,
+        delay: revealed ? 0.3 + index * 0.11 : 0,
       }}
       className={`relative cursor-default rounded-[5px] sm:rounded-[7px] bg-[linear-gradient(135deg,#FFFFFF_0%,#CBD5E1_36%,#1E40AF_72%,#F8FAFC_100%)] p-[2px] shadow-[0_6px_14px_rgba(7,23,57,0.28)] ${sizeClass}`}
     >
@@ -540,24 +521,24 @@ function RoyalGlitterPartyHat({ className = "" }: { className?: string }) {
   );
 }
 
-/** Cluster de 5 balões brilhantes em Azul Royal/Marinho com flutuação assíncrona orgânica. */
+/** Cluster de 5 balões brilhantes em Azul Royal/Marinho (renderização leve 60fps). */
 function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const gradA = `bal-a-${uid}`;
   const gradB = `bal-b-${uid}`;
 
   const balloons = [
-    { cx: 58, cy: 66, rx: 52, ry: 56, grad: gradA, rot: -10, delay: "0s", dur: "4.3s", ty: "-3.5px", rMid: "1.8deg" },
-    { cx: 120, cy: 102, rx: 48, ry: 52, grad: gradB, rot: 8, delay: "0.8s", dur: "5.1s", ty: "-4px", rMid: "-1.6deg" },
-    { cx: 74, cy: 132, rx: 54, ry: 58, grad: gradA, rot: -4, delay: "1.4s", dur: "4.7s", ty: "-3px", rMid: "1.4deg" },
-    { cx: 164, cy: 152, rx: 52, ry: 55, grad: gradA, rot: 12, delay: "0.35s", dur: "5.5s", ty: "-3.5px", rMid: "-1.9deg" },
-    { cx: 112, cy: 176, rx: 46, ry: 48, grad: gradB, rot: 0, delay: "1.15s", dur: "4.9s", ty: "-2.5px", rMid: "1.3deg" },
+    { cx: 58, cy: 66, rx: 52, ry: 56, grad: gradA, rot: -10 },
+    { cx: 120, cy: 102, rx: 48, ry: 52, grad: gradB, rot: 8 },
+    { cx: 74, cy: 132, rx: 54, ry: 58, grad: gradA, rot: -4 },
+    { cx: 164, cy: 152, rx: 52, ry: 55, grad: gradA, rot: 12 },
+    { cx: 112, cy: 176, rx: 46, ry: 48, grad: gradB, rot: 0 },
   ] as const;
 
   return (
     <svg
       viewBox="0 0 230 230"
-      className={`pointer-events-none select-none drop-shadow-[0_12px_20px_rgba(7,23,57,0.36)] ${className}`}
+      className={`pointer-events-none select-none ${className}`}
       aria-hidden
     >
       <defs>
@@ -576,21 +557,7 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
       </defs>
 
       {balloons.map((b, idx) => (
-        <g
-          key={idx}
-          style={
-            {
-              transformOrigin: `${b.cx}px ${b.cy}px`,
-              animationDelay: b.delay,
-              "--float-duration": b.dur,
-              "--ty": b.ty,
-              "--r-start": "0deg",
-              "--r-mid": b.rMid,
-            } as FloatStyle
-          }
-          className={idx % 2 === 0 ? "animate-sticker-float" : "animate-sticker-float-alt"}
-        >
-          <g transform={`rotate(${b.rot} ${b.cx} ${b.cy})`}>
+        <g key={idx} transform={`rotate(${b.rot} ${b.cx} ${b.cy})`}>
             {/* Nó sutil na base do balão */}
             <polygon
               points={`${b.cx - 4},${b.cy + b.ry + 4} ${b.cx + 4},${b.cy + b.ry + 4} ${b.cx},${b.cy + b.ry - 2}`}
@@ -660,7 +627,6 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
               strokeWidth="2"
               strokeLinecap="round"
             />
-          </g>
         </g>
       ))}
     </svg>
@@ -700,13 +666,23 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
       aria-label={`Pôster comemorativo ${EVENT.name} — ${EVENT.age} Anos`}
       className="relative flex min-h-[650px] sm:min-h-[820px] w-full flex-col items-center justify-between overflow-visible pt-16 sm:pt-20 select-none"
     >
-      {/* 1. GLOBOS ESPELHADOS GIGANTES (Canto Superior Esquerdo e Inferior Direito com parallax) */}
+      {/* 1. GLOBOS ESPELHADOS GIGANTES (Entrada cinematográfica lenta + parallax no scroll) */}
       <motion.div
         style={{ y: topBallParallax }}
         className="pointer-events-none absolute -top-12 -left-14 sm:-top-16 sm:-left-16 z-[3] w-[198px] sm:w-[274px]"
         aria-hidden
       >
-        <MirrorDiscoBall />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7, rotate: -28, x: -28 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0, x: 0 }
+              : { opacity: 0, scale: 0.7, rotate: -28, x: -28 }
+          }
+          transition={{ duration: 1.85, delay: revealed ? 0.15 : 0, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <MirrorDiscoBall />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -714,26 +690,42 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute -bottom-14 -right-12 sm:-bottom-16 sm:-right-14 z-[24] w-[196px] sm:w-[278px]"
         aria-hidden
       >
-        <MirrorDiscoBall />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7, rotate: 26, x: 28 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0, x: 0 }
+              : { opacity: 0, scale: 0.7, rotate: 26, x: 28 }
+          }
+          transition={{ duration: 1.85, delay: revealed ? 0.45 : 0, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <MirrorDiscoBall />
+        </motion.div>
       </motion.div>
 
-      {/* 2. ESTRELAS LATERAIS COM PARALLAX MULTI-CAMADA & CINTILAÇÃO */}
+      {/* 2. ESTRELAS LATERAIS COM ENTRADA STAGGERED PROLONGADA, PARALLAX & CINTILAÇÃO */}
       <motion.div
         style={{ y: starsUpParallax }}
         className="pointer-events-none absolute top-3 right-2.5 sm:top-5 sm:right-5 z-[4] w-[62px] sm:w-[94px]"
         aria-hidden
       >
-        <GlitterBlueStar
-          style={
-            {
-              "--float-duration": "4.8s",
-              "--ty": "-6px",
-              "--r-start": "14deg",
-              "--r-mid": "22deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: -24 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.35 : 0 }}
+        >
+          <GlitterBlueStar
+            style={
+              {
+                "--float-duration": "4.8s",
+                "--ty": "-6px",
+                "--r-start": "14deg",
+                "--r-mid": "22deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -741,18 +733,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute top-[72px] right-[25%] sm:top-[88px] sm:right-[28%] z-[4] w-[38px] sm:w-[56px]"
         aria-hidden
       >
-        <GlitterBlueStar
-          style={
-            {
-              animationDelay: "0.4s",
-              "--float-duration": "4.4s",
-              "--ty": "-5px",
-              "--r-start": "-10deg",
-              "--r-mid": "-2deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: 22 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.55 : 0 }}
+        >
+          <GlitterBlueStar
+            style={
+              {
+                animationDelay: "0.4s",
+                "--float-duration": "4.4s",
+                "--ty": "-5px",
+                "--r-start": "-10deg",
+                "--r-mid": "-2deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -760,18 +758,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute top-[134px] right-1.5 sm:top-[164px] sm:right-5 z-[4] w-[36px] sm:w-[68px]"
         aria-hidden
       >
-        <MetallicSilverStar
-          style={
-            {
-              animationDelay: "0.3s",
-              "--float-duration": "5.1s",
-              "--ty": "-6px",
-              "--r-start": "8deg",
-              "--r-mid": "16deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: -20 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -20 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.72 : 0 }}
+        >
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.3s",
+                "--float-duration": "5.1s",
+                "--ty": "-6px",
+                "--r-start": "8deg",
+                "--r-mid": "16deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -779,18 +783,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute top-[224px] right-1.5 sm:top-[276px] sm:right-4 z-[4] w-[24px] sm:w-[40px]"
         aria-hidden
       >
-        <MetallicSilverStar
-          style={
-            {
-              animationDelay: "0.6s",
-              "--float-duration": "4.6s",
-              "--ty": "-4px",
-              "--r-start": "-6deg",
-              "--r-mid": "6deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: 20 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.9 : 0 }}
+        >
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.6s",
+                "--float-duration": "4.6s",
+                "--ty": "-4px",
+                "--r-start": "-6deg",
+                "--r-mid": "6deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -798,18 +808,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute top-[242px] left-1.5 sm:top-[290px] sm:left-7 z-[4] w-[34px] sm:w-[60px]"
         aria-hidden
       >
-        <MetallicSilverStar
-          style={
-            {
-              animationDelay: "0.2s",
-              "--float-duration": "5.3s",
-              "--ty": "-6px",
-              "--r-start": "-10deg",
-              "--r-mid": "-2deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: -22 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -22 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.08 : 0 }}
+        >
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.2s",
+                "--float-duration": "5.3s",
+                "--ty": "-6px",
+                "--r-start": "-10deg",
+                "--r-mid": "-2deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -817,18 +833,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute top-[336px] left-1.5 sm:top-[396px] sm:left-6 z-[4] w-[34px] sm:w-[58px]"
         aria-hidden
       >
-        <GlitterBlueStar
-          style={
-            {
-              animationDelay: "0.5s",
-              "--float-duration": "4.9s",
-              "--ty": "-5px",
-              "--r-start": "-14deg",
-              "--r-mid": "-4deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: 22 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.25 : 0 }}
+        >
+          <GlitterBlueStar
+            style={
+              {
+                animationDelay: "0.5s",
+                "--float-duration": "4.9s",
+                "--ty": "-5px",
+                "--r-start": "-14deg",
+                "--r-mid": "-4deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -836,18 +858,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute bottom-[174px] right-2.5 sm:bottom-[218px] sm:right-6 z-[4] w-[50px] sm:w-[70px]"
         aria-hidden
       >
-        <GlitterBlueStar
-          style={
-            {
-              animationDelay: "0.7s",
-              "--float-duration": "5.2s",
-              "--ty": "-6px",
-              "--r-start": "-12deg",
-              "--r-mid": "-3deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: -24 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.42 : 0 }}
+        >
+          <GlitterBlueStar
+            style={
+              {
+                animationDelay: "0.7s",
+                "--float-duration": "5.2s",
+                "--ty": "-6px",
+                "--r-start": "-12deg",
+                "--r-mid": "-3deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div
@@ -855,27 +883,33 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         className="pointer-events-none absolute bottom-[118px] right-5 sm:bottom-[152px] sm:right-10 z-[4] w-[34px] sm:w-[46px]"
         aria-hidden
       >
-        <MetallicSilverStar
-          style={
-            {
-              animationDelay: "0.85s",
-              "--float-duration": "4.5s",
-              "--ty": "-4px",
-              "--r-start": "6deg",
-              "--r-mid": "14deg",
-            } as FloatStyle
-          }
-          className="w-full"
-        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.2, rotate: 20 }}
+          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
+          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.6 : 0 }}
+        >
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.85s",
+                "--float-duration": "4.5s",
+                "--ty": "-4px",
+                "--r-start": "6deg",
+                "--r-mid": "14deg",
+              } as FloatStyle
+            }
+            className="w-full"
+          />
+        </motion.div>
       </motion.div>
 
       {/* 3. MIOLO EDITORIAL CENTRAL: Mini Globo + Letreiro "HAPPY BiRthdAy" + Data */}
       <div className="relative z-[10] flex w-full flex-col items-center px-3 sm:px-6 text-center">
         {/* Mini Globo Central com Estrela Azul-Marinho no Topo */}
         <motion.div
-          initial={{ opacity: 0, y: -16, scale: 0.78 }}
-          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -16, scale: 0.78 }}
-          transition={{ type: "spring", stiffness: 210, damping: 18, delay: revealed ? 0.05 : 0 }}
+          initial={{ opacity: 0, y: -42, scale: 0.48 }}
+          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -42, scale: 0.48 }}
+          transition={{ type: "spring", stiffness: 115, damping: 15, delay: revealed ? 0.1 : 0 }}
           className="relative -mb-2 sm:-mb-2.5 z-[11] w-[66px] sm:w-[86px]"
         >
           <MirrorDiscoBall mini topStar />
@@ -911,9 +945,9 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
 
         {/* Bloco da Data Oficial: Julho · SÁB | 17 | 19:30 · 2027 */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-          transition={{ duration: 0.55, delay: revealed ? 0.42 : 0, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 30, scale: 0.94 }}
+          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.94 }}
+          transition={{ duration: 1.35, delay: revealed ? 1.35 : 0, ease: [0.16, 1, 0.3, 1] }}
           className="mt-4 sm:mt-6 flex w-full max-w-[290px] sm:max-w-[390px] flex-col items-center text-royal-navy"
         >
           {/* Mês entre filetes */}
@@ -965,9 +999,9 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
       <div className="relative mt-5 sm:mt-8 flex w-full items-end justify-center">
         {/* Buquê de Balões Glossy Azul Royal no Canto Inferior Esquerdo */}
         <motion.div
-          initial={{ opacity: 0, x: -24, y: 18 }}
-          animate={revealed ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, x: -24, y: 18 }}
-          transition={{ duration: 0.68, delay: revealed ? 0.35 : 0, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, x: -44, y: 40, scale: 0.82 }}
+          animate={revealed ? { opacity: 1, x: 0, y: 0, scale: 1 } : { opacity: 0, x: -44, y: 40, scale: 0.82 }}
+          transition={{ duration: 1.75, delay: revealed ? 1.35 : 0, ease: [0.16, 1, 0.3, 1] }}
           className="pointer-events-none absolute -bottom-4 -left-5 sm:-bottom-6 sm:-left-6 z-[22] w-[184px] sm:w-[264px]"
         >
           <div
@@ -987,9 +1021,9 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
 
         {/* Foto Recortada da Carol Bebê + Adereços 100% travados em coordenadas percentuais (zero CLS) */}
         <motion.div
-          initial={{ opacity: 0, y: 26, scale: 0.95 }}
-          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 26, scale: 0.95 }}
-          transition={{ duration: 0.72, delay: revealed ? 0.25 : 0, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 48, scale: 0.88 }}
+          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 48, scale: 0.88 }}
+          transition={{ duration: 1.65, delay: revealed ? 0.95 : 0, ease: [0.16, 1, 0.3, 1] }}
           className="relative z-[14] mx-auto aspect-[833/1024] w-[252px] sm:w-[344px]"
         >
           <img
@@ -1007,14 +1041,24 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
           />
 
           {/* Laço Azul Royal Acetinado preso no cabelo/faixa (lado superior esquerdo, acima da sobrancelha) */}
-          <div className="pointer-events-none absolute top-[11%] left-[25.5%] z-[18] w-[15.5%] -rotate-[22deg] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={revealed ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.4 }}
+            transition={{ type: "spring", stiffness: 135, damping: 13, delay: revealed ? 1.75 : 0 }}
+            className="pointer-events-none absolute top-[11%] left-[25.5%] z-[18] w-[15.5%] -rotate-[22deg] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]"
+          >
             <Bow variant="royal" className="w-full" />
-          </div>
+          </motion.div>
 
           {/* Chapéu Cônico Glitter Azul Royal apoiado no topo/lateral superior direito da cabeça */}
-          <div className="pointer-events-none absolute -top-[13.5%] right-[11.2%] z-[18] w-[33.5%] rotate-[24deg]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.4, y: -14 }}
+            animate={revealed ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.4, y: -14 }}
+            transition={{ type: "spring", stiffness: 130, damping: 13, delay: revealed ? 1.95 : 0 }}
+            className="pointer-events-none absolute -top-[13.5%] right-[11.2%] z-[18] w-[33.5%] rotate-[24deg]"
+          >
             <RoyalGlitterPartyHat className="w-full" />
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>

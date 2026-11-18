@@ -30,7 +30,7 @@ related:
 carol/
 ├─ .agents/skills/obsidian-markdown/SKILL.md  # Skill Obsidian para agentes
 ├─ Docs/                                      # Cofre Obsidian (Base de Conhecimento)
-├─ public/images/                             # Cutout P&B da Carol (carol-cutout.png) e brasão da capa (brasao-barroco-c.png)
+├─ public/images/                             # carol-cutout.png, brasao-barroco-c.png (broche puro 576x610) e cover-ornament-backdrop-right.png (370x1404)
 ├─ src/
 │  ├─ app/
 │  │  ├─ globals.css                          # Tema Tailwind v4, bg-paper-fine, bg-poster-paper e animações GPU
@@ -51,8 +51,8 @@ carol/
 │  │  ├─ HeroPoster.tsx                       # Pôster animado em código + estrelas exportadas (GlitterBlueStar, MetallicSilverStar)
 │  │  ├─ InvitationContent.tsx                # Papel contínuo #F1F2F4: pôster + apresentação + countdown + local + RSVP + rodapé (whileInView)
 │  │  ├─ CountdownTimer.tsx                   # Contador no estilo do pôster com pílulas royal-navy e rolagem 3D (React.memo)
-│  │  ├─ SmoothScrollProvider.tsx             # ScrollLockContext + sincronização Lenis via gsap.ticker
-│  │  ├─ LuxuryParticles.tsx                  # Confetes calibrados (fireLuxuryCelebration e fireMiniCelebration)
+│  │  ├─ SmoothScrollProvider.tsx             # ScrollLockContext + Lenis em RAF nativo (lerp: 0.12)
+│  │  ├─ LuxuryParticles.tsx                  # Confete calibrado (fireMiniCelebration para o RSVP)
 │  │  ├─ BowDecoration.tsx                    # Lacinhos de alta-costura em fita acetinada (royal, silver, duo)
 │  │  └─ Ornaments.tsx                        # CornerFiligree geométrica em prata metálica (zero flores)
 ├─ AGENTS.md / GEMINI.md                      # Protocolo persistente de leitura/escrita em Docs/
@@ -100,8 +100,7 @@ flowchart TD
     CFG --> CONTENT["InvitationContent.tsx (Papel Contínuo + Local + RSVP)"]
     CFG --> COUNT["CountdownTimer.tsx"]
     UTILS["src/lib/utils.ts"] --> CONTENT
-    PARTICLES["LuxuryParticles.tsx"] --> COVER
-    PARTICLES --> CONTENT
+    PARTICLES["LuxuryParticles.tsx"] --> CONTENT
 ```
 
 Veja também: [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].

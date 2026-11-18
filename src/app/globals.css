@@ -26,33 +26,18 @@
   --animate-disco-glint: disco-glint 3.4s ease-in-out infinite;
   --animate-breathe-soft: breathe-soft 3.2s ease-in-out infinite;
   --animate-brooch-shimmer: brooch-shimmer 5.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-  --animate-spark-twinkle: spark-twinkle 3.8s ease-in-out infinite;
 }
 
 /* ───────────────────────── Base & Ambientação ───────────────────────── */
 
 :root {
   --paper-weave: repeating-linear-gradient(
-      115deg,
-      rgba(7, 23, 57, 0.014) 0px,
-      rgba(7, 23, 57, 0.014) 1px,
-      transparent 1px,
-      transparent 4px
-    ),
-    repeating-linear-gradient(
-      25deg,
-      rgba(10, 36, 99, 0.012) 0px,
-      rgba(10, 36, 99, 0.012) 1px,
-      transparent 1px,
-      transparent 5px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.34) 0px,
-      rgba(255, 255, 255, 0.34) 1px,
-      transparent 1px,
-      transparent 3px
-    );
+    115deg,
+    rgba(7, 23, 57, 0.015) 0px,
+    rgba(7, 23, 57, 0.015) 1px,
+    transparent 1px,
+    transparent 4px
+  );
 }
 
 html {
@@ -136,21 +121,18 @@ html.lenis body {
 
 .animate-sticker-float {
   animation: sticker-float var(--float-duration, 5.2s) ease-in-out infinite;
-  will-change: transform;
 }
 
 .animate-sticker-float-alt {
   animation: sticker-float-alt var(--float-duration, 5.6s) ease-in-out infinite;
-  will-change: transform;
 }
 
-/* Pausa animações decorativas e libera camadas GPU quando o convite ainda está atrás da capa */
+/* Pausa animações decorativas quando o convite ainda está atrás da capa */
 [data-active="false"] .animate-sticker-float,
 [data-active="false"] .animate-sticker-float-alt,
 [data-active="false"] .animate-twinkle,
 [data-active="false"] .animate-disco-glint {
   animation-play-state: paused;
-  will-change: auto !important;
 }
 
 /* ───────────────────────── Keyframes ───────────────────────── */
@@ -235,18 +217,6 @@ html.lenis body {
   100% {
     opacity: 0;
     transform: translate3d(245%, 0, 0) rotate(26deg);
-  }
-}
-
-@keyframes spark-twinkle {
-  0%,
-  100% {
-    opacity: 0.16;
-    transform: translate3d(0, 2px, 0) scale3d(0.72, 0.72, 1) rotate(0deg);
-  }
-  50% {
-    opacity: 0.9;
-    transform: translate3d(0, -4px, 0) scale3d(1.12, 1.12, 1) rotate(22deg);
   }
 }
 
