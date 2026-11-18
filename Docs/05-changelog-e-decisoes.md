@@ -9,7 +9,7 @@ tags:
   - changelog
   - refatoracao
 status: active
-updated: 2026-11-14
+updated: 2026-11-17
 related:
   - "[[00-INDEX]]"
   - "[[01-arquitetura-e-estrutura]]"
@@ -21,6 +21,55 @@ related:
 
 > [!info] Registro Vivo de Decisões
 > Toda alteração significativa de arquitetura, estado, performance ou UI/UX deve ser registrada aqui em ordem cronológica reversa.
+
+---
+
+## [2026-11-17] · Revisão UI, Motion & Performance da Tela de Entrada (`CoverGate`)
+
+### ADR-018: Integração do Brasão Barroco PNG Transparente, Refino Editorial & First Paint Instantâneo
+* **Motivação:** Substituir o broche vetorial anterior da `CoverGate` pelo brasão barroco perolado com coroa e inicial `"C"` em azul royal fornecido pelo usuário, refinando o enquadramento editorial das portas bipartidas e garantindo carregamento prioritário sem *layout shift* (`CLS = 0`) e 60fps fluidos.
+* **Alterações:**
+  * **Asset Otimizado & Recorte Alfa (`public/images/brasao-barroco-c.png`):** Processado o arquivo original (`1024x1024` com fundo preto sólido) via flood-fill conectado + descontaminação cromática de borda para remover 100% do fundo e evitar halo escuro sobre papel claro, recortado proporcionalmente e otimizado com `sharp` para `576x610` Retina 2x (`~204 KB` lossless, servido em WebP/AVIF via `next/image`).
+  * **Carregamento Prioritário & Zero CLS (`CoverGate.tsx`):** Substituídos `RoyalBroochSeal` e `ImperialCrestFiligree` por `<Image src="/images/brasao-barroco-c.png" width={576} height={610} priority fetchPriority="high" loading="eager" decoding="sync" />` em container `aspect-[576/610]` com `initial={false}` (First Paint imediato sem esperar hidratação).
+  * **Sombras, Enquadramento & Texto Curvo (`CoverGate.tsx` & `globals.css`):** Aplicado `filter: drop-shadow(...)` multicamada acompanhando o contorno ondulado do brasão (intensificado no hover) e removidos os efeitos de brilho/shimmer/aura/ondas do broche. Superfície `bg-paper-fine` ajustada para `#F4F5F7` harmonizado com o madrepérola do brasão, junção central realista com sombra `inset` e filetes prata/azul-marinho, cantoneiras e molduras lineares minimalistas (`EditorialCornerBracket` / `CoverDoorFrame`) em `#B8C0CC` e `#0A2463`, brasão proporcionado em `clamp(124px, 34vw, 152px)` (`164px` no desktop) e chamada **`✦ TOQUE PARA ABRIR ✦`** em `<textPath>` SVG (`CurvedCrestCaption`) contornando suavemente o brasão em `Cinzel` (`tracking-[0.22em]`, `#071739`) com *pulse* suave de opacidade (`animate-breathe-soft`).
+  * **Coreografia 60fps:** Micro-flutuação vertical GPU (`animate-crest-float`, `y: [-3, 3]` em `4.2s`), resposta tátil `whileTap={{ scale: 0.94 }}` com *spring* rápido, dissolução do brasão (`scale: 1.12, opacity: 0` em `350ms`) com dispersão de partículas (`UNSEAL_SPARKS` + `fireLuxuryCelebration`), abertura das portas (`-102%`/`+102%`) em `950ms` (`cubic-bezier(0.22, 1, 0.36, 1)`) com `will-change: transform` aplicado apenas durante a abertura.
+
+---
+
+## [2026-11-17] · Auditoria Principal Frontend & Motion Design (60fps, Dead Code & Refino Editorial)
+
+### ADR-017: Limpeza Cirúrgica de Assets/Dead Code, Parallax Multi-Camada e Micro-Interações Framer Motion
+* **Motivação:** Elevar o projeto a padrão editorial/motion de alto nível com zero código morto, papel contínuo `#F1F2F4`, responsividade testada para `360px–430px` (`min-h-[44px]` em todos os controles) e animações puramente em `transform`/`opacity` a 60fps.
+* **Alterações:**
+  * **Limpeza de Dead Code & Assets:** Removidos 13 arquivos PNG órfãos de `public/images/` (preservando exclusivamente `carol-cutout.png`), removidos componentes não utilizados em `Ornaments.tsx` (`FoilBalloon18`, `Emblem18`, `SilverDivider`, `DressCodeIcon`) e `LuxuryParticles.tsx` (`AmbientSparkles`), removida função `getEventTimestamp` de `src/config/event.ts`, removido `ScrollTrigger` e `SmoothScrollContext` redundantes em `SmoothScrollProvider.tsx` (adicionando `lenisRef.current?.resize()` ao destravar), e purgadas classes/keyframes obsoletos de `src/app/globals.css`.
+  * **Tokens & Continuidade (`globals.css` & `layout.tsx`):** Adicionados `--color-royal-navy` (`#071739`) e `--color-royal-deep` (`#0A2463`), ajustada a superfície contínua `bg-poster-paper` e `viewport.themeColor` para `#F1F2F4`.
+  * **Capa Bipartida (`CoverGate.tsx`):** Adicionada sombra multicamada realista + chanfro especular prateado na junção central, dispersão radial de 12 fagulhas (`UNSEAL_SPARKS`) no destrave do broche, curva *spring* calibrada (`stiffness: 58, damping: 16, mass: 1.02`) e área de toque `min-h-[44px]` em `"CLIQUE PARA ABRIR"`.
+  * **Pôster Hero (`HeroPoster.tsx`):** Adicionado *parallax* multi-camada nas estrelas laterais (`starsUpParallax` / `starsDownParallax`) sem conflito com CSS float, cintilação (`animate-twinkle`) nas estrelas, flutuação orgânica assíncrona individual nos 5 balões glossy e container `aspect-[451/554]` explícito em `carol-cutout.png` (zero CLS).
+  * **Seções Contínuas (`InvitationContent.tsx` & `CountdownTimer.tsx`):** Substituído GSAP `ScrollTrigger.batch` por Framer Motion `whileInView` + `staggerChildren: 0.09` (`viewport={{ once: true, amount: 0.2 }}`), adicionadas cantoneiras `CornerFiligree` ao card de Local da Festa, bordas `1px` translúcidas com brilho interno superior, `min-h-11` (`44px+`) em todos os inputs/botões e transições `AnimatePresence mode="wait"` nos botões de agenda e cópia de endereço.
+
+---
+
+## [2026-11-17] · Continuidade Visual em Papel Texturizado & Seções Integradas de Local e RSVP
+
+### ADR-016: Remoção do Bloco Legado Escuro e Continuidade Contínua de `bg-poster-paper`
+* **Motivação:** Eliminar o contraste brusco com o antigo card azul-marinho quadriculado (laço branco e fonte cursiva) e o antigo corte reto na base do pôster, estendendo a estética do pôster principal por toda a página e integrando Local da Festa e RSVP diretamente no fluxo da página sem modais.
+* **Alterações:**
+  * **Preservados intactos:** `CoverGate.tsx` e a composição interna de `HeroPoster.tsx` (removido apenas o `overflow-hidden` e o fundo próprio de `<HeroPoster>`, mantendo `maskImage` suave na extremidade inferior de `carol-cutout.png` e exportando `GlitterBlueStar` / `MetallicSilverStar`).
+  * **Atualizado `CountdownTimer.tsx`:** Redesenhado para o tema claro do pôster, com título serifado em `#0B2149` entre filetes horizontais, divisórias verticais e rótulos em pílulas azul-marinho (`#0B2149`).
+  * **Reconstruído `InvitationContent.tsx`:** Aplicação de `bg-poster-paper` único do topo do pôster até o rodapé, estrelas laterais conectando as seções, pílula `CAROL • 18 ANOS`, citação Walt Disney + abertura, `CountdownTimer` + atalhos de agenda, seção completa de **Local da Festa** (endereço, horário `19:30`, traje `Esporte Fino`, mapa embed, Google Maps, Waze e Copiar Endereço) e seção completa de **Confirmar Presença / RSVP** (presença, nome completo, quantidade e nome individual dos acompanhantes, recado opcional, `fireMiniCelebration`, feedback visual na tela e envio ao WhatsApp).
+  * **Removidos arquivos de modal substituídos:** `InteractiveActions.tsx`, `sheets/LocationSheet.tsx`, `sheets/RsvpSheet.tsx`, `sheets/SheetButton.tsx` e `ui/Sheet.tsx`.
+
+---
+
+## [2026-11-17] · Refatoração Completa de UI/UX (`CoverGate` + `HeroPoster` + Medalhões Circulares)
+
+### ADR-015: Substituição do Envelope 3D pela Capa Bipartida (`CoverGate`) e Pôster Hero Animado em Código (`HeroPoster`)
+* **Motivação:** Elevar a experiência para uma estética editorial de luxo inspirada nas referências visuais fornecidas pelo usuário, mantendo 100% das integrações (`src/config/event.ts`, `LocationSheet.tsx`, `RsvpSheet.tsx`, SEO/Open Graph) e todas as regras invioláveis do projeto (paleta Royal Blue & Prata, proibição estrita de flores e de sugestões de presentes/Pix).
+* **Alterações:**
+  * **Removidos:** `Envelope3DOpening.tsx` e `CarolHeroCollage.tsx` foram descartados por completo.
+  * **Criado `src/components/CoverGate.tsx`:** Tela cheia `100dvh` dividida verticalmente em duas portas de papel artesanal off-white (`bg-paper-fine`) com sombra realista na junção central, cantoneiras e arabescos imperiais em Prata & Azul Royal + lacinhos acetinados (zero flores), broche metálico central em alto-relevo (Royal Blue esmaltado + aro de lacre prateado) com apenas a inicial `"C"`, brilho especular contínuo (*shimmer*), pulso tátil, explosão de partículas (`fireLuxuryCelebration`) e abertura bipartida fluida por física de mola.
+  * **Criado `src/components/HeroPoster.tsx`:** Recriação integral em código animado (React + Tailwind + SVG + Framer Motion) da composição do pôster principal sobre `bg-poster-paper`: 3 globos espelhados procedurais 3D (`MirrorDiscoBall`) com *parallax* no scroll, letreiro metálico `"HAPPY BiRthdAy"` em blocos retangulares com entrada *staggered*, estrelas em glitter azul royal e prata 3D chanfrada, bloco editorial da data (`Julho · SÁB | 17 | 19:30 · 2027` via `FORMATTED_EVENT_DATE`), e a foto P&B `carol-cutout.png` na base central vestindo `<Bow variant="royal" />`, chapéu cônico em glitter azul royal com pompom (`RoyalGlitterPartyHat`) e cluster de balões glossy azul royal (`RoyalGlossyBalloons`).
+  * **Atualizados `InvitationContent.tsx`, `InvitationExperience.tsx`, `InteractiveActions.tsx`, `CountdownTimer.tsx` e `globals.css`:** Integração contínua entre `HeroPoster` e a seção editorial Royal Blue & Silver (citação Walt Disney, contador regressivo, salvar na agenda, 2 medalhões circulares lado a lado para Local da Festa e RSVP com `CLIQUE NOS ÍCONES PARA INTERAGIR`, e card de traje `Esporte Fino`).
 
 ---
 

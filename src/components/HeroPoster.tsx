@@ -1,0 +1,986 @@
+"use client";
+
+import { motion, useScroll, useTransform } from "framer-motion";
+import { CalendarDays, Clock } from "lucide-react";
+import { memo, useId, useMemo, useRef, type CSSProperties } from "react";
+import { Bow } from "@/components/BowDecoration";
+import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
+
+export type FloatStyle = CSSProperties & {
+  "--float-duration"?: string;
+  "--ty"?: string;
+  "--r-start"?: string;
+  "--r-mid"?: string;
+  "--s-start"?: string;
+  "--s-mid"?: string;
+};
+
+interface DiscoTile {
+  id: string;
+  points: string;
+  fill: string;
+  sparkle?: boolean;
+  cx: number;
+  cy: number;
+}
+
+/**
+ * Gera os ladrilhos espelhados em projeção esférica 3D determinística
+ * (mesmo output no SSR e no cliente, sem hidratação divergente).
+ */
+function buildDiscoTiles(rows: number): DiscoTile[] {
+  const tiles: DiscoTile[] = [];
+  const R = 95;
+  const C = 100;
+
+  for (let r = 0; r < rows; r++) {
+    const lat1 = -Math.PI / 2 + (r / rows) * Math.PI;
+    const lat2 = -Math.PI / 2 + ((r + 1) / rows) * Math.PI;
+    const latMid = (lat1 + lat2) / 2;
+    const cols = Math.max(4, Math.round(rows * 1.9 * Math.cos(latMid)));
+
+    for (let c = 0; c < cols; c++) {
+      const lon1 = -Math.PI / 2 + (c / cols) * Math.PI;
+      const lon2 = -Math.PI / 2 + ((c + 1) / cols) * Math.PI;
+      const lonMid = (lon1 + lon2) / 2;
+
+      const project = (lat: number, lon: number) => {
+        const x = C + R * Math.cos(lat) * Math.sin(lon);
+        const y = C - R * Math.sin(lat);
+        return [Number(x.toFixed(1)), Number(y.toFixed(1))];
+      };
+
+      const p1 = project(lat1, lon1);
+      const p2 = project(lat1, lon2);
+      const p3 = project(lat2, lon2);
+      const p4 = project(lat2, lon1);
+
+      // Normal da faceta para sombreamento especular
+      const nx = Math.cos(latMid) * Math.sin(lonMid);
+      const ny = -Math.sin(latMid);
+      const nz = Math.cos(latMid) * Math.cos(lonMid);
+
+      // Luz principal superior esquerda + jitter determinístico de espelho
+      const light = nx * -0.45 + ny * -0.52 + nz * 0.72;
+      const facetHash = Math.abs(Math.sin(r * 12.9898 + c * 78.233) * 43758.5453) % 1;
+      const intensity = Math.max(0, Math.min(1, light * 0.65 + facetHash * 0.55));
+
+      let fill = "#1E293B";
+      if (intensity > 0.88) fill = "#FFFFFF";
+      else if (intensity > 0.74) fill = "#E2E8F0";
+      else if (intensity > 0.58) fill = "#CBD5E1";
+      else if (intensity > 0.42) fill = "#94A3B8";
+      else if (intensity > 0.28) fill = "#475569";
+      else if (intensity > 0.14) fill = "#334155";
+
+      const cx = Number(((p1[0] + p2[0] + p3[0] + p4[0]) / 4).toFixed(1));
+      const cy = Number(((p1[1] + p2[1] + p3[1] + p4[1]) / 4).toFixed(1));
+
+      tiles.push({
+        id: `${r}-${c}`,
+        points: `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]} ${p4[0]},${p4[1]}`,
+        fill,
+        sparkle: intensity > 0.92 && (r + c) % 3 === 0,
+        cx,
+        cy,
+      });
+    }
+  }
+
+  return tiles;
+}
+
+const BIG_DISCO_TILES = buildDiscoTiles(12);
+const MINI_DISCO_TILES = buildDiscoTiles(9);
+
+/** Globo Espelhado Vetorial 3D com reflexos dinâmicos. */
+const MirrorDiscoBall = memo(function MirrorDiscoBall({
+  className = "",
+  mini = false,
+  topStar = false,
+}: {
+  className?: string;
+  mini?: boolean;
+  topStar?: boolean;
+}) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const clipId = `disco-clip-${uid}`;
+  const shadeId = `disco-shade-${uid}`;
+  const tiles = mini ? MINI_DISCO_TILES : BIG_DISCO_TILES;
+
+  return (
+    <div className={`relative select-none ${className}`} aria-hidden>
+      {topStar && (
+        <svg
+          viewBox="0 0 40 40"
+          className="pointer-events-none absolute -top-[21%] left-1/2 z-20 w-[34%] -translate-x-1/2 drop-shadow-[0_2px_4px_rgba(7,23,57,0.35)]"
+        >
+          <polygon
+            points="20,2 25.2,13.4 37.6,14.8 28.4,23.2 30.8,35.6 20,29.4 9.2,35.6 11.6,23.2 2.4,14.8 14.8,13.4"
+            fill="#071739"
+            stroke="#0A2463"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+
+      <svg
+        viewBox="0 0 200 200"
+        className="w-full h-auto drop-shadow-[0_12px_24px_rgba(7,23,57,0.26)]"
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <circle cx="100" cy="100" r="95" />
+          </clipPath>
+          <radialGradient id={shadeId} cx="34%" cy="30%" r="72%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.30" />
+            <stop offset="55%" stopColor="#94A3B8" stopOpacity="0.06" />
+            <stop offset="100%" stopColor="#071739" stopOpacity="0.48" />
+          </radialGradient>
+        </defs>
+
+        <circle cx="100" cy="100" r="96" fill="#0F172A" />
+
+        <g clipPath={`url(#${clipId})`}>
+          {tiles.map((t) => (
+            <polygon
+              key={t.id}
+              points={t.points}
+              fill={t.fill}
+              stroke="#0F172A"
+              strokeWidth={mini ? "1.8" : "1.3"}
+              strokeLinejoin="round"
+            />
+          ))}
+          <circle cx="100" cy="100" r="95" fill={`url(#${shadeId})`} />
+        </g>
+
+        {/* Brilhos especulares sutis sobre ladrilhos iluminados */}
+        {tiles
+          .filter((t) => t.sparkle)
+          .slice(0, 5)
+          .map((t, idx) => (
+            <g
+              key={`glint-${t.id}`}
+              style={{
+                transformOrigin: `${t.cx}px ${t.cy}px`,
+                animationDelay: `${idx * 0.65}s`,
+              }}
+              className="animate-disco-glint"
+            >
+              <path
+                d={`M ${t.cx} ${t.cy - 9} L ${t.cx + 2} ${t.cy - 2} L ${t.cx + 9} ${t.cy} L ${t.cx + 2} ${t.cy + 2} L ${t.cx} ${t.cy + 9} L ${t.cx - 2} ${t.cy + 2} L ${t.cx - 9} ${t.cy} L ${t.cx - 2} ${t.cy - 2} Z`}
+                fill="#FFFFFF"
+                opacity="0.92"
+              />
+            </g>
+          ))}
+      </svg>
+    </div>
+  );
+});
+
+const GLITTER_SPECKS = [
+  { x: 50, y: 20, r: 1.5, c: "#93C5FD", twinkle: true, delay: "0s" },
+  { x: 46, y: 31, r: 1.8, c: "#FFFFFF", twinkle: false, delay: "0s" },
+  { x: 55, y: 35, r: 1.3, c: "#60A5FA", twinkle: false, delay: "0s" },
+  { x: 38, y: 42, r: 1.6, c: "#E2E8F0", twinkle: true, delay: "0.7s" },
+  { x: 63, y: 44, r: 1.5, c: "#93C5FD", twinkle: false, delay: "0s" },
+  { x: 24, y: 41, r: 1.4, c: "#FFFFFF", twinkle: true, delay: "1.4s" },
+  { x: 76, y: 42, r: 1.4, c: "#60A5FA", twinkle: false, delay: "0s" },
+  { x: 50, y: 50, r: 2.0, c: "#FFFFFF", twinkle: true, delay: "0.3s" },
+  { x: 43, y: 56, r: 1.4, c: "#93C5FD", twinkle: false, delay: "0s" },
+  { x: 58, y: 57, r: 1.6, c: "#E2E8F0", twinkle: false, delay: "0s" },
+  { x: 35, y: 65, r: 1.5, c: "#60A5FA", twinkle: false, delay: "0s" },
+  { x: 65, y: 66, r: 1.4, c: "#FFFFFF", twinkle: true, delay: "1.9s" },
+  { x: 29, y: 78, r: 1.4, c: "#93C5FD", twinkle: false, delay: "0s" },
+  { x: 71, y: 78, r: 1.5, c: "#FFFFFF", twinkle: false, delay: "0s" },
+  { x: 51, y: 67, r: 1.3, c: "#93C5FD", twinkle: false, delay: "0s" },
+  { x: 49, y: 41, r: 1.2, c: "#3B82F6", twinkle: false, delay: "0s" },
+] as const;
+
+/** Estrela de 5 pontas com glitter e cintilação delicada em Azul Royal / Marinho. */
+export const GlitterBlueStar = memo(function GlitterBlueStar({
+  className = "",
+  style,
+  animClass = "animate-sticker-float",
+}: {
+  className?: string;
+  style?: FloatStyle;
+  animClass?: string;
+}) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const gradId = `gstar-${uid}`;
+  const clipId = `gstar-clip-${uid}`;
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      style={style}
+      className={`${animClass} pointer-events-none select-none drop-shadow-[0_4px_8px_rgba(7,23,57,0.28)] ${className}`}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={gradId} x1="12%" y1="8%" x2="88%" y2="92%">
+          <stop offset="0%" stopColor="#1E40AF" />
+          <stop offset="48%" stopColor="#0A2463" />
+          <stop offset="100%" stopColor="#071739" />
+        </linearGradient>
+        <clipPath id={clipId}>
+          <polygon points="50,4 62.5,33.5 94.5,36.2 70,57.4 77.6,88.8 50,72 22.4,88.8 30,57.4 5.5,36.2 37.5,33.5" />
+        </clipPath>
+      </defs>
+
+      <polygon
+        points="50,4 62.5,33.5 94.5,36.2 70,57.4 77.6,88.8 50,72 22.4,88.8 30,57.4 5.5,36.2 37.5,33.5"
+        fill={`url(#${gradId})`}
+        stroke="#0A2463"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+
+      <g clipPath={`url(#${clipId})`}>
+        {GLITTER_SPECKS.map((s, idx) =>
+          s.twinkle ? (
+            <circle
+              key={idx}
+              cx={s.x}
+              cy={s.y}
+              r={s.r}
+              fill={s.c}
+              style={{
+                transformOrigin: `${s.x}px ${s.y}px`,
+                animationDelay: s.delay,
+              }}
+              className="animate-twinkle"
+            />
+          ) : (
+            <circle key={idx} cx={s.x} cy={s.y} r={s.r} fill={s.c} opacity="0.88" />
+          ),
+        )}
+      </g>
+    </svg>
+  );
+});
+
+/** Estrela 3D facetada em Prata Metálico Espelhado (10 facetas chanfradas) com cintilação de crista. */
+export const MetallicSilverStar = memo(function MetallicSilverStar({
+  className = "",
+  style,
+  animClass = "animate-sticker-float-alt",
+}: {
+  className?: string;
+  style?: FloatStyle;
+  animClass?: string;
+}) {
+  const facets: [string, string][] = [
+    ["50,50 50,4 37.5,33.5", "#FFFFFF"],
+    ["50,50 50,4 62.5,33.5", "#CBD5E1"],
+    ["50,50 62.5,33.5 94.5,36.2", "#F8FAFC"],
+    ["50,50 94.5,36.2 70,57.4", "#64748B"],
+    ["50,50 70,57.4 77.6,88.8", "#E2E8F0"],
+    ["50,50 77.6,88.8 50,72", "#475569"],
+    ["50,50 50,72 22.4,88.8", "#94A3B8"],
+    ["50,50 22.4,88.8 30,57.4", "#475569"],
+    ["50,50 30,57.4 5.5,36.2", "#CBD5E1"],
+    ["50,50 5.5,36.2 37.5,33.5", "#94A3B8"],
+  ];
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      style={style}
+      className={`${animClass} pointer-events-none select-none drop-shadow-[0_4px_7px_rgba(15,23,42,0.28)] ${className}`}
+      aria-hidden
+    >
+      {facets.map(([pts, fill], idx) => (
+        <polygon key={idx} points={pts} fill={fill} stroke="#64748B" strokeWidth="0.4" strokeLinejoin="round" />
+      ))}
+      <polygon
+        points="50,4 62.5,33.5 94.5,36.2 70,57.4 77.6,88.8 50,72 22.4,88.8 30,57.4 5.5,36.2 37.5,33.5"
+        fill="none"
+        stroke="#475569"
+        strokeOpacity="0.55"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+      {/* Cintilação especular delicada no vértice superior */}
+      <path
+        d="M50 18 L51.5 23 L56.5 24.5 L51.5 26 L50 31 L48.5 26 L43.5 24.5 L48.5 23 Z"
+        fill="#FFFFFF"
+        style={{ transformOrigin: "50px 24.5px", animationDelay: "0.8s" }}
+        className="animate-twinkle"
+      />
+    </svg>
+  );
+});
+
+interface LetterTile {
+  char: string;
+  bg: string;
+  text: string;
+  rotate: number;
+  yOffset: number;
+  serif?: boolean;
+  tall?: boolean;
+}
+
+const HAPPY_TILES: LetterTile[] = [
+  { char: "H", bg: "linear-gradient(155deg,#0A2463 0%,#071739 100%)", text: "#F1F5F9", rotate: -5, yOffset: 3 },
+  { char: "A", bg: "linear-gradient(155deg,#2157A8 0%,#123775 100%)", text: "#DCE8F7", rotate: -1.5, yOffset: -2 },
+  { char: "P", bg: "linear-gradient(155deg,#0D2553 0%,#071739 100%)", text: "#FFFFFF", rotate: 1.5, yOffset: 1 },
+  { char: "P", bg: "linear-gradient(155deg,#A4CAEF 0%,#74A6DC 100%)", text: "#FFFFFF", rotate: -2, yOffset: -3 },
+  { char: "Y", bg: "linear-gradient(155deg,#11326D 0%,#071739 100%)", text: "#F8FAFC", rotate: 3, yOffset: 2 },
+];
+
+const BIRTHDAY_TILES: LetterTile[] = [
+  { char: "B", bg: "linear-gradient(155deg,#F0F6FC 0%,#C9DDF4 100%)", text: "#071739", rotate: -4, yOffset: -1, serif: true, tall: true },
+  { char: "i", bg: "linear-gradient(155deg,#194C96 0%,#0A2463 100%)", text: "#FFFFFF", rotate: 2, yOffset: 4, serif: true },
+  { char: "R", bg: "linear-gradient(155deg,#C4DCF5 0%,#8FB7E3 100%)", text: "#071739", rotate: -2, yOffset: -1, serif: true },
+  { char: "t", bg: "linear-gradient(155deg,#1F55A5 0%,#0A2463 100%)", text: "#FFFFFF", rotate: 1.5, yOffset: 2, serif: true },
+  { char: "h", bg: "linear-gradient(155deg,#113878 0%,#071739 100%)", text: "#DCE8F7", rotate: -2, yOffset: -2 },
+  { char: "d", bg: "linear-gradient(155deg,#EDF4FB 0%,#CADFF4 100%)", text: "#071739", rotate: 2, yOffset: 1, serif: true },
+  { char: "A", bg: "linear-gradient(155deg,#83B1E4 0%,#5384C4 100%)", text: "#071739", rotate: -1.5, yOffset: -2 },
+  { char: "y", bg: "linear-gradient(155deg,#245CB0 0%,#0A2463 100%)", text: "#F8FAFC", rotate: 3.5, yOffset: 3 },
+];
+
+function LetterBlock({
+  tile,
+  index,
+  revealed,
+  sizeClass,
+  textClass,
+}: {
+  tile: LetterTile;
+  index: number;
+  revealed: boolean;
+  sizeClass: string;
+  textClass: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.72, y: tile.yOffset + 18, rotate: tile.rotate * 1.8 }}
+      animate={
+        revealed
+          ? { opacity: 1, scale: tile.tall ? 1.06 : 1, y: tile.yOffset, rotate: tile.rotate }
+          : { opacity: 0, scale: 0.72, y: tile.yOffset + 18, rotate: tile.rotate * 1.8 }
+      }
+      whileHover={{ scale: 1.09, rotate: 0, y: tile.yOffset - 4 }}
+      whileTap={{ scale: 0.94 }}
+      transition={{
+        type: "spring",
+        stiffness: 240,
+        damping: 18,
+        delay: revealed ? 0.08 + index * 0.045 : 0,
+      }}
+      className={`relative cursor-default rounded-[5px] sm:rounded-[7px] bg-[linear-gradient(135deg,#FFFFFF_0%,#CBD5E1_36%,#1E40AF_72%,#F8FAFC_100%)] p-[2px] shadow-[0_6px_14px_rgba(7,23,57,0.28)] ${sizeClass}`}
+    >
+      <div
+        style={{ backgroundImage: tile.bg, color: tile.text }}
+        className={`flex size-full items-center justify-center rounded-[3.5px] sm:rounded-[5px] border border-royal-navy/55 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45)] leading-none ${
+          tile.serif ? "font-serif font-bold" : "font-sans font-extrabold"
+        } ${textClass}`}
+      >
+        {tile.char}
+      </div>
+    </motion.div>
+  );
+}
+
+/** Chapéu cônico de festa em glitter Azul Royal com pompom felpudo. */
+function RoyalGlitterPartyHat({ className = "" }: { className?: string }) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const coneGrad = `hat-cone-${uid}`;
+  const coneClip = `hat-clip-${uid}`;
+
+  const glitterDots = useMemo(
+    () => [
+      { x: 58, y: 46, r: 1.2, c: "#93C5FD" },
+      { x: 64, y: 54, r: 1.4, c: "#FFFFFF" },
+      { x: 52, y: 62, r: 1.1, c: "#60A5FA" },
+      { x: 69, y: 66, r: 1.5, c: "#93C5FD" },
+      { x: 47, y: 74, r: 1.3, c: "#FFFFFF" },
+      { x: 60, y: 76, r: 1.6, c: "#60A5FA" },
+      { x: 74, y: 80, r: 1.2, c: "#E2E8F0" },
+      { x: 40, y: 88, r: 1.5, c: "#93C5FD" },
+      { x: 54, y: 90, r: 1.3, c: "#FFFFFF" },
+      { x: 68, y: 92, r: 1.4, c: "#60A5FA" },
+      { x: 81, y: 94, r: 1.2, c: "#FFFFFF" },
+      { x: 35, y: 102, r: 1.4, c: "#60A5FA" },
+      { x: 48, y: 104, r: 1.7, c: "#FFFFFF" },
+      { x: 62, y: 106, r: 1.3, c: "#93C5FD" },
+      { x: 77, y: 108, r: 1.6, c: "#60A5FA" },
+      { x: 88, y: 108, r: 1.2, c: "#FFFFFF" },
+      { x: 30, y: 116, r: 1.5, c: "#93C5FD" },
+      { x: 44, y: 118, r: 1.4, c: "#60A5FA" },
+      { x: 58, y: 120, r: 1.6, c: "#FFFFFF" },
+      { x: 72, y: 121, r: 1.3, c: "#93C5FD" },
+      { x: 86, y: 119, r: 1.5, c: "#E2E8F0" },
+      { x: 96, y: 118, r: 1.2, c: "#60A5FA" },
+    ],
+    [],
+  );
+
+  const pompomStrands = useMemo(() => {
+    const items: { x2: number; y2: number; color: string }[] = [];
+    const colors = ["#071739", "#0A2463", "#1E40AF", "#60A5FA", "#172554"];
+    for (let i = 0; i < 32; i++) {
+      const angle = (i / 32) * Math.PI * 2;
+      const len = i % 2 === 0 ? 18 : 14.5;
+      items.push({
+        x2: Number((60 + Math.cos(angle) * len).toFixed(1)),
+        y2: Number((22 + Math.sin(angle) * len).toFixed(1)),
+        color: colors[i % colors.length],
+      });
+    }
+    return items;
+  }, []);
+
+  return (
+    <svg
+      viewBox="0 0 120 140"
+      className={`pointer-events-none select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.42)] ${className}`}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={coneGrad} x1="18%" y1="30%" x2="88%" y2="85%">
+          <stop offset="0%" stopColor="#2563EB" />
+          <stop offset="32%" stopColor="#1D4ED8" />
+          <stop offset="68%" stopColor="#0A2463" />
+          <stop offset="100%" stopColor="#071739" />
+        </linearGradient>
+        <clipPath id={coneClip}>
+          <path d="M 60 24 L 18 122 Q 60 134 102 122 Z" />
+        </clipPath>
+      </defs>
+
+      <path
+        d="M 60 24 L 18 122 Q 60 134 102 122 Z"
+        fill={`url(#${coneGrad})`}
+        stroke="#071739"
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+
+      <g clipPath={`url(#${coneClip})`}>
+        <path d="M 59 26 L 28 122 L 42 125 Z" fill="#60A5FA" opacity="0.22" />
+        {glitterDots.map((d, i) => (
+          <circle key={i} cx={d.x} cy={d.y} r={d.r} fill={d.c} opacity="0.92" />
+        ))}
+      </g>
+
+      <g>
+        {pompomStrands.map((s, i) => (
+          <line
+            key={i}
+            x1="60"
+            y1="22"
+            x2={s.x2}
+            y2={s.y2}
+            stroke={s.color}
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+        ))}
+        <circle cx="60" cy="22" r="9.5" fill="#0A2463" />
+        <circle cx="57" cy="19" r="3.5" fill="#60A5FA" opacity="0.55" />
+      </g>
+    </svg>
+  );
+}
+
+/** Cluster de 5 balões brilhantes em Azul Royal/Marinho com flutuação assíncrona orgânica. */
+function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const gradA = `bal-a-${uid}`;
+  const gradB = `bal-b-${uid}`;
+
+  const balloons = [
+    { cx: 58, cy: 66, rx: 52, ry: 56, grad: gradA, rot: -10, delay: "0s", dur: "4.6s", ty: "-3px" },
+    { cx: 120, cy: 102, rx: 48, ry: 52, grad: gradB, rot: 8, delay: "0.7s", dur: "5.2s", ty: "-3.5px" },
+    { cx: 74, cy: 132, rx: 54, ry: 58, grad: gradA, rot: -4, delay: "1.3s", dur: "4.9s", ty: "-2.5px" },
+    { cx: 164, cy: 152, rx: 52, ry: 55, grad: gradA, rot: 12, delay: "0.35s", dur: "5.4s", ty: "-3px" },
+    { cx: 112, cy: 176, rx: 46, ry: 48, grad: gradB, rot: 0, delay: "1.1s", dur: "4.8s", ty: "-2px" },
+  ] as const;
+
+  return (
+    <svg
+      viewBox="0 0 230 220"
+      className={`pointer-events-none select-none drop-shadow-[0_12px_20px_rgba(7,23,57,0.36)] ${className}`}
+      aria-hidden
+    >
+      <defs>
+        <radialGradient id={gradA} cx="32%" cy="28%" r="74%">
+          <stop offset="0%" stopColor="#2E5CA8" />
+          <stop offset="38%" stopColor="#163A7A" />
+          <stop offset="76%" stopColor="#0A2463" />
+          <stop offset="100%" stopColor="#071739" />
+        </radialGradient>
+        <radialGradient id={gradB} cx="35%" cy="26%" r="74%">
+          <stop offset="0%" stopColor="#26529A" />
+          <stop offset="44%" stopColor="#12316A" />
+          <stop offset="82%" stopColor="#0A2463" />
+          <stop offset="100%" stopColor="#050F24" />
+        </radialGradient>
+      </defs>
+
+      {balloons.map((b, idx) => (
+        <g
+          key={idx}
+          style={
+            {
+              transformOrigin: `${b.cx}px ${b.cy}px`,
+              animationDelay: b.delay,
+              "--float-duration": b.dur,
+              "--ty": b.ty,
+              "--r-start": "0deg",
+              "--r-mid": idx % 2 === 0 ? "1.6deg" : "-1.6deg",
+            } as FloatStyle
+          }
+          className={idx % 2 === 0 ? "animate-sticker-float" : "animate-sticker-float-alt"}
+        >
+          <g transform={`rotate(${b.rot} ${b.cx} ${b.cy})`}>
+            <ellipse
+              cx={b.cx}
+              cy={b.cy}
+              rx={b.rx}
+              ry={b.ry}
+              fill={`url(#${b.grad})`}
+              stroke="#3B82F6"
+              strokeOpacity="0.22"
+              strokeWidth="1.2"
+            />
+
+            {/* Reflexo curvo em grade luminosa (janela) característico do látex brilhante */}
+            <g fill="#FFFFFF" opacity="0.86">
+              <path
+                d={`M ${b.cx - b.rx * 0.56} ${b.cy - b.ry * 0.14} Q ${b.cx - b.rx * 0.52} ${b.cy - b.ry * 0.48} ${b.cx - b.rx * 0.18} ${b.cy - b.ry * 0.54} L ${b.cx - b.rx * 0.14} ${b.cy - b.ry * 0.42} Q ${b.cx - b.rx * 0.42} ${b.cy - b.ry * 0.38} ${b.cx - b.rx * 0.44} ${b.cy - b.ry * 0.12} Z`}
+                opacity="0.72"
+              />
+              <rect
+                x={b.cx + b.rx * 0.18}
+                y={b.cy - b.ry * 0.32}
+                width="5"
+                height="6"
+                rx="1.2"
+                transform={`rotate(12 ${b.cx + b.rx * 0.18} ${b.cy - b.ry * 0.32})`}
+                opacity="0.78"
+              />
+              <rect
+                x={b.cx + b.rx * 0.31}
+                y={b.cy - b.ry * 0.27}
+                width="5"
+                height="6"
+                rx="1.2"
+                transform={`rotate(14 ${b.cx + b.rx * 0.31} ${b.cy - b.ry * 0.27})`}
+                opacity="0.65"
+              />
+              <rect
+                x={b.cx + b.rx * 0.21}
+                y={b.cy - b.ry * 0.18}
+                width="5"
+                height="6"
+                rx="1.2"
+                transform={`rotate(12 ${b.cx + b.rx * 0.21} ${b.cy - b.ry * 0.18})`}
+                opacity="0.72"
+              />
+              <rect
+                x={b.cx + b.rx * 0.34}
+                y={b.cy - b.ry * 0.12}
+                width="5"
+                height="6"
+                rx="1.2"
+                transform={`rotate(14 ${b.cx + b.rx * 0.34} ${b.cy - b.ry * 0.12})`}
+                opacity="0.58"
+              />
+            </g>
+
+            {/* Contra-luz suave prateada na borda inferior */}
+            <path
+              d={`M ${b.cx - b.rx * 0.35} ${b.cy + b.ry * 0.78} Q ${b.cx} ${b.cy + b.ry * 0.9} ${b.cx + b.rx * 0.42} ${b.cy + b.ry * 0.72}`}
+              fill="none"
+              stroke="#93C5FD"
+              strokeOpacity="0.28"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </g>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  SEÇÃO HERO: PÔSTER INTERATIVO
+ *  - Parallax multi-camada atrelado ao scroll (globos espelhados + estrelas laterais).
+ *  - Letreiro "HAPPY BiRthdAy" em placas retangulares metálicas com stagger.
+ *  - Estrelas cintilantes em glitter azul royal e prata 3D chanfrada.
+ *  - Bloco editorial da data (Julho · SÁB | 17 | 19:30 · 2027).
+ *  - Foto P&B da Carol bebê com proporção explícita (zero CLS), chapéu, laço e balões.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export default function HeroPoster({ revealed }: { revealed: boolean }) {
+  const posterRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: posterRef,
+    offset: ["start start", "end start"],
+  });
+
+  const topBallParallax = useTransform(scrollYProgress, [0, 1], [0, -26]);
+  const bottomBallParallax = useTransform(scrollYProgress, [0, 1], [0, 22]);
+  const starsUpParallax = useTransform(scrollYProgress, [0, 1], [0, -18]);
+  const starsDownParallax = useTransform(scrollYProgress, [0, 1], [0, 14]);
+
+  const monthTitle =
+    FORMATTED_EVENT_DATE.month.charAt(0).toUpperCase() +
+    FORMATTED_EVENT_DATE.month.slice(1).toLowerCase();
+
+  return (
+    <section
+      ref={posterRef}
+      aria-label={`Pôster comemorativo ${EVENT.name} — ${EVENT.age} Anos`}
+      className="relative flex min-h-[650px] sm:min-h-[820px] w-full flex-col items-center justify-between overflow-visible pt-16 sm:pt-20 select-none"
+    >
+      {/* 1. GLOBOS ESPELHADOS GIGANTES (Canto Superior Esquerdo e Inferior Direito com parallax) */}
+      <motion.div
+        style={{ y: topBallParallax }}
+        className="pointer-events-none absolute -top-12 -left-14 sm:-top-16 sm:-left-16 z-[3] w-[198px] sm:w-[274px]"
+        aria-hidden
+      >
+        <MirrorDiscoBall />
+      </motion.div>
+
+      <motion.div
+        style={{ y: bottomBallParallax }}
+        className="pointer-events-none absolute -bottom-14 -right-12 sm:-bottom-16 sm:-right-14 z-[24] w-[196px] sm:w-[278px]"
+        aria-hidden
+      >
+        <MirrorDiscoBall />
+      </motion.div>
+
+      {/* 2. ESTRELAS LATERAIS COM PARALLAX MULTI-CAMADA & CINTILAÇÃO */}
+      <motion.div
+        style={{ y: starsUpParallax }}
+        className="pointer-events-none absolute top-3 right-2.5 sm:top-5 sm:right-5 z-[4] w-[62px] sm:w-[94px]"
+        aria-hidden
+      >
+        <GlitterBlueStar
+          style={
+            {
+              "--float-duration": "4.8s",
+              "--ty": "-6px",
+              "--r-start": "14deg",
+              "--r-mid": "22deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsDownParallax }}
+        className="pointer-events-none absolute top-[72px] right-[25%] sm:top-[88px] sm:right-[28%] z-[4] w-[38px] sm:w-[56px]"
+        aria-hidden
+      >
+        <GlitterBlueStar
+          style={
+            {
+              animationDelay: "0.4s",
+              "--float-duration": "4.4s",
+              "--ty": "-5px",
+              "--r-start": "-10deg",
+              "--r-mid": "-2deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsUpParallax }}
+        className="pointer-events-none absolute top-[134px] right-1.5 sm:top-[164px] sm:right-5 z-[4] w-[36px] sm:w-[68px]"
+        aria-hidden
+      >
+        <MetallicSilverStar
+          style={
+            {
+              animationDelay: "0.3s",
+              "--float-duration": "5.1s",
+              "--ty": "-6px",
+              "--r-start": "8deg",
+              "--r-mid": "16deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsDownParallax }}
+        className="pointer-events-none absolute top-[224px] right-1.5 sm:top-[276px] sm:right-4 z-[4] w-[24px] sm:w-[40px]"
+        aria-hidden
+      >
+        <MetallicSilverStar
+          style={
+            {
+              animationDelay: "0.6s",
+              "--float-duration": "4.6s",
+              "--ty": "-4px",
+              "--r-start": "-6deg",
+              "--r-mid": "6deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsUpParallax }}
+        className="pointer-events-none absolute top-[242px] left-1.5 sm:top-[290px] sm:left-7 z-[4] w-[34px] sm:w-[60px]"
+        aria-hidden
+      >
+        <MetallicSilverStar
+          style={
+            {
+              animationDelay: "0.2s",
+              "--float-duration": "5.3s",
+              "--ty": "-6px",
+              "--r-start": "-10deg",
+              "--r-mid": "-2deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsDownParallax }}
+        className="pointer-events-none absolute top-[336px] left-1.5 sm:top-[396px] sm:left-6 z-[4] w-[34px] sm:w-[58px]"
+        aria-hidden
+      >
+        <GlitterBlueStar
+          style={
+            {
+              animationDelay: "0.5s",
+              "--float-duration": "4.9s",
+              "--ty": "-5px",
+              "--r-start": "-14deg",
+              "--r-mid": "-4deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsUpParallax }}
+        className="pointer-events-none absolute bottom-[174px] right-2.5 sm:bottom-[218px] sm:right-6 z-[4] w-[50px] sm:w-[70px]"
+        aria-hidden
+      >
+        <GlitterBlueStar
+          style={
+            {
+              animationDelay: "0.7s",
+              "--float-duration": "5.2s",
+              "--ty": "-6px",
+              "--r-start": "-12deg",
+              "--r-mid": "-3deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      <motion.div
+        style={{ y: starsDownParallax }}
+        className="pointer-events-none absolute bottom-[118px] right-5 sm:bottom-[152px] sm:right-10 z-[4] w-[34px] sm:w-[46px]"
+        aria-hidden
+      >
+        <MetallicSilverStar
+          style={
+            {
+              animationDelay: "0.85s",
+              "--float-duration": "4.5s",
+              "--ty": "-4px",
+              "--r-start": "6deg",
+              "--r-mid": "14deg",
+            } as FloatStyle
+          }
+          className="w-full"
+        />
+      </motion.div>
+
+      {/* 3. MIOLO EDITORIAL CENTRAL: Mini Globo + Letreiro "HAPPY BiRthdAy" + Data */}
+      <div className="relative z-[10] flex w-full flex-col items-center px-3 sm:px-6 text-center">
+        {/* Mini Globo Central com Estrela Azul-Marinho no Topo */}
+        <motion.div
+          initial={{ opacity: 0, y: -16, scale: 0.78 }}
+          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -16, scale: 0.78 }}
+          transition={{ type: "spring", stiffness: 210, damping: 18, delay: revealed ? 0.05 : 0 }}
+          className="relative -mb-2 sm:-mb-2.5 z-[11] w-[66px] sm:w-[86px]"
+        >
+          <MirrorDiscoBall mini topStar />
+        </motion.div>
+
+        {/* Letreiro "HAPPY" */}
+        <div className="relative z-[12] flex items-center justify-center gap-1 sm:gap-1.5">
+          {HAPPY_TILES.map((tile, i) => (
+            <LetterBlock
+              key={`happy-${i}`}
+              tile={tile}
+              index={i}
+              revealed={revealed}
+              sizeClass="w-[45px] h-[55px] sm:w-[66px] sm:h-[80px]"
+              textClass="text-[28px] sm:text-[42px]"
+            />
+          ))}
+        </div>
+
+        {/* Letreiro "BiRthdAy" */}
+        <div className="relative z-[12] mt-1 sm:mt-1.5 flex items-center justify-center gap-[3px] sm:gap-1.5">
+          {BIRTHDAY_TILES.map((tile, i) => (
+            <LetterBlock
+              key={`bday-${i}`}
+              tile={tile}
+              index={i + 5}
+              revealed={revealed}
+              sizeClass="w-[32px] h-[43px] sm:w-[50px] sm:h-[66px]"
+              textClass="text-[21px] sm:text-[34px]"
+            />
+          ))}
+        </div>
+
+        {/* Bloco da Data Oficial: Julho · SÁB | 17 | 19:30 · 2027 */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+          transition={{ duration: 0.55, delay: revealed ? 0.42 : 0, ease: [0.22, 1, 0.36, 1] }}
+          className="mt-4 sm:mt-6 flex w-full max-w-[290px] sm:max-w-[390px] flex-col items-center text-royal-navy"
+        >
+          {/* Mês entre filetes */}
+          <div className="flex w-full items-center gap-3 sm:gap-4">
+            <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+            <span className="font-serif text-[26px] sm:text-[34px] font-bold leading-none tracking-wide">
+              {monthTitle}
+            </span>
+            <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+          </div>
+
+          {/* Linha Central: [Calendário] SÁB | 17 | [Relógio] 19:30 */}
+          <div className="mt-1.5 sm:mt-2 flex items-center justify-center gap-2.5 sm:gap-5">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <CalendarDays className="size-[20px] sm:size-[28px] text-royal-deep" strokeWidth={2} />
+              <span className="font-sans text-[16px] sm:text-[22px] font-extrabold tracking-[0.06em] uppercase">
+                {FORMATTED_EVENT_DATE.weekdayShort}
+              </span>
+            </div>
+
+            <span className="h-9 sm:h-11 w-[2px] bg-royal-deep/80" aria-hidden />
+
+            <span className="font-serif text-[46px] sm:text-[62px] font-bold leading-none tracking-tight">
+              {FORMATTED_EVENT_DATE.day}
+            </span>
+
+            <span className="h-9 sm:h-11 w-[2px] bg-royal-deep/80" aria-hidden />
+
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Clock className="size-[20px] sm:size-[28px] text-royal-deep" strokeWidth={2} />
+              <span className="font-sans text-[16px] sm:text-[22px] font-extrabold tabular-nums tracking-[0.04em]">
+                {FORMATTED_EVENT_DATE.time}
+              </span>
+            </div>
+          </div>
+
+          {/* Ano em Pílula Azul Royal entre filetes */}
+          <div className="mt-2 sm:mt-2.5 flex w-full items-center gap-3 sm:gap-4">
+            <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+            <span className="rounded-full bg-royal-navy px-5 py-1 sm:px-7 sm:py-1.5 font-sans text-[14px] sm:text-[17px] font-bold tracking-[0.22em] text-white shadow-[0_4px_10px_rgba(7,23,57,0.28)]">
+              {FORMATTED_EVENT_DATE.year}
+            </span>
+            <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+          </div>
+        </motion.div>
+      </div>
+
+      {/* 4. BASE DO PÔSTER: Foto P&B da Carol Bebê + Chapéu Glitter Azul + Laço Azul + Balões */}
+      <div className="relative mt-5 sm:mt-8 flex w-full items-end justify-center">
+        {/* Buquê de Balões Glossy Azul Royal no Canto Inferior Esquerdo */}
+        <motion.div
+          initial={{ opacity: 0, x: -24, y: 18 }}
+          animate={revealed ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, x: -24, y: 18 }}
+          transition={{ duration: 0.68, delay: revealed ? 0.35 : 0, ease: [0.22, 1, 0.36, 1] }}
+          className="pointer-events-none absolute -bottom-4 -left-5 sm:-bottom-6 sm:-left-6 z-[22] w-[184px] sm:w-[264px]"
+        >
+          <div
+            style={
+              {
+                "--float-duration": "5.8s",
+                "--ty": "-6px",
+                "--r-start": "-1deg",
+                "--r-mid": "2deg",
+              } as FloatStyle
+            }
+            className="animate-sticker-float"
+          >
+            <RoyalGlossyBalloons />
+          </div>
+        </motion.div>
+
+        {/* Foto Recortada da Carol Bebê + Adereços ancorados proporcionalmente (aspect explícito para 0 CLS) */}
+        <motion.div
+          initial={{ opacity: 0, y: 26, scale: 0.95 }}
+          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 26, scale: 0.95 }}
+          transition={{ duration: 0.72, delay: revealed ? 0.25 : 0, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-[14] mx-auto aspect-[451/554] w-[248px] sm:w-[342px]"
+        >
+          <img
+            src="/images/carol-cutout.png"
+            alt={`${EVENT.name} — ${EVENT.age} anos`}
+            width={451}
+            height={554}
+            decoding="async"
+            fetchPriority="high"
+            className="block size-full object-contain drop-shadow-[0_12px_24px_rgba(7,23,57,0.28)]"
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, black 86%, transparent 100%)",
+              maskImage: "linear-gradient(to bottom, black 86%, transparent 100%)",
+            }}
+          />
+
+          {/* Laço Azul Royal Acetinado no cabelo (lado esquerdo) */}
+          <div
+            style={
+              {
+                "--float-duration": "4.6s",
+                "--ty": "-2px",
+                "--r-start": "-14deg",
+                "--r-mid": "-9deg",
+              } as FloatStyle
+            }
+            className="animate-sticker-float pointer-events-none absolute top-[28%] left-[26%] z-[18] w-[34px] sm:w-[46px] drop-shadow-[0_0_2px_rgba(255,255,255,0.95)]"
+          >
+            <Bow variant="royal" className="w-full" />
+          </div>
+
+          {/* Chapéu Cônico Glitter Azul Royal com Pompom no topo direito da cabeça */}
+          <div
+            style={
+              {
+                "--float-duration": "5.2s",
+                "--ty": "-3px",
+                "--r-start": "23deg",
+                "--r-mid": "27deg",
+              } as FloatStyle
+            }
+            className="animate-sticker-float-alt pointer-events-none absolute -top-[2%] right-[12%] z-[18] w-[100px] sm:w-[138px]"
+          >
+            <RoyalGlitterPartyHat className="w-full" />
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}

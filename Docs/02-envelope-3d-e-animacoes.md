@@ -1,95 +1,77 @@
 ---
-title: 02 - Envelope 3D e Animações
+title: 02 - Capa Bipartida, Pôster Hero e Animações
 aliases:
-  - Envelope 3D
+  - CoverGate
+  - HeroPoster
   - Máquina de Estados
   - Lenis e GSAP
 tags:
   - animacoes
-  - css-3d
+  - cover-gate
+  - hero-poster
   - gsap
   - framer-motion
   - lenis
 status: active
-updated: 2026-11-13
+updated: 2026-11-17
 related:
   - "[[00-INDEX]]"
   - "[[01-arquitetura-e-estrutura]]"
   - "[[06-aprendizados-e-troubleshooting]]"
 ---
 
-# 02 · Envelope 3D e Animações
+# 02 · Capa Bipartida (`CoverGate`), Pôster Hero (`HeroPoster`) e Animações
 
 > [!important] Princípio de Performance 60fps
-> Toda a coreografia 3D e os adesivos flutuantes operam exclusivamente sobre `transform` (`translate3d`, `scale`, `rotateX`, `rotateY`) e `opacity`, sem animar `filter: blur(...)`, `height: "auto"` ou propriedades de layout.
+> Toda a coreografia de abertura, os ladrilhos dos globos espelhados, o *parallax* e os ornamentos operam exclusivamente sobre `transform` (`translate3d`, `scale`, `rotate`) e `opacity`, sem animar `filter: blur(...)`, `height: "auto"` ou `<feTurbulence>`.
 
 ---
 
-## Máquina de Estados (`InvitationExperience` + `Envelope3DOpening`)
+## Máquina de Estados (`InvitationExperience` + `CoverGate`)
 
-`InvitationExperience.tsx` gerencia o ciclo de vida macro (`Stage = "closed" | "opening" | "open"`), enquanto `Envelope3DOpening.tsx` executa a coreografia interna determinística (`OpeningPhase`) orquestrada por uma **única `gsap.timeline()`** protegida por trava síncrona `isOpeningRef = useRef(false)`.
+`InvitationExperience.tsx` gerencia o ciclo de vida macro (`Stage = "closed" | "opening" | "open"`), enquanto `CoverGate.tsx` executa a coreografia de abertura determinística (`GatePhase = "idle" | "unsealing" | "opening"`) protegida pela trava síncrona `isOpeningRef = useRef(false)` e uma única `gsap.timeline()`.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> idle : "Stage: closed (Scroll travado)"
-    idle --> unsealing : "Clique / Enter / Espaço (isOpeningRef = true)"
-    unsealing --> flap_open : "0.18s — Aba inicia rotateX(180deg)"
-    flap_open --> extracting : "0.44s Confete | 0.46s Aba z-back | 0.52s Carta sobe"
-    extracting --> centering : "1.12s — Envelope desce e carta centraliza"
-    centering --> expanding : "1.68s — onOpenStart() -> Stage: opening"
-    expanding --> open : "2.34s — onOpenComplete() -> Stage: open (Lenis liberado)"
+    [*] --> idle : "Stage: closed (Scroll travado em 100dvh, micro-flutuação y: [-3, 3])"
+    idle --> unsealing : "Clique/toque no brasão (whileTap scale 0.94 + partículas + scale 1.12 / opacity 0 em 350ms)"
+    unsealing --> opening : "0.35s — Portas deslizam (-102% / +102%) em 950ms cubic-bezier(0.22, 1, 0.36, 1) + onOpenStart()"
+    opening --> open : "1.32s — CoverGate desmonta, onOpenComplete() libera Lenis Scroll"
     open --> [*]
 ```
 
-* Se `prefers-reduced-motion: reduce` estiver ativo no sistema operacional, a abertura salta diretamente para `expanding` e libera o scroll em `0.25s`.
+* Se `prefers-reduced-motion: reduce` estiver ativo no sistema operacional, a abertura salta diretamente para `opening` e libera o scroll em `0.20s`.
 
 ---
 
-## Arquitetura 3D Real e Planos `translateZ`
+## Arquitetura da Capa Bipartida (`CoverGate.tsx`)
 
-O container da cena 3D utiliza `perspective: 1200px` e `transformStyle: "preserve-3d"`. Para evitar *z-fighting* no Safari/WebKit, cada camada ocupa um plano explícito no eixo Z:
-
-| Camada | Elemento | `translateZ` | Função |
-| :--- | :--- | :--- | :--- |
-| Piso | Sombra projetada | `-12px` | Profundidade no plano de fundo (gradiente radial puro sem `blur-xl`) |
-| Camada 1 | Cavidade traseira + Forro (`cavity-liner`) | `-2px` | Fundo escuro Azul Royal com trama geométrica prateada |
-| Camada 2 | Folha interna do convite (montada quando `!isIdle`) | `2px` -> `14px` | Sobe na extração com sombra dinâmica e vem para frente na centralização |
-| Camada 3 | Bolso frontal SVG + oclusão de dobras + sombra da aba | `6px` | Dobras laterais/inferior sombreadas, reflexo diagonal leve e destinatário |
-| Camada 4 | Aba superior triangular (`flap-liner` no verso) | `8px` -> `-1px` | Rotaciona `180deg`, revela forro interno prateado e recua atrás da carta aos `0.46s` |
-| Camada 5 | Selo de joalheria `"C · 18"` + `<Bow variant="silver" />` | `18px` | Selo com aro chanfrado, tração magnética isolada e ondas de choque duplas ao abrir |
+* **Portas Verticais (`50%` esquerda / `50%` direita):** Superfície `bg-paper-fine` em papel artesanal off-white/pérola (`#F4F5F7`), molduras lineares e cantoneiras minimalistas (`EditorialCornerBracket` / `CoverDoorFrame`) em prata fosca (`#B8C0CC`) e azul royal (`#0A2463`), sombra interna (`inset`) e filete prata/azul-marinho na junção central realista.
+* **Brasão Barroco Central (`public/images/brasao-barroco-c.png`):** Imagem PNG recortada (`576x610`, fundo 100% transparente sem halo escuro), carregada com `<Image priority fetchPriority="high" loading="eager" decoding="sync" />` e `initial={false}` para *First Paint* instantâneo (`CLS = 0`).
+  * Sombras recortadas realistas via `filter: drop-shadow(...)` em múltiplas camadas (nunca `box-shadow`), intensificadas no hover (`scale: 1.04`), aura luminosa discreta em prata/azul royal, reflexo especular diagonal periódico (`animate-brooch-shimmer` sobre máscara radial leve sem requisição HTTP extra) e micro-flutuação vertical GPU (`animate-crest-float`, `y: [-3, 3]` em `4.2s`).
+  * `will-change: transform` aplicado nas portas e no botão do brasão **apenas durante a abertura** (`isUnsealing || isOpening`), economizando memória de camada GPU em repouso.
+  * Ao clicar/tocar (`handleTriggerOpen`): resposta tátil *spring* rápida (`scale: 0.94`), ondas de choque duplas, dispersão radial de 12 fagulhas estelares (`UNSEAL_SPARKS`) + `fireLuxuryCelebration`, dissolução do brasão (`scale: 1.12, opacity: 0` em `350ms`) seguida pela abertura das portas em `950ms` (`cubic-bezier(0.22, 1, 0.36, 1)`).
+  * Chamada de ação **`TOQUE PARA ABRIR`** centralizada abaixo do brasão em `Cinzel` (`tracking-[0.22em]`, `#071739`), área de toque confortável (`min-h-[44px]`) e *pulse* suave de opacidade (`animate-breathe-soft`).
 
 ---
 
-## Paralaxe Desktop, Selo Magnético e Reflexo Especular
+## Arquitetura em Camadas do Pôster Hero (`HeroPoster.tsx`)
 
-* **Desktop (Ponteiro Mouse/Pen):** `onPointerMove` (ignorando `e.pointerType === "touch"`) atualiza `useMotionValue` (`pointerX`, `pointerY`), suavizados via `useSpring` (`stiffness: 150, damping: 20, mass: 0.65`) para inclinar o envelope (`rotateX: ±10deg`, `rotateY: ±13deg`). O listener `deviceorientation` e a geração dinâmica de string `glareBackground` foram removidos para eliminar recomposições contínuas de molas físicas e repaints no mobile; o bolso frontal exibe um reflexo diagonal estático leve.
-* **Tração Magnética no Selo:** `sealRawX` / `sealRawY` suavizados por `useSpring` (`stiffness: 220, damping: 18`) deslocam sutilmente o selo (`±7px`) em direção ao cursor no desktop dentro de um `<motion.div>` filho aninhado ao wrapper estático `translateZ(18px)` (evitando que o Framer Motion sobrescreva o plano 3D no WebKit; veja [[06-aprendizados-e-troubleshooting#^framer-translatez|Troubleshooting]]).
-* **Reflexo Especular na Carta (`InvitationContent.tsx` & `globals.css`):** A camada `.interactive-sheen::before` utiliza um gradiente radial estático de joalheria no topo de cada cartão acetinado, sem listeners de `scroll`/`pointermove` nem mutações de variáveis CSS no elemento raiz (eliminando recálculo global de estilo durante o scroll mobile).
+Toda a composição é renderizada via código React + Tailwind + SVG + Framer Motion:
 
----
-
-## Confetes, Micro-Celebração & Poeira Estelar GPU (`LuxuryParticles.tsx`)
-
-* `fireLuxuryCelebration` importa `canvas-confetti` sob demanda (pré-carregado no mount de `Envelope3DOpening`), cria formas vetoriais customizadas (`shapeFromPath` para estrela de 4 pontas `✦` e cristal lapidado), adapta `particleCount` e `ticks` no mobile (`window.innerWidth < 768`) sem `setInterval` contínuo durante a expansão da carta, e retorna uma função de **cleanup** que cancela o `setTimeout` imediatamente caso o componente seja desmontado.
-* `fireMiniCelebration` dispara um burst compacto (`particleCount: 28`, `zIndex: 90`) em Azul Royal & Prata ao confirmar presença (`RsvpSheet.tsx`).
-* `AmbientSparkles` combina 6 estrelas cintilantes (`SPARKLE_POINTS`, `.animate-twinkle`) com 6 partículas de poeira estelar (`STARDUST_MOTES`, `.animate-stardust` / `@keyframes stardust-drift` em `translate3d` + `opacity` sem `box-shadow` nem `will-change` permanente).
+1. **Papel Editorial Contínuo (`bg-poster-paper` em `InvitationContent.tsx`):** Trama leve em CSS puro (`--paper-weave`) sobre base `#F1F2F4` estendida sem corte reto do topo do pôster até o rodapé, acompanhada por brilho atmosférico sutil em GPU.
+2. **Globos Espelhados 3D (`MirrorDiscoBall`):** Projeção esférica procedural determinística (`buildDiscoTiles`) com facetas em prata/grafite/branco, brilhos `animate-disco-glint` e *parallax* no scroll (`useScroll` + `useTransform`) no globo superior esquerdo e inferior direito, além do mini globo superior central encimado por uma estrela azul-marinho.
+3. **Letreiro `"HAPPY BiRthdAy"` (`LetterBlock`):** 5 blocos superiores + 8 blocos inferiores em grafia mista com moldura metálica chanfrada, inclinações individuais, entrada *staggered* por mola (`revealed`) e micro-interação ao toque/hover.
+4. **Estrelas com Parallax & Cintilação:** Estrelas de 5 pontas `GlitterBlueStar` (pontos internos com `animate-twinkle`) e `MetallicSilverStar` (cintilação de crista) envolvidas em wrappers `motion.div` com *parallax* (`starsUpParallax` / `starsDownParallax`) sem conflitar com o CSS `animate-sticker-float`.
+5. **Base Central:** Foto P&B recortada da Carol bebê (`public/images/carol-cutout.png`) em container com `aspect-[451/554]` explícito (zero CLS), `<Bow variant="royal" />` ancorado na têmpora esquerda, chapéu cônico em glitter azul royal com pompom felpudo (`RoyalGlitterPartyHat`) e buquê de 5 balões glossy azul royal (`RoyalGlossyBalloons`) com flutuação assíncrona orgânica por balão.
 
 ---
 
-## Lenis Smooth Scroll, ScrollTrigger & Rolagem 3D no Contador
+## Coreografia de Scroll, Confetes & Lenis Smooth Scroll
 
-* `SmoothScrollProvider` divide o estado em dois contextos:
-  * `ScrollLockContext` (`lock`, `unlock` estáveis via `useCallback`): consumido por `useScrollLock(active)` em `Envelope3DOpening.tsx` e `Sheet.tsx` sem causar re-renders quando a instância `lenis` é criada.
-  * `SmoothScrollContext`: expõe `lenis` junto com `lock`/`unlock`.
-* Um contador interno `lockCount` suporta travas aninhadas (envelope + modais), alternando a classe `html.scroll-locked` e `lenis.stop()` / `lenis.start()`.
-* O ticker do GSAP (`gsap.ticker.add(tick)`) dirige o `lenis.raf(time * 1000)` e sincroniza `ScrollTrigger.update`, com `ScrollTrigger.refresh()` acionado assim que `stage === "open"` e após alternar o seletor `"Salvar na Agenda"`.
-* Em `CountdownTimer.tsx`, o hook `useCountdown(target, active)` recebe `active={revealed}` (iniciando o tick de 1s apenas após a abertura do envelope), enquanto `RollingDigit` anima a troca numérica com rolagem vertical 3D em GPU (`rotateX: ±38deg` + `translateY` dentro de `perspective: 420px`) usando `[text-shadow:...]` em vez de `filter: blur` ou `drop-shadow`.
-
----
-
-## Animações Contínuas em CSS GPU (`InvitationContent` & `CarolHeroCollage`)
-
-Os adesivos decorativos e a poeira estelar usam classes CSS puras (`animate-sticker-float`, `animate-sticker-float-alt`, `animate-sticker-sway`, `animate-stardust` em `src/app/globals.css`) configuradas por variáveis CSS (`--float-duration`, `--ty`, `--r-start`, `--r-mid`, `--stardust-duration`, `--stardust-x`, `--stardust-y`). Enquanto `revealed === false`, o atributo `data-active="false"` pausa todas as animações decorativas via `animation-play-state: paused` e libera camadas GPU com `will-change: auto !important;`. Os adesivos abaixo da dobra inicial utilizam `loading="lazy"`.
+* **Seções Inferiores (`InvitationContent.tsx`):** Cada bloco utiliza Framer Motion `whileInView` com `viewport={{ once: true, amount: 0.2 }}` e *stagger* (`staggerChildren: 0.09`), além de micro-transições (`AnimatePresence mode="wait"`) nos botões de agenda e cópia de endereço.
+* `fireLuxuryCelebration` (`LuxuryParticles.tsx`) importa `canvas-confetti` sob demanda e dispara estrelas de 4 pontas (`✦`) e cristais em Azul Royal & Prata no destrave do broche; `fireMiniCelebration` celebra a confirmação de presença no formulário RSVP de `InvitationContent.tsx`.
+* `SmoothScrollProvider` isola `ScrollLockContext` (`lock`, `unlock` estáveis com `lenisRef.current?.resize()` ao destravar), sincronizando Lenis + `gsap.ticker` sem `useState` redundante.
+* Em `CountdownTimer.tsx`, `useCountdown(target, active)` inicia somente com `active={revealed}` e anima dígitos em `RollingDigit` via `rotateX` GPU.
 
 Veja também: [[01-arquitetura-e-estrutura]], [[03-design-system-e-responsividade]], [[06-aprendizados-e-troubleshooting]].
-

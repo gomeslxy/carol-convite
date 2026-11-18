@@ -114,7 +114,3 @@ export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
 
 export const FORMATTED_EVENT_DATE: FormattedDate = getFormattedDate(EVENT);
 export const EVENT_TIMESTAMP: number = new Date(EVENT.dateISO).getTime();
-
-export function getEventTimestamp(config: EventConfig = EVENT): number {
-  return config === EVENT ? EVENT_TIMESTAMP : new Date(config.dateISO).getTime();
-}

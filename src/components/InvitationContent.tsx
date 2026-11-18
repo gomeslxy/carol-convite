@@ -1,55 +1,155 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { CalendarDays, CalendarPlus, Check, ExternalLink } from "lucide-react";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
+import {
+  AlertCircle,
+  CalendarDays,
+  CalendarPlus,
+  Check,
+  CheckCircle2,
+  Clock,
+  Copy,
+  ExternalLink,
+  Heart,
+  HeartCrack,
+  MapPin,
+  MessageCircle,
+  Minus,
+  Navigation,
+  Plus,
+  Shirt,
+  Users,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
+  useId,
+  useMemo,
   useRef,
   useState,
-  type CSSProperties,
+  type FormEvent,
 } from "react";
-import { Bow } from "@/components/BowDecoration";
-import CarolHeroCollage from "@/components/CarolHeroCollage";
 import CountdownTimer from "@/components/CountdownTimer";
-import InteractiveActions from "@/components/InteractiveActions";
-import { AmbientSparkles } from "@/components/LuxuryParticles";
-import { CornerFiligree, DressCodeIcon, SilverDivider } from "@/components/Ornaments";
+import HeroPoster, {
+  GlitterBlueStar,
+  MetallicSilverStar,
+  type FloatStyle,
+} from "@/components/HeroPoster";
+import { fireMiniCelebration } from "@/components/LuxuryParticles";
+import { CornerFiligree } from "@/components/Ornaments";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
-import { downloadIcs, googleCalendarUrl } from "@/lib/utils";
+import {
+  copyToClipboard,
+  downloadIcs,
+  googleCalendarUrl,
+  googleMapsEmbedUrl,
+  googleMapsUrl,
+  wazeUrl,
+  whatsappUrl,
+} from "@/lib/utils";
 
-const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+type Attendance = "yes" | "no";
 
-type StickerStyle = CSSProperties & {
-  "--float-duration"?: string;
-  "--ty"?: string;
-  "--r-start"?: string;
-  "--r-mid"?: string;
-  "--s-start"?: string;
-  "--s-mid"?: string;
-};
-
-export interface InvitationContentProps {
-  /** Começa a revelar o conteúdo (quando a carta extraída expande). */
-  revealed: boolean;
-  /** Scroll liberado (transição do envelope concluída). */
-  interactive: boolean;
+interface SubmittedRsvp {
+  name: string;
+  attendance: Attendance;
+  guests: number;
+  companions: string[];
+  whatsappHref: string;
 }
 
-export default function InvitationContent({ revealed, interactive }: InvitationContentProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
+export interface InvitationContentProps {
+  /** Começa a animar a entrada do pôster e conteúdo (quando as portas da capa abrem). */
+  revealed: boolean;
+}
 
-  const [agendaOpen, setAgendaOpen] = useState(false);
+const SECTION_VARIANTS: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.09,
+    },
+  },
+};
+
+const ITEM_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
+const VIEWPORT_CONFIG = { once: true, amount: 0.2 } as const;
+
+/** Título editorial serifado ladeado por filetes horizontais no estilo do pôster. */
+function SectionHeading({ title }: { title: string }) {
+  return (
+    <div className="mx-auto flex w-full max-w-[380px] items-center gap-3 sm:gap-4">
+      <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+      <h2 className="font-serif text-[21px] sm:text-[26px] font-bold leading-none tracking-wide text-royal-navy">
+        {title}
+      </h2>
+      <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+    </div>
+  );
+}
+
+export default function InvitationContent({ revealed }: InvitationContentProps) {
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const ids = {
+    name: useId(),
+    nameError: useId(),
+    guests: useId(),
+    message: useId(),
+  };
+
+  // Estados de Agenda e Endereço
   const [icsSaved, setIcsSaved] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState(false);
   const icsTimerRef = useRef<number | null>(null);
+  const copyTimerRef = useRef<number | null>(null);
+
+  // Estados do Formulário RSVP
+  const [name, setName] = useState("");
+  const [attendance, setAttendance] = useState<Attendance>("yes");
+  const [guests, setGuests] = useState(1);
+  const [companions, setCompanions] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submittedRsvp, setSubmittedRsvp] = useState<SubmittedRsvp | null>(null);
 
   useEffect(() => {
     return () => {
       if (icsTimerRef.current !== null) window.clearTimeout(icsTimerRef.current);
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
     };
+  }, []);
+
+  // Mantém o array de nomes de acompanhantes sincronizado com `guests - 1`
+  const updateGuestsCount = useCallback((next: number) => {
+    const clamped = Math.max(1, Math.min(EVENT.rsvp.maxGuests, next));
+    setGuests(clamped);
+    setCompanions((prev) => {
+      const needed = Math.max(0, clamped - 1);
+      if (prev.length === needed) return prev;
+      if (prev.length > needed) return prev.slice(0, needed);
+      return [...prev, ...Array<string>(needed - prev.length).fill("")];
+    });
+  }, []);
+
+  const handleCompanionChange = useCallback((index: number, value: string) => {
+    setCompanions((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
   }, []);
 
   const handleDownloadIcs = useCallback(() => {
@@ -65,650 +165,768 @@ export default function InvitationContent({ revealed, interactive }: InvitationC
     }, 2500);
   }, []);
 
-  // Estado inicial oculto antes da pintura para evitar flash antes da abertura do envelope
-  useIsoLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.set(".card-surface", { autoAlpha: 0, y: 20, scale: 0.96 });
-      gsap.set(".reveal-hero", { autoAlpha: 0, y: 16 });
-      gsap.set(".hero-collage", { scale: 0.92 });
-      gsap.set("[data-reveal]", { autoAlpha: 0, y: 24 });
-    }, rootRef);
-    return () => ctx.revert();
+  const handleCopyAddress = useCallback(async () => {
+    if (await copyToClipboard(EVENT.venue.address)) {
+      setCopiedAddress(true);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate?.(10);
+      }
+      if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = window.setTimeout(() => {
+        setCopiedAddress(false);
+        copyTimerRef.current = null;
+      }, 2400);
+    }
   }, []);
 
-  // Coreografia de entrada + ScrollTrigger sem tweens concorrentes no mesmo elemento
-  useEffect(() => {
-    if (!revealed) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const buildWhatsappHref = useMemo(() => {
+    const trimmedName = name.trim();
+    const trimmedMsg = message.trim();
+    const activeCompanions = companions
+      .slice(0, Math.max(0, guests - 1))
+      .map((c) => c.trim())
+      .filter(Boolean);
+    const dateLabel = FORMATTED_EVENT_DATE.short.replace(/\s·\s/g, "/");
 
-    const ctx = gsap.context(() => {
-      gsap.to(".card-surface", {
-        autoAlpha: 1,
-        y: 0,
-        scale: 1,
-        duration: reduced ? 0.01 : 0.85,
-        ease: "power3.out",
-      });
+    const lines =
+      attendance === "yes"
+        ? [
+          `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel} às ${FORMATTED_EVENT_DATE.time}!`,
+          "",
+          `👤 Nome: ${trimmedName}`,
+          `👥 Total de pessoas: ${guests}`,
+          ...(activeCompanions.length > 0
+            ? [`🎟️ Acompanhantes: ${activeCompanions.join(", ")}`]
+            : []),
+        ]
+        : [
+          `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
+          "",
+          `👤 Nome: ${trimmedName}`,
+        ];
 
-      gsap.to(".reveal-hero", {
-        autoAlpha: 1,
-        y: 0,
-        duration: reduced ? 0.01 : 0.85,
-        ease: "power3.out",
-        stagger: 0.09,
-        delay: reduced ? 0 : 0.08,
-      });
-
-      gsap.to(".hero-collage", {
-        scale: 1,
-        duration: reduced ? 0.01 : 1.0,
-        ease: "power3.out",
-        delay: reduced ? 0 : 0.08,
-      });
-
-      ScrollTrigger.batch("[data-reveal]", {
-        start: "top 92%",
-        once: true,
-        onEnter: (batch) =>
-          gsap.to(batch, {
-            autoAlpha: 1,
-            y: 0,
-            duration: reduced ? 0.01 : 0.85,
-            ease: "power3.out",
-            stagger: 0.1,
-            delay: reduced ? 0 : 0.08,
-            overwrite: true,
-          }),
-      });
-
-      if (!reduced) {
-        gsap.utils.toArray<HTMLElement>(".draw-line").forEach((el) => {
-          gsap.fromTo(
-            el,
-            { scaleX: 0 },
-            {
-              scaleX: 1,
-              duration: 0.95,
-              ease: "power2.inOut",
-              delay: 0.25,
-              scrollTrigger: { trigger: el, start: "top 95%", once: true },
-            },
-          );
-        });
-      }
-    }, rootRef);
-
-    return () => ctx.revert();
-  }, [revealed]);
-
-  useEffect(() => {
-    if (interactive) {
-      ScrollTrigger.refresh();
+    if (trimmedMsg) {
+      lines.push(`💌 Recado: ${trimmedMsg}`);
     }
-  }, [interactive]);
 
-  useEffect(() => {
-    if (!interactive) return;
-    const id = window.setTimeout(() => ScrollTrigger.refresh(), 260);
-    return () => window.clearTimeout(id);
-  }, [agendaOpen, interactive]);
+    return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
+  }, [name, attendance, guests, companions, message]);
+
+  const handleRsvpSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmedName = name.trim();
+
+    if (trimmedName.length < 2) {
+      setFormError("Por favor, informe seu nome completo para confirmar.");
+      nameInputRef.current?.focus();
+      return;
+    }
+
+    setFormError(null);
+    const filledCompanions = companions
+      .slice(0, Math.max(0, guests - 1))
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    if (attendance === "yes") {
+      fireMiniCelebration({ x: 0.5, y: 0.72 });
+    }
+
+    setSubmittedRsvp({
+      name: trimmedName,
+      attendance,
+      guests: attendance === "yes" ? guests : 0,
+      companions: attendance === "yes" ? filledCompanions : [],
+      whatsappHref: buildWhatsappHref,
+    });
+
+    window.open(buildWhatsappHref, "_blank", "noopener,noreferrer");
+  };
+
+  const inputCls =
+    "min-h-11 w-full rounded-xl border border-[#0A2463]/20 bg-white/95 px-4 py-2.5 font-sans text-[14.5px] text-royal-navy placeholder:text-silver-400 outline-none transition focus:border-royal-deep focus:bg-white focus:ring-4 focus:ring-royal-deep/10";
+
+  const cardSurfaceCls =
+    "border border-royal-deep/15 bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16),0_4px_12px_-4px_rgba(10,36,99,0.08)]";
 
   return (
     <div
-      ref={rootRef}
       data-active={revealed ? "true" : "false"}
-      className={`relative mx-auto w-full md:max-w-2xl lg:max-w-[700px] md:rounded-[28px] md:bg-[linear-gradient(135deg,rgba(255,255,255,0.72)_0%,rgba(148,163,184,0.48)_50%,rgba(255,255,255,0.72)_100%)] md:p-[1.5px] transition-opacity duration-300 ${
-        revealed ? "opacity-100" : "pointer-events-none opacity-0"
-      }`}
+      className={`relative mx-auto w-full md:max-w-2xl lg:max-w-[700px] md:rounded-[28px] md:bg-[linear-gradient(135deg,rgba(255,255,255,0.9)_0%,rgba(148,163,184,0.48)_50%,rgba(255,255,255,0.9)_100%)] md:p-[1.5px] ${revealed ? "pointer-events-auto" : "pointer-events-none"
+        }`}
     >
-      <div className="card-surface bg-royal-letter relative isolate min-h-dvh md:min-h-0 w-full overflow-hidden md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(15,23,42,0.52),0_14px_30px_-8px_rgba(30,64,175,0.35)] will-change-transform">
-        {/* Poeira estelar no fundo Azul Royal */}
-        <AmbientSparkles className="opacity-75" />
-
-        {/* Moldura interna prateada dupla + 4 cantoneiras geométricas */}
+      {/* Fundo único contínuo em papel texturizado claro (#F1F2F4) do topo do pôster até o rodapé */}
+      <div className="bg-poster-paper relative isolate min-h-dvh md:min-h-0 w-full overflow-hidden md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(7,23,57,0.30),0_14px_30px_-8px_rgba(10,36,99,0.14)]">
+        {/* Camada sutil de brilho atmosférico em GPU (zero filtros SVG pesados) */}
         <div
-          className="pointer-events-none absolute inset-3 sm:inset-5 md:inset-6 rounded-[18px] border border-white/25 shadow-[inset_0_0_28px_rgba(147,197,253,0.1)]"
+          className="pointer-events-none absolute inset-0 z-0 opacity-70"
+          style={{
+            background:
+              "radial-gradient(90% 42% at 50% 0%, rgba(255,255,255,0.62) 0%, transparent 72%), radial-gradient(75% 45% at 50% 100%, rgba(203,213,225,0.22) 0%, transparent 74%)",
+          }}
           aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-[17px] sm:inset-[25px] md:inset-[29px] rounded-[14px] border border-white/12"
-          aria-hidden
-        />
-
-        <CornerFiligree
-          position="tl"
-          className="absolute top-3.5 left-3.5 sm:top-5.5 sm:left-5.5 md:top-6.5 md:left-6.5 z-[2] size-10 sm:size-13 opacity-75"
-        />
-        <CornerFiligree
-          position="tr"
-          className="absolute top-3.5 right-3.5 sm:top-5.5 sm:right-5.5 md:top-6.5 md:right-6.5 z-[2] size-10 sm:size-13 opacity-75"
-        />
-        <CornerFiligree
-          position="bl"
-          className="absolute bottom-3.5 left-3.5 sm:bottom-5.5 sm:left-5.5 md:bottom-6.5 md:left-6.5 z-[2] size-10 sm:size-13 opacity-75"
-        />
-        <CornerFiligree
-          position="br"
-          className="absolute bottom-3.5 right-3.5 sm:bottom-5.5 sm:right-5.5 md:bottom-6.5 md:right-6.5 z-[2] size-10 sm:size-13 opacity-75"
         />
 
         {/* ════════════════════════════════════════════════════════════════════════
-            ADESIVOS & LAÇOS AZUL ROYAL (Animações CSS GPU-Accelerated)
+            SEÇÃO 1: PÔSTER PRINCIPAL ANIMADO (Sem corte reto na base)
            ════════════════════════════════════════════════════════════════════════ */}
-        {/* Canto Superior Esquerdo: Buquê de Balões Azul & Prata */}
-        <img
-          src="/images/balloons.png"
-          alt=""
-          width={112}
-          height={140}
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              "--float-duration": "5.5s",
-              "--ty": "-8px",
-              "--r-start": "-8deg",
-              "--r-mid": "-3deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-3 left-1 sm:top-5 sm:left-4 z-[3] w-[66px] sm:w-[98px] md:w-[112px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
-        />
-
-        {/* Canto Superior Direito: Globo Espelhado + Laço Azul Royal */}
-        <img
-          src="/images/disco-ball.png"
-          alt=""
-          width={126}
-          height={126}
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              "--float-duration": "7s",
-              "--ty": "-4px",
-              "--r-start": "0deg",
-              "--r-mid": "6deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-sway pointer-events-none absolute -top-6 -right-6 sm:-top-8 sm:-right-8 z-[2] w-[96px] sm:w-[126px] h-auto opacity-90 drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
-        />
-        <div
-          style={
-            {
-              "--float-duration": "5s",
-              "--ty": "-4px",
-              "--r-start": "-14deg",
-              "--r-mid": "-8deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-14 right-2 sm:top-16 sm:right-5 z-[4]"
-        >
-          <Bow variant="royal" className="w-[54px] sm:w-[70px]" />
-        </div>
-
-        {/* Altura da Citação (Esquerda): Coração Azul Marinho Metalizado */}
-        <img
-          src="/images/heart-navy.png"
-          alt=""
-          width={62}
-          height={62}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              "--float-duration": "4.8s",
-              "--ty": "-7px",
-              "--r-start": "-10deg",
-              "--r-mid": "-2deg",
-              "--s-start": "1",
-              "--s-mid": "1.05",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-[29%] left-1.5 sm:left-4 z-[3] w-[42px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.35)]"
-        />
-
-        {/* Altura da Citação (Direita): Estrela Glitter Prata */}
-        <img
-          src="/images/silver-glitter-star.png"
-          alt=""
-          width={62}
-          height={62}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.4s",
-              "--float-duration": "5.2s",
-              "--ty": "-6px",
-              "--r-start": "10deg",
-              "--r-mid": "20deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float-alt pointer-events-none absolute top-[31%] right-1.5 sm:right-4 z-[3] w-[44px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.32)]"
-        />
-
-        {/* Altura da Data (Esquerda): Cachorrinho de Balão Azul Metalizado */}
-        <img
-          src="/images/balloon-dog.png"
-          alt=""
-          width={70}
-          height={70}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.2s",
-              "--float-duration": "5.4s",
-              "--ty": "-8px",
-              "--r-start": "-8deg",
-              "--r-mid": "2deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-[45%] left-1 sm:left-4 z-[3] w-[48px] sm:w-[70px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.38)]"
-        />
-
-        {/* Altura da Data (Direita): Bolo Azul com Velinhas */}
-        <img
-          src="/images/blue-cake.png"
-          alt=""
-          width={78}
-          height={78}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.6s",
-              "--float-duration": "5.8s",
-              "--ty": "-6px",
-              "--r-start": "4deg",
-              "--r-mid": "-3deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float-alt pointer-events-none absolute top-[44%] right-1 sm:right-3 z-[3] w-[54px] sm:w-[78px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
-        />
-
-        {/* Altura do Contador (Esquerda): Estrela Glitter Azul Royal */}
-        <img
-          src="/images/blue-star.png"
-          alt=""
-          width={60}
-          height={60}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.5s",
-              "--float-duration": "4.4s",
-              "--ty": "-5px",
-              "--r-start": "-14deg",
-              "--r-mid": "-4deg",
-              "--s-start": "1",
-              "--s-mid": "1.07",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-[58%] left-2 sm:left-5 z-[3] w-[42px] sm:w-[60px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.35)]"
-        />
-
-        {/* Altura do Contador (Direita): Coração Azul Claro Metalizado Grande */}
-        <img
-          src="/images/heart-blue-lg.png"
-          alt=""
-          width={68}
-          height={68}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.3s",
-              "--float-duration": "4.9s",
-              "--ty": "-7px",
-              "--r-start": "8deg",
-              "--r-mid": "16deg",
-              "--s-start": "1",
-              "--s-mid": "1.05",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-[59%] right-1.5 sm:right-4 z-[3] w-[46px] sm:w-[68px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.35)]"
-        />
-
-        {/* Altura das Ações (Esquerda): Macaco Festeiro */}
-        <img
-          src="/images/monkey-party.png"
-          alt=""
-          width={88}
-          height={88}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              "--float-duration": "4.6s",
-              "--ty": "-7px",
-              "--r-start": "-8deg",
-              "--r-mid": "3deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute top-[72%] left-1 sm:left-3 z-[3] w-[62px] sm:w-[88px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.38)]"
-        />
-
-        {/* Altura das Ações (Direita): Ursinho com Velinha */}
-        <img
-          src="/images/teddy-bear.png"
-          alt=""
-          width={76}
-          height={76}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.4s",
-              "--float-duration": "5.1s",
-              "--ty": "-6px",
-              "--r-start": "5deg",
-              "--r-mid": "-3deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float-alt pointer-events-none absolute top-[73%] right-1 sm:right-3 z-[3] w-[52px] sm:w-[76px] h-auto drop-shadow-[0_6px_10px_rgba(9,13,22,0.36)]"
-        />
-
-        {/* Cantos Inferiores: Estrelas Cromadas */}
-        <img
-          src="/images/silver-star.png"
-          alt=""
-          width={62}
-          height={62}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              "--float-duration": "4.7s",
-              "--ty": "-5px",
-              "--r-start": "-12deg",
-              "--r-mid": "0deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float pointer-events-none absolute bottom-5 left-2 sm:bottom-7 sm:left-6 z-[3] w-[46px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.34)]"
-        />
-        <img
-          src="/images/silver-glitter-star.png"
-          alt=""
-          width={62}
-          height={62}
-          loading="lazy"
-          decoding="async"
-          aria-hidden
-          style={
-            {
-              animationDelay: "0.3s",
-              "--float-duration": "5.3s",
-              "--ty": "-5px",
-              "--r-start": "10deg",
-              "--r-mid": "22deg",
-            } as StickerStyle
-          }
-          className="animate-sticker-float-alt pointer-events-none absolute bottom-5 right-2 sm:bottom-7 sm:right-6 z-[3] w-[46px] sm:w-[62px] h-auto drop-shadow-[0_5px_8px_rgba(9,13,22,0.34)]"
-        />
+        <HeroPoster revealed={revealed} />
 
         {/* ════════════════════════════════════════════════════════════════════════
-            CONTEÚDO PRINCIPAL DO CONVITE
+            CONTINUAÇÃO CONTÍNUA NO MESMO PAPEL TEXTURIZADO (Ritmo Editorial)
            ════════════════════════════════════════════════════════════════════════ */}
-        <main className="relative z-[5] mx-auto flex w-full max-w-[500px] flex-col items-center px-8 pt-12 pb-20 sm:px-14 sm:pt-14 sm:pb-24 text-center">
-          {/* 1. Topo: Laço Azul Royal + Monograma + Nome + Colagem */}
-          <header className="relative flex w-full flex-col items-center">
-            <div
-              style={
-                {
-                  "--float-duration": "4.5s",
-                  "--ty": "-3px",
-                  "--r-start": "0deg",
-                  "--r-mid": "0deg",
-                } as StickerStyle
-              }
-              className="reveal-hero animate-sticker-float mb-1"
+        <div className="relative z-[5] pt-8 pb-16 sm:pt-12 sm:pb-20">
+          {/* Estrelas laterais nas margens externas conectando visualmente o pôster às seções */}
+          <GlitterBlueStar
+            style={
+              {
+                animationDelay: "0.25s",
+                "--float-duration": "5s",
+                "--ty": "-6px",
+                "--r-start": "-12deg",
+                "--r-mid": "-4deg",
+              } as FloatStyle
+            }
+            className="absolute top-10 -left-2 sm:top-12 sm:left-4 z-[2] w-[30px] sm:w-[50px] opacity-85 sm:opacity-95"
+          />
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.5s",
+                "--float-duration": "4.8s",
+                "--ty": "-5px",
+                "--r-start": "10deg",
+                "--r-mid": "18deg",
+              } as FloatStyle
+            }
+            className="absolute top-28 -right-2 sm:top-32 sm:right-4 z-[2] w-[28px] sm:w-[46px] opacity-85 sm:opacity-95"
+          />
+
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.35s",
+                "--float-duration": "5.3s",
+                "--ty": "-6px",
+                "--r-start": "-8deg",
+                "--r-mid": "2deg",
+              } as FloatStyle
+            }
+            className="absolute top-[37%] -left-2 sm:left-4 z-[2] w-[28px] sm:w-[48px] opacity-80 sm:opacity-90"
+          />
+          <GlitterBlueStar
+            style={
+              {
+                animationDelay: "0.7s",
+                "--float-duration": "4.7s",
+                "--ty": "-6px",
+                "--r-start": "12deg",
+                "--r-mid": "20deg",
+              } as FloatStyle
+            }
+            className="absolute top-[42%] -right-2 sm:right-4 z-[2] w-[32px] sm:w-[54px] opacity-85 sm:opacity-95"
+          />
+
+          <GlitterBlueStar
+            style={
+              {
+                animationDelay: "0.4s",
+                "--float-duration": "5.1s",
+                "--ty": "-5px",
+                "--r-start": "-14deg",
+                "--r-mid": "-5deg",
+              } as FloatStyle
+            }
+            className="absolute bottom-44 -left-2 sm:bottom-52 sm:left-4 z-[2] w-[32px] sm:w-[52px] opacity-85 sm:opacity-95"
+          />
+          <MetallicSilverStar
+            style={
+              {
+                animationDelay: "0.6s",
+                "--float-duration": "4.6s",
+                "--ty": "-4px",
+                "--r-start": "8deg",
+                "--r-mid": "16deg",
+              } as FloatStyle
+            }
+            className="absolute bottom-24 -right-2 sm:bottom-28 sm:right-4 z-[2] w-[28px] sm:w-[46px] opacity-85 sm:opacity-95"
+          />
+
+          <main className="relative z-[5] mx-auto flex w-full max-w-[540px] flex-col items-center px-5 sm:px-10 text-center">
+            {/* ──────────────────────────────────────────────────────────────────────
+                2. APRESENTAÇÃO & CONTAGEM REGRESSIVA
+               ────────────────────────────────────────────────────────────────────── */}
+            <motion.section
+              variants={SECTION_VARIANTS}
+              initial="hidden"
+              whileInView={revealed ? "visible" : "hidden"}
+              viewport={VIEWPORT_CONFIG}
+              className="flex w-full flex-col items-center"
+              aria-label="Apresentação e contagem regressiva"
             >
-              <Bow variant="royal" className="w-[66px] sm:w-[78px]" />
-            </div>
-
-            <p className="reveal-hero pl-[0.38em] font-serif text-[11px] sm:text-[12.5px] font-medium tracking-[0.38em] text-silver-200/95 uppercase">
-              MEUS {EVENT.age} ANOS
-            </p>
-
-            <h1 className="reveal-hero relative mt-1 w-full overflow-visible">
-              <span className="text-silver-luxury inline-block px-6 py-2 font-script text-[clamp(66px,18.5vw,98px)] sm:text-[98px] leading-[1.32]">
-                {EVENT.name}
-              </span>
-              <span className="sr-only"> — {EVENT.age} anos</span>
-            </h1>
-
-            <div className="reveal-hero -mt-2 w-full">
-              <div className="hero-collage w-full will-change-transform">
-                <CarolHeroCollage />
-              </div>
-            </div>
-          </header>
-
-          {/* 2. Frase de Abertura (Emolduramento Editorial Walt Disney) */}
-          <section
-            className="reveal-hero mt-6 sm:mt-7 w-full max-w-[420px] px-1 text-center"
-            aria-label="Mensagem de abertura"
-          >
-            <div className="glass-royal-card interactive-sheen relative overflow-hidden rounded-[24px] px-5 pt-6 pb-5 sm:px-7 sm:pt-7 sm:pb-6">
-              <span
-                className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"
-                aria-hidden
-              />
-
-              {/* Aspas ornamentais prateadas */}
-              <span
-                className="text-silver-luxury pointer-events-none block font-serif text-[32px] leading-none opacity-85"
-                aria-hidden
+              {/* Pílula Azul-Marinho CAROL • 18 ANOS ladeada por linhas */}
+              <motion.div
+                variants={ITEM_VARIANTS}
+                className="flex w-full max-w-[360px] items-center gap-3 sm:gap-4"
               >
-                “
-              </span>
+                <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+                <span className="inline-flex items-center justify-center rounded-full border border-white/15 bg-royal-navy px-5 py-1.5 sm:px-7 font-sans text-[11.5px] sm:text-[13px] font-bold tracking-[0.22em] text-white uppercase shadow-[0_6px_14px_rgba(7,23,57,0.24)]">
+                  {EVENT.name.toUpperCase()} • {EVENT.age} ANOS
+                </span>
+                <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+              </motion.div>
 
-              <blockquote className="relative z-10 -mt-1 font-serif text-[12.5px] sm:text-[14px] font-normal italic leading-[1.9] tracking-[0.03em] text-silver-100">
-                {EVENT.quoteText}
-              </blockquote>
-
-              <div className="relative z-10 mt-3.5 flex items-center justify-center gap-3">
-                <span className="h-px w-8 bg-gradient-to-r from-transparent to-silver-200/70" />
-                <cite className="pl-[0.18em] font-serif text-[10.5px] sm:text-[11.5px] font-semibold not-italic tracking-[0.18em] text-white uppercase">
-                  {EVENT.quoteAuthor}
-                </cite>
-                <span className="h-px w-8 bg-gradient-to-l from-transparent to-silver-200/70" />
-              </div>
-            </div>
-
-            <p className="mx-auto mt-5 max-w-[360px] font-sans text-[11.5px] sm:text-[13px] font-medium leading-[1.85] tracking-[0.12em] text-silver-100/95 uppercase">
-              {EVENT.openingText}
-            </p>
-          </section>
-
-          {/* 3. Altar da Data (17/07) + Botão Integrado "Salvar na Agenda" */}
-          <section
-            data-reveal
-            className="mt-9 sm:mt-11 w-full max-w-[380px]"
-            aria-label="Data e horário da festa"
-          >
-            <SilverDivider />
-
-            <div className="relative mt-5 flex flex-col items-center">
-              {/* Halo luminoso suave atrás do número 17 */}
-              <div
-                className="pointer-events-none absolute top-1/2 left-1/2 size-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22)_0%,rgba(96,165,250,0.12)_48%,transparent_74%)]"
-                aria-hidden
-              />
-
-              <p className="relative z-10 pl-[0.3em] font-serif text-[20px] sm:text-[23px] font-medium tracking-[0.3em] text-white uppercase">
-                {FORMATTED_EVENT_DATE.month}
-              </p>
-
-              <div className="relative z-10 mt-1.5 grid w-full max-w-[340px] grid-cols-[1fr_auto_1fr] items-center gap-2.5 sm:gap-5">
-                <div className="relative py-2">
-                  <span className="draw-line absolute inset-x-0 top-0 h-px origin-right bg-gradient-to-r from-transparent via-white/55 to-white/75" />
-                  <span className="pl-[0.16em] font-serif text-[12.5px] sm:text-[15px] font-medium tracking-[0.16em] text-silver-100 uppercase">
-                    {FORMATTED_EVENT_DATE.weekdayShort}
-                  </span>
-                  <span className="draw-line absolute inset-x-0 bottom-0 h-px origin-right bg-gradient-to-r from-transparent via-white/55 to-white/75" />
-                </div>
-
-                <span className="text-silver-luxury px-2 font-serif text-[clamp(64px,16.5vw,86px)] sm:text-[86px] leading-[1.05] font-normal">
-                  {FORMATTED_EVENT_DATE.day}
+              {/* Citação de Walt Disney e boas-vindas integradas ao papel */}
+              <motion.div
+                variants={ITEM_VARIANTS}
+                className={`mt-7 w-full max-w-[460px] rounded-2xl px-5 py-6 sm:px-7 sm:py-7 ${cardSurfaceCls}`}
+              >
+                <span
+                  className="block font-serif text-[32px] leading-none text-royal-deep/55"
+                  aria-hidden
+                >
+                  “
                 </span>
 
-                <div className="relative py-2">
-                  <span className="draw-line absolute inset-x-0 top-0 h-px origin-left bg-gradient-to-l from-transparent via-white/55 to-white/75" />
-                  <span className="pl-[0.12em] font-serif text-[12.5px] sm:text-[15px] font-medium tracking-[0.12em] text-silver-100">
-                    {FORMATTED_EVENT_DATE.time}
-                  </span>
-                  <span className="draw-line absolute inset-x-0 bottom-0 h-px origin-left bg-gradient-to-l from-transparent via-white/55 to-white/75" />
+                <blockquote className="-mt-1 font-serif text-[13.5px] sm:text-[15px] font-medium italic leading-[1.85] tracking-[0.02em] text-royal-navy">
+                  {EVENT.quoteText}
+                </blockquote>
+
+                <div className="mt-3.5 flex items-center justify-center gap-3">
+                  <span className="h-px w-8 bg-royal-deep/35" />
+                  <cite className="font-serif text-[10.5px] sm:text-[11.5px] font-bold not-italic tracking-[0.18em] text-royal-deep uppercase">
+                    {EVENT.quoteAuthor}
+                  </cite>
+                  <span className="h-px w-8 bg-royal-deep/35" />
                 </div>
-              </div>
 
-              <p className="relative z-10 mt-1.5 pl-[0.26em] font-serif text-[18px] sm:text-[21px] font-medium tracking-[0.26em] text-white">
-                {FORMATTED_EVENT_DATE.year}
-              </p>
+                <p className="mx-auto mt-4 max-w-[380px] font-sans text-[12px] sm:text-[13px] font-semibold leading-[1.75] tracking-[0.06em] text-royal-navy/85 uppercase">
+                  {EVENT.openingText}
+                </p>
+              </motion.div>
 
-              {/* Botão / Seletor Integrado "Salvar na Agenda" */}
-              <div className="relative z-10 mt-5 flex w-full flex-col items-center">
+              {/* Contador ao vivo no estilo do pôster */}
+              <motion.div variants={ITEM_VARIANTS} className="mt-9 flex w-full justify-center">
+                <CountdownTimer active={revealed} />
+              </motion.div>
+
+              {/* Ações rápidas de Calendário */}
+              <motion.div
+                variants={ITEM_VARIANTS}
+                className="mt-5 grid w-full max-w-[360px] grid-cols-2 gap-2.5"
+              >
+                <motion.a
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  href={googleCalendarUrl(EVENT)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-royal-deep/20 bg-white/85 px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold text-royal-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition hover:border-royal-deep hover:bg-white"
+                >
+                  <ExternalLink className="size-3.5 shrink-0 text-royal-deep" />
+                  <span>Google Agenda</span>
+                </motion.a>
+
                 <motion.button
                   type="button"
-                  whileHover={{ scale: 1.03, y: -1 }}
+                  whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.96 }}
-                  onClick={() => setAgendaOpen((prev) => !prev)}
-                  aria-expanded={agendaOpen}
-                  className="glass-royal-card interactive-sheen inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-5 py-2 font-serif text-[11px] font-semibold tracking-[0.2em] text-white uppercase outline-none transition hover:border-white/55 focus-visible:ring-2 focus-visible:ring-white/60"
+                  onClick={handleDownloadIcs}
+                  aria-live="polite"
+                  className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors ${icsSaved
+                      ? "border-royal-navy bg-royal-navy text-white"
+                      : "border-royal-deep/20 bg-white/85 text-royal-navy hover:border-royal-deep hover:bg-white"
+                    }`}
                 >
-                  <CalendarPlus className="relative z-10 size-4 text-silver-100" strokeWidth={1.8} />
-                  <span className="relative z-10">Salvar na Agenda</span>
+                  <AnimatePresence mode="wait" initial={false}>
+                    {icsSaved ? (
+                      <motion.span
+                        key="ics-saved"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.16 }}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        <Check className="size-3.5 shrink-0" />
+                        <span>Salvo na agenda!</span>
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="ics-idle"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.16 }}
+                        className="inline-flex items-center gap-1.5"
+                      >
+                        <CalendarPlus className="size-3.5 shrink-0 text-royal-deep" />
+                        <span>iPhone / Outlook</span>
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
+              </motion.div>
+            </motion.section>
 
-                <AnimatePresence initial={false}>
-                  {agendaOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                      className="mt-3 grid w-full max-w-[330px] grid-cols-2 gap-2.5"
+            {/* ──────────────────────────────────────────────────────────────────────
+                3. LOCAL DA FESTA
+               ────────────────────────────────────────────────────────────────────── */}
+            <motion.section
+              variants={SECTION_VARIANTS}
+              initial="hidden"
+              whileInView={revealed ? "visible" : "hidden"}
+              viewport={VIEWPORT_CONFIG}
+              className="mt-14 sm:mt-16 flex w-full flex-col items-center"
+              aria-label="Local da festa"
+            >
+              <motion.div variants={ITEM_VARIANTS} className="w-full">
+                <SectionHeading title="Local da Festa" />
+              </motion.div>
+
+              <motion.div
+                variants={ITEM_VARIANTS}
+                className={`relative mt-5 w-full rounded-2xl p-5 sm:p-7 text-center ${cardSurfaceCls}`}
+              >
+                <CornerFiligree
+                  position="tl"
+                  tone="slate"
+                  className="absolute top-2.5 left-2.5 size-9 sm:size-11 opacity-45"
+                />
+                <CornerFiligree
+                  position="tr"
+                  tone="slate"
+                  className="absolute top-2.5 right-2.5 size-9 sm:size-11 opacity-45"
+                />
+
+                <p className="font-serif text-[20px] sm:text-[24px] font-bold tracking-[0.06em] text-royal-navy">
+                  {EVENT.venue.name}
+                </p>
+
+                <p className="mt-2 font-sans text-[13.5px] sm:text-[14.5px] font-medium leading-relaxed text-slate-700">
+                  {EVENT.venue.address}
+                </p>
+
+                {/* Faixa Horário & Traje no estilo do pôster */}
+                <div className="mt-5 grid grid-cols-2 items-center rounded-xl border border-royal-deep/15 bg-[#F1F2F4]/85 py-3 px-2">
+                  <div className="flex flex-col items-center border-r border-royal-deep/15 px-2">
+                    <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold tracking-[0.16em] text-royal-deep uppercase">
+                      <Clock className="size-3.5" /> Horário
+                    </span>
+                    <span className="mt-1 font-serif text-[18px] sm:text-[20px] font-bold tabular-nums text-royal-navy">
+                      {FORMATTED_EVENT_DATE.time}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-center px-2">
+                    <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold tracking-[0.16em] text-royal-deep uppercase">
+                      <Shirt className="size-3.5" /> Traje
+                    </span>
+                    <span className="mt-1 font-serif text-[15px] sm:text-[17px] font-bold tracking-wide text-royal-navy">
+                      {EVENT.dressCode}
+                    </span>
+                  </div>
+                </div>
+
+                {EVENT.dressCodeNote && (
+                  <p className="mt-3.5 inline-flex items-center justify-center rounded-full border border-royal-deep/15 bg-royal-navy/[0.045] px-4 py-1.5 font-sans text-[11px] sm:text-[11.5px] font-semibold text-royal-navy">
+                    {EVENT.dressCodeNote}
+                  </p>
+                )}
+
+                {/* Mapa Embed com moldura prateada/marinho */}
+                <div className="mt-5 overflow-hidden rounded-xl border border-royal-deep/15 bg-silver-100 shadow-sm">
+                  <iframe
+                    title={`Mapa — ${EVENT.venue.name}`}
+                    src={googleMapsEmbedUrl(EVENT.venue.mapsQuery)}
+                    className="block h-52 sm:h-60 w-full"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+
+                {/* Botões funcionais: Google Maps, Waze e Copiar Endereço */}
+                <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  <motion.a
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    href={googleMapsUrl(EVENT.venue.mapsQuery)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-navy px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(7,23,57,0.6)] transition hover:bg-royal-deep"
+                  >
+                    <MapPin className="size-4 shrink-0" />
+                    <span>Google Maps</span>
+                  </motion.a>
+
+                  <motion.a
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    href={wazeUrl(EVENT.venue.mapsQuery)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-royal-deep px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(10,36,99,0.55)] transition hover:bg-royal-800"
+                  >
+                    <Navigation className="size-4 shrink-0" />
+                    <span>Waze</span>
+                  </motion.a>
+
+                  <motion.button
+                    type="button"
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={handleCopyAddress}
+                    aria-live="polite"
+                    className={`col-span-2 sm:col-span-1 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2.5 font-sans text-[12.5px] font-semibold transition-colors ${copiedAddress
+                        ? "border-royal-navy bg-royal-navy text-white shadow-[0_8px_18px_-8px_rgba(7,23,57,0.45)]"
+                        : "border-royal-deep/20 bg-white/95 text-royal-navy hover:border-royal-deep hover:bg-white"
+                      }`}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {copiedAddress ? (
+                        <motion.span
+                          key="addr-copied"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.16 }}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <Check className="size-4 shrink-0" />
+                          <span>Copiado!</span>
+                        </motion.span>
+                      ) : (
+                        <motion.span
+                          key="addr-idle"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.16 }}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <Copy className="size-4 shrink-0 text-royal-deep" />
+                          <span>Copiar Endereço</span>
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.section>
+
+            {/* ──────────────────────────────────────────────────────────────────────
+                4. CONFIRMAÇÃO DE PRESENÇA / RSVP
+               ────────────────────────────────────────────────────────────────────── */}
+            <motion.section
+              variants={SECTION_VARIANTS}
+              initial="hidden"
+              whileInView={revealed ? "visible" : "hidden"}
+              viewport={VIEWPORT_CONFIG}
+              className="mt-14 sm:mt-16 flex w-full flex-col items-center"
+              aria-label="Confirmação de presença"
+            >
+              <motion.div variants={ITEM_VARIANTS} className="w-full">
+                <SectionHeading title="Confirmar Presença" />
+              </motion.div>
+
+              <motion.p
+                variants={ITEM_VARIANTS}
+                className="mt-3 font-sans text-[12.5px] sm:text-[13.5px] text-slate-600"
+              >
+                Por gentileza, confirme sua presença até{" "}
+                <strong className="font-bold text-royal-navy">{EVENT.rsvp.deadline}</strong>.
+              </motion.p>
+
+              <motion.div
+                variants={ITEM_VARIANTS}
+                className={`mt-4 w-full rounded-2xl p-5 sm:p-7 text-left ${cardSurfaceCls}`}
+              >
+                <form onSubmit={handleRsvpSubmit} className="space-y-4" noValidate>
+                  {/* Seletor de Presença */}
+                  <div
+                    className="grid grid-cols-2 gap-2 rounded-xl border border-royal-deep/15 bg-[#EEF2F7] p-1.5"
+                    role="radiogroup"
+                    aria-label="Confirmação de presença"
+                  >
+                    {(
+                      [
+                        { value: "yes", label: "Sim, estarei lá!", Icon: Heart },
+                        { value: "no", label: "Não poderei ir", Icon: HeartCrack },
+                      ] as const
+                    ).map(({ value, label, Icon }) => {
+                      const active = attendance === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() => setAttendance(value)}
+                          className={`relative flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
+                            }`}
+                        >
+                          {active && (
+                            <motion.span
+                              layoutId="rsvp-inline-pill"
+                              className="absolute inset-0 rounded-lg bg-royal-navy shadow-[0_6px_16px_-6px_rgba(7,23,57,0.65)]"
+                              transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                            />
+                          )}
+                          <Icon
+                            className="relative z-10 size-4 shrink-0"
+                            fill={active && value === "yes" ? "currentColor" : "none"}
+                          />
+                          <span className="relative z-10">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Nome Completo */}
+                  <div>
+                    <label
+                      htmlFor={ids.name}
+                      className="mb-1.5 block font-sans text-[11px] font-bold tracking-[0.16em] text-royal-navy uppercase"
                     >
+                      Nome Completo
+                    </label>
+                    <input
+                      ref={nameInputRef}
+                      id={ids.name}
+                      required
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (formError) setFormError(null);
+                      }}
+                      placeholder="Digite seu nome completo"
+                      autoComplete="name"
+                      aria-invalid={!!formError}
+                      aria-describedby={formError ? ids.nameError : undefined}
+                      className={`${inputCls} ${formError ? "border-royal-navy ring-4 ring-royal-deep/15" : ""}`}
+                    />
+                    <AnimatePresence>
+                      {formError && (
+                        <motion.div
+                          id={ids.nameError}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.2 }}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-silver-300/70 bg-royal-navy px-3 py-1.5 font-sans text-[12px] font-medium text-white shadow-sm"
+                          role="alert"
+                        >
+                          <AlertCircle className="size-3.5 shrink-0 text-silver-200" />
+                          <span>{formError}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Quantidade e Nomes dos Acompanhantes */}
+                  <AnimatePresence initial={false} mode="wait">
+                    {attendance === "yes" && (
+                      <motion.div
+                        key="guests-block"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <span
+                            id={ids.guests}
+                            className="mb-1.5 block font-sans text-[11px] font-bold tracking-[0.16em] text-royal-navy uppercase"
+                          >
+                            Total de Pessoas (Incluindo Você)
+                          </span>
+                          <div
+                            className="flex items-center justify-between rounded-xl border border-royal-deep/15 bg-white/95 p-1.5"
+                            aria-labelledby={ids.guests}
+                          >
+                            <button
+                              type="button"
+                              aria-label="Diminuir quantidade de pessoas"
+                              onClick={() => updateGuestsCount(guests - 1)}
+                              disabled={guests <= 1}
+                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Minus className="size-4" />
+                            </button>
+
+                            <span
+                              className="relative h-8 w-14 overflow-hidden text-center font-serif text-2xl font-bold tabular-nums text-royal-navy"
+                              aria-live="polite"
+                            >
+                              <AnimatePresence initial={false} mode="popLayout">
+                                <motion.span
+                                  key={guests}
+                                  initial={{ y: 14, opacity: 0 }}
+                                  animate={{ y: 0, opacity: 1 }}
+                                  exit={{ y: -14, opacity: 0 }}
+                                  transition={{ duration: 0.18 }}
+                                  className="absolute inset-0 flex items-center justify-center"
+                                >
+                                  {guests}
+                                </motion.span>
+                              </AnimatePresence>
+                            </span>
+
+                            <button
+                              type="button"
+                              aria-label="Aumentar quantidade de pessoas"
+                              onClick={() => updateGuestsCount(guests + 1)}
+                              disabled={guests >= EVENT.rsvp.maxGuests}
+                              className="grid size-11 cursor-pointer place-items-center rounded-lg bg-[#EEF2F7] text-royal-navy transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Plus className="size-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {guests > 1 && (
+                          <div className="space-y-2.5 rounded-xl border border-royal-deep/15 bg-[#F1F2F4]/85 p-3.5">
+                            <div className="flex items-center gap-1.5 font-sans text-[11px] font-bold tracking-[0.14em] text-royal-navy uppercase">
+                              <Users className="size-3.5 text-royal-deep" />
+                              <span>Nome dos Acompanhantes ({guests - 1})</span>
+                            </div>
+
+                            {Array.from({ length: guests - 1 }).map((_, idx) => (
+                              <input
+                                key={`companion-${idx}`}
+                                type="text"
+                                value={companions[idx] ?? ""}
+                                onChange={(e) => handleCompanionChange(idx, e.target.value)}
+                                placeholder={`Nome completo do acompanhante ${idx + 1}`}
+                                aria-label={`Nome completo do acompanhante ${idx + 1}`}
+                                className={inputCls}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Recado Opcional */}
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <label
+                        htmlFor={ids.message}
+                        className="block font-sans text-[11px] font-bold tracking-[0.16em] text-royal-navy uppercase"
+                      >
+                        Recado para a {EVENT.name}{" "}
+                        <span className="font-normal tracking-normal lowercase text-slate-500">
+                          (opcional)
+                        </span>
+                      </label>
+                      <span className="font-sans text-[10.5px] tabular-nums text-silver-500">
+                        {message.length}/280
+                      </span>
+                    </div>
+                    <textarea
+                      id={ids.message}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      rows={2}
+                      maxLength={280}
+                      placeholder="Deixe uma mensagem especial…"
+                      className={`${inputCls} resize-none`}
+                    />
+                  </div>
+
+                  {/* Botão de Envio */}
+                  <motion.button
+                    type="submit"
+                    whileHover={{ y: -1 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-royal-navy px-5 py-3 font-sans text-[13.5px] font-bold tracking-wide text-white shadow-[0_12px_24px_-10px_rgba(7,23,57,0.7)] transition hover:bg-royal-deep"
+                  >
+                    <MessageCircle className="size-[18px] shrink-0" strokeWidth={2} />
+                    <span>Confirmar Presença pelo WhatsApp</span>
+                  </motion.button>
+                </form>
+
+                {/* Feedback Visual Celebrado de Confirmação após Envio */}
+                <AnimatePresence>
+                  {submittedRsvp && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                      role="status"
+                      aria-live="polite"
+                      className="mt-5 rounded-xl border border-royal-deep/20 bg-[#EEF2F7] p-4 sm:p-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]"
+                    >
+                      <div className="flex items-center justify-center gap-2 text-royal-navy">
+                        <CheckCircle2 className="size-5 shrink-0 text-royal-deep" />
+                        <p className="font-serif text-[15px] font-bold">
+                          {submittedRsvp.attendance === "yes"
+                            ? "Presença registrada com carinho!"
+                            : "Confirmação enviada!"}
+                        </p>
+                      </div>
+
+                      <p className="mt-1.5 font-sans text-[12.5px] text-slate-700">
+                        Obrigado, <strong className="text-royal-navy">{submittedRsvp.name}</strong>.{" "}
+                        {submittedRsvp.attendance === "yes"
+                          ? `Registramos ${submittedRsvp.guests} ${submittedRsvp.guests === 1 ? "pessoa" : "pessoas"
+                          }${submittedRsvp.companions.length > 0
+                            ? ` (${submittedRsvp.companions.join(", ")})`
+                            : ""
+                          }.`
+                          : "Sentiremos sua falta neste dia especial."}
+                      </p>
+
                       <motion.a
                         whileHover={{ y: -1 }}
-                        whileTap={{ scale: 0.96 }}
-                        href={googleCalendarUrl(EVENT)}
+                        whileTap={{ scale: 0.97 }}
+                        href={submittedRsvp.whatsappHref}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="glass-royal-card interactive-sheen flex min-h-11 items-center justify-center gap-1.5 rounded-2xl px-3 py-2 font-sans text-[11.5px] font-semibold text-white transition hover:border-white/55"
+                        className="mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition hover:bg-royal-deep"
                       >
-                        <ExternalLink className="relative z-10 size-3.5 shrink-0 text-silver-200" />
-                        <span className="relative z-10">Google Agenda</span>
+                        <CalendarDays className="size-4 shrink-0" />
+                        <span>Abrir WhatsApp novamente</span>
                       </motion.a>
-
-                      <motion.button
-                        type="button"
-                        whileHover={{ y: -1 }}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={handleDownloadIcs}
-                        aria-live="polite"
-                        className={`flex min-h-11 cursor-pointer items-center justify-center gap-1.5 rounded-2xl px-3 py-2 font-sans text-[11.5px] font-semibold transition ${
-                          icsSaved
-                            ? "bg-silver-100 text-royal-950 shadow-[0_8px_20px_-6px_rgba(255,255,255,0.45)] ring-1 ring-white"
-                            : "glass-royal-card interactive-sheen text-white hover:border-white/55"
-                        }`}
-                      >
-                        {icsSaved ? (
-                          <>
-                            <Check className="relative z-10 size-3.5 shrink-0 text-royal-800" />
-                            <span className="relative z-10">Salvo na agenda!</span>
-                          </>
-                        ) : (
-                          <>
-                            <CalendarDays className="relative z-10 size-3.5 shrink-0 text-silver-200" />
-                            <span className="relative z-10">iPhone / Outlook</span>
-                          </>
-                        )}
-                      </motion.button>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-            </div>
+              </motion.div>
+            </motion.section>
 
-            <SilverDivider className="mt-5" />
-          </section>
-
-          {/* 4. Contador Regressivo em Cápsulas de Cristal */}
-          <section data-reveal className="mt-8 sm:mt-10 w-full" aria-label="Contagem regressiva">
-            <CountdownTimer active={revealed} />
-          </section>
-
-          {/* 5. Interação com Medalhões */}
-          <section data-reveal className="mt-9 sm:mt-11 w-full" aria-label="Interações do convite">
-            <InteractiveActions />
-          </section>
-
-          {/* 6. Card de Traje (Alta-Costura) e Encerramento */}
-          <section
-            data-reveal
-            className="mt-11 sm:mt-13 flex w-full flex-col items-center text-center"
-            aria-label="Traje e encerramento"
-          >
-            <div className="glass-royal-card interactive-sheen relative w-full max-w-[360px] overflow-hidden rounded-[26px] px-6 pt-6 pb-5">
-              <span
-                className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"
-                aria-hidden
-              />
-
-              <Bow variant="silver" className="mx-auto w-[46px]" />
-
-              <h2 className="text-silver-luxury relative z-10 mt-1 inline-block px-5 py-0.5 font-script text-[clamp(38px,10vw,48px)] leading-[1.28]">
-                Traje:
-              </h2>
-
-              <div className="relative z-10 mt-2 flex items-center justify-center gap-3">
-                <DressCodeIcon className="h-8 w-10 shrink-0" />
-                <span className="pl-[0.22em] font-serif text-[14px] sm:text-[16px] font-semibold tracking-[0.22em] text-white uppercase">
-                  {EVENT.dressCode}
-                </span>
-              </div>
-
-              {EVENT.dressCodeNote && (
-                <div className="relative z-10 mx-auto mt-3.5 inline-flex items-center justify-center rounded-full border border-white/25 bg-royal-950/45 px-4 py-1.5">
-                  <p className="font-sans text-[11px] font-medium leading-snug text-silver-100">
-                    {EVENT.dressCodeNote}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <footer className="mt-9 sm:mt-11 flex flex-col items-center">
-              <p className="text-silver-luxury inline-block max-w-[340px] px-5 py-1.5 font-script text-[clamp(38px,10vw,48px)] leading-[1.32]">
-                {EVENT.closingText}
-              </p>
-              <div
-                style={
-                  {
-                    "--float-duration": "4.5s",
-                    "--ty": "-3px",
-                    "--r-start": "0deg",
-                    "--r-mid": "0deg",
-                  } as StickerStyle
-                }
-                className="animate-sticker-float"
+            {/* ──────────────────────────────────────────────────────────────────────
+                5. RODAPÉ EDITORIAL
+               ────────────────────────────────────────────────────────────────────── */}
+            <motion.footer
+              variants={SECTION_VARIANTS}
+              initial="hidden"
+              whileInView={revealed ? "visible" : "hidden"}
+              viewport={VIEWPORT_CONFIG}
+              className="mt-14 sm:mt-16 flex w-full flex-col items-center"
+            >
+              <motion.p
+                variants={ITEM_VARIANTS}
+                className="font-serif text-[22px] sm:text-[26px] font-bold tracking-wide text-royal-navy"
               >
-                <Bow variant="royal" className="mt-2 w-[56px]" />
-              </div>
-            </footer>
-          </section>
-        </main>
+                {EVENT.closingText}
+              </motion.p>
+
+              <motion.div
+                variants={ITEM_VARIANTS}
+                className="mt-4 flex w-full max-w-[300px] items-center gap-3 sm:gap-4"
+              >
+                <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+                <span className="inline-flex items-center justify-center rounded-full border border-white/15 bg-royal-navy px-5 py-1 font-sans text-[12px] sm:text-[13px] font-bold tracking-[0.2em] text-white shadow-[0_4px_10px_rgba(7,23,57,0.24)]">
+                  {FORMATTED_EVENT_DATE.short}
+                </span>
+                <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+              </motion.div>
+            </motion.footer>
+          </main>
+        </div>
       </div>
     </div>
   );

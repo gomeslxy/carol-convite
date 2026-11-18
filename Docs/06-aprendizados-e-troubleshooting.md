@@ -11,7 +11,7 @@ tags:
   - nextjs
   - windows
 status: active
-updated: 2026-11-13
+updated: 2026-11-17
 related:
   - "[[00-INDEX]]"
   - "[[02-envelope-3d-e-animacoes]]"
@@ -106,9 +106,25 @@ related:
 > * **Loops JS Contínuos no Envelope 3D:** `deviceorientation` + `y: [0, -8, 0]` + reconstrução de `radial-gradient` em `MotionValue` recalculam matrizes 3D e texturas constantemente mesmo em repouso.
 
 * **Solução Aplicada:**
-  * Substituído `--satin-noise` por `--linen-grain` em `repeating-linear-gradient` CSS puro e removidos `blur-xl`, `drop-shadow` em SVGs 3D e `grayscale` sobre `<iframe>`.
-  * Substituído `backdrop-filter` repetido por gradientes acetinados multicamada com reflexo estático `.interactive-sheen::before`, eliminando listeners de `scroll`/`pointermove` na carta.
-  * Desativado o tick do `CountdownTimer` enquanto `revealed === false`, aplicado `will-change: auto !important` em `[data-active="false"]`, `loading="lazy"` nos adesivos abaixo da dobra e calibração mobile em `LuxuryParticles.tsx`.
+  * Substituído `--satin-noise` por `--linen-grain` (posteriormente removido na limpeza ADR-017) e mantido exclusivamente `--paper-weave` em `repeating-linear-gradient` CSS puro, removendo `blur-xl`, `drop-shadow` em SVGs 3D e `grayscale` sobre `<iframe>`.
+  * Substituído `backdrop-filter` repetido por gradientes acetinados multicamada e papel contínuo leve, eliminando listeners de `scroll`/`pointermove` no conteúdo.
+  * Desativado o tick do `CountdownTimer` enquanto `revealed === false` e aplicado `will-change: auto !important` em `[data-active="false"]`.
+
+---
+
+## 9. Conflito entre `style={{ y }}` (Parallax) e Animação CSS `transform` (`HeroPoster.tsx`)
+
+> [!warning] Sobrescrita de `transform` em Elementos Flutuantes com Parallax
+> Aplicar `style={{ y: parallaxMotionValue }}` diretamente no `<svg>` que também usa `className="animate-sticker-float"` faz o Framer Motion e os keyframes CSS disputarem a propriedade `transform`, cancelando um dos dois efeitos.
+
+* **Solução:** Envolver cada `<GlitterBlueStar>` e `<MetallicSilverStar>` com um `<motion.div style={{ y: starsUpParallax }}>` externo enquanto o `<svg>` interno mantém sua animação CSS GPU (`animate-sticker-float`), compondo os dois movimentos em camadas separadas sem conflito.
+
+## 10. Recorte Alfa de Assets Escuros & Texto Curvo em `<textPath>` (`CoverGate.tsx`)
+
+> [!tip] Remoção de Halo Escuro e Leitura Ereta em Arco Inferior
+> * **Recorte de JPEG com Fundo Preto sobre Papel Claro (`#F4F5F7`):** Um *threshold* simples deixa bordas escuras anti-aliased visíveis sobre o papel claro. Ao aplicar *flood-fill* conectado a partir das bordas e descontaminação cromática dos pixels de transição (substituindo o RGB pré-multiplicado com preto pela cor média local do contorno perolado), a transparência assenta perfeitamente sobre `#F4F5F7` sem halo.
+> * **Texto Curvo Ereto (`CurvedCrestCaption`):** Para contornar a base do brasão com leitura da esquerda para a direita sem inverter as letras, o `<path>` do `<textPath>` deve usar sentido anti-horário (`sweep-flag="0"`, `M 10,120 A 110,110 0 0 0 230,120`), mantendo `startOffset="50%"` e `textAnchor="middle"`.
+> * **`will-change` sob Demanda:** Aplicar `will-change: transform` somente nos estágios `unsealing` / `opening` evita alocação prematura de camadas GPU enquanto a capa está em repouso.
 
 Veja também: [[00-INDEX]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].
 

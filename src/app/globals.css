@@ -5,6 +5,8 @@
   --font-serif: var(--font-cinzel), "Times New Roman", serif;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 
+  --color-royal-navy: #071739;
+  --color-royal-deep: #0a2463;
   --color-royal-950: #172554;
   --color-royal-900: #1e3a8a;
   --color-royal-800: #1e40af;
@@ -19,53 +21,61 @@
   --color-silver-500: #64748b;
   --color-ice: #f8fafc;
 
-  --animate-seal-pulse: seal-pulse 3.2s ease-in-out infinite;
-  --animate-seal-ripple: seal-ripple 3.2s ease-out infinite;
-  --animate-sheen: sheen 5.5s ease-in-out infinite;
+  --animate-crest-float: crest-float 4.2s ease-in-out infinite;
   --animate-twinkle: twinkle 3.6s ease-in-out infinite;
+  --animate-disco-glint: disco-glint 3.4s ease-in-out infinite;
+  --animate-breathe-soft: breathe-soft 3.2s ease-in-out infinite;
 }
 
 /* ───────────────────────── Base & Ambientação ───────────────────────── */
 
 :root {
-  --linen-grain: repeating-linear-gradient(
-      0deg,
-      rgba(226, 232, 240, 0.03) 0px,
-      rgba(226, 232, 240, 0.03) 1px,
+  --paper-weave: repeating-linear-gradient(
+      115deg,
+      rgba(7, 23, 57, 0.014) 0px,
+      rgba(7, 23, 57, 0.014) 1px,
       transparent 1px,
-      transparent 12px
+      transparent 4px
     ),
     repeating-linear-gradient(
-      90deg,
-      rgba(226, 232, 240, 0.03) 0px,
-      rgba(226, 232, 240, 0.03) 1px,
+      25deg,
+      rgba(10, 36, 99, 0.012) 0px,
+      rgba(10, 36, 99, 0.012) 1px,
       transparent 1px,
-      transparent 12px
+      transparent 5px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.34) 0px,
+      rgba(255, 255, 255, 0.34) 1px,
+      transparent 1px,
+      transparent 3px
     );
 }
 
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
-  background-color: #f8fafc;
+  background-color: #f1f2f4;
 }
 
 body {
   min-height: 100dvh;
-  color: #1e293b;
-  background:
-    radial-gradient(65% 55% at 50% 0%, rgba(30, 64, 175, 0.11) 0%, transparent 72%),
-    radial-gradient(55% 50% at 88% 85%, rgba(29, 78, 216, 0.09) 0%, transparent 68%),
-    radial-gradient(55% 50% at 12% 80%, rgba(148, 163, 184, 0.20) 0%, transparent 68%),
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 48%, #e2e8f0 100%);
+  color: #071739;
+  background-color: #f1f2f4;
+  background-image:
+    radial-gradient(65% 55% at 50% 0%, rgba(10, 36, 99, 0.09) 0%, transparent 72%),
+    radial-gradient(55% 50% at 88% 85%, rgba(30, 64, 175, 0.08) 0%, transparent 68%),
+    radial-gradient(55% 50% at 12% 80%, rgba(148, 163, 184, 0.22) 0%, transparent 68%),
+    linear-gradient(180deg, #f8fafc 0%, #f1f2f4 48%, #e2e8f0 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgba(30, 64, 175, 0.14);
-  color: #1e40af;
+  background: rgba(10, 36, 99, 0.14);
+  color: #0a2463;
 }
 
 button,
@@ -73,7 +83,7 @@ a {
   touch-action: manipulation;
 }
 
-/* Bloqueio de scroll (envelope fechado / modais abertos) */
+/* Bloqueio de scroll (capa fechada) */
 html.scroll-locked,
 html.scroll-locked body {
   overflow: hidden;
@@ -98,110 +108,29 @@ html.lenis body {
   pointer-events: none;
 }
 
-/* ───────────────────────── Superfícies & Papelaria Perolada ───────────────────────── */
+/* ───────────────────────── Superfícies Contínuas em Papel Artesanal ───────────────────────── */
 
-@utility bg-satin {
-  background-color: #ffffff;
+@utility bg-paper-fine {
+  background-color: #f4f5f7;
   background-image:
-    radial-gradient(75% 45% at 50% 18%, rgba(255, 255, 255, 0.98) 0%, transparent 72%),
-    radial-gradient(65% 50% at 85% 65%, rgba(219, 234, 254, 0.42) 0%, transparent 70%),
-    linear-gradient(135deg, #ffffff 0%, #f8fafc 42%, #f1f5f9 74%, #ffffff 100%);
+    var(--paper-weave),
+    radial-gradient(72% 58% at 50% 48%, rgba(255, 255, 255, 0.78) 0%, transparent 72%),
+    radial-gradient(62% 52% at 18% 84%, rgba(184, 192, 204, 0.22) 0%, transparent 70%),
+    radial-gradient(62% 52% at 82% 16%, rgba(10, 36, 99, 0.035) 0%, transparent 68%),
+    linear-gradient(155deg, #f8f9fb 0%, #f4f5f7 52%, #eceff3 100%);
 }
 
-@utility bg-chrome {
-  background-image: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 50%, #f8fafc 100%);
-}
-
-@utility bg-imperial {
-  background-image: linear-gradient(135deg, #1e40af 0%, #1d4ed8 55%, #1e3a8a 100%);
-}
-
-@utility bg-royal-letter {
-  background-color: #172554;
+@utility bg-poster-paper {
+  background-color: #f1f2f4;
   background-image:
-    var(--linen-grain),
-    radial-gradient(85% 45% at 50% 8%, rgba(59, 130, 246, 0.34) 0%, transparent 68%),
-    radial-gradient(65% 40% at 15% 42%, rgba(37, 99, 235, 0.24) 0%, transparent 68%),
-    radial-gradient(60% 45% at 85% 78%, rgba(96, 165, 250, 0.18) 0%, transparent 70%),
-    linear-gradient(162deg, #0f172a 0%, #172554 22%, #1e3a8a 48%, #1e40af 74%, #172554 100%);
+    var(--paper-weave),
+    radial-gradient(88% 58% at 50% 18%, rgba(255, 255, 255, 0.78) 0%, transparent 76%),
+    radial-gradient(62% 48% at 14% 20%, rgba(148, 163, 184, 0.12) 0%, transparent 66%),
+    radial-gradient(62% 48% at 86% 82%, rgba(10, 36, 99, 0.06) 0%, transparent 68%),
+    linear-gradient(180deg, #f6f7f9 0%, #f1f2f4 46%, #eaedf2 100%);
 }
 
-@utility glass-royal-card {
-  background-image: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.06) 50%,
-    rgba(30, 58, 138, 0.34) 100%
-  );
-  border: 1px solid rgba(226, 232, 240, 0.3);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.38),
-    inset 0 -1px 0 rgba(15, 23, 42, 0.24),
-    0 14px 30px -14px rgba(9, 13, 22, 0.55);
-}
-
-@utility glass-pearl-pill {
-  background-image: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(248, 250, 252, 0.92) 52%,
-    rgba(226, 232, 240, 0.94) 100%
-  );
-  border: 1px solid rgba(203, 213, 225, 0.85);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    0 10px 26px -10px rgba(23, 37, 84, 0.24);
-}
-
-@utility text-silver-luxury {
-  display: inline-block;
-  padding-inline: 0.22em;
-  padding-block: 0.18em;
-  margin-block: -0.14em;
-  line-height: 1.35;
-  background-image: linear-gradient(
-    120deg,
-    #cbd5e1 0%,
-    #ffffff 28%,
-    #e2e8f0 52%,
-    #ffffff 74%,
-    #94a3b8 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-@utility hairline-silver {
-  background-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    #cbd5e1 18%,
-    #94a3b8 50%,
-    #cbd5e1 82%,
-    transparent 100%
-  );
-}
-
-/* Reflexo especular estático de joalheria no topo dos cartões acetinados */
-.interactive-sheen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(
-    85% 55% at 50% 0%,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(147, 197, 253, 0.08) 48%,
-    transparent 75%
-  );
-  opacity: 0.9;
-  z-index: 0;
-}
-
-/* ───────────────────────── Animações GPU-Accelerated de Adesivos & Poeira Estelar ───────────────────────── */
+/* ───────────────────────── Animações GPU-Accelerated ───────────────────────── */
 
 .animate-sticker-float {
   animation: sticker-float var(--float-duration, 5.2s) ease-in-out infinite;
@@ -213,21 +142,11 @@ html.lenis body {
   will-change: transform;
 }
 
-.animate-sticker-sway {
-  animation: sticker-sway var(--float-duration, 6.2s) ease-in-out infinite;
-  will-change: transform;
-}
-
-.animate-stardust {
-  animation: stardust-drift var(--stardust-duration, 10s) linear infinite;
-}
-
-/* Pausa animações decorativas e libera camadas GPU quando o convite ainda está atrás do envelope */
+/* Pausa animações decorativas e libera camadas GPU quando o convite ainda está atrás da capa */
 [data-active="false"] .animate-sticker-float,
 [data-active="false"] .animate-sticker-float-alt,
-[data-active="false"] .animate-sticker-sway,
-[data-active="false"] .animate-stardust,
-[data-active="false"] .animate-twinkle {
+[data-active="false"] .animate-twinkle,
+[data-active="false"] .animate-disco-glint {
   animation-play-state: paused;
   will-change: auto !important;
 }
@@ -254,74 +173,47 @@ html.lenis body {
   }
 }
 
-@keyframes sticker-sway {
+@keyframes crest-float {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(var(--r-start, -2deg));
+    transform: translate3d(0, -3px, 0);
   }
   50% {
-    transform: translate3d(0, var(--ty, -4px), 0) rotate(var(--r-mid, 3deg));
-  }
-}
-
-@keyframes seal-pulse {
-  0%,
-  100% {
-    transform: scale3d(1, 1, 1);
-  }
-  50% {
-    transform: scale3d(1.035, 1.035, 1);
-  }
-}
-
-@keyframes seal-ripple {
-  0% {
-    transform: scale3d(0.88, 0.88, 1);
-    opacity: 0.5;
-  }
-  80%,
-  100% {
-    transform: scale3d(1.42, 1.42, 1);
-    opacity: 0;
-  }
-}
-
-@keyframes sheen {
-  0%,
-  55% {
-    transform: translate3d(-160%, 0, 0) skewX(-20deg);
-  }
-  100% {
-    transform: translate3d(420%, 0, 0) skewX(-20deg);
+    transform: translate3d(0, 3px, 0);
   }
 }
 
 @keyframes twinkle {
   0%,
   100% {
-    opacity: 0.22;
+    opacity: 0.25;
     transform: scale3d(0.78, 0.78, 1) rotate(0deg);
   }
   50% {
-    opacity: 0.92;
-    transform: scale3d(1.15, 1.15, 1) rotate(24deg);
+    opacity: 0.95;
+    transform: scale3d(1.16, 1.16, 1) rotate(24deg);
   }
 }
 
-@keyframes stardust-drift {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 12px, 0) scale3d(0.7, 0.7, 1);
-  }
-  18% {
-    opacity: 0.85;
-  }
-  82% {
-    opacity: 0.65;
-  }
+@keyframes disco-glint {
+  0%,
   100% {
-    opacity: 0;
-    transform: translate3d(var(--stardust-x, 10px), var(--stardust-y, -48px), 0) scale3d(1.15, 1.15, 1);
+    opacity: 0.35;
+    transform: scale3d(0.82, 0.82, 1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale3d(1.16, 1.16, 1) rotate(18deg);
+  }
+}
+
+@keyframes breathe-soft {
+  0%,
+  100% {
+    opacity: 0.58;
+  }
+  50% {
+    opacity: 0.98;
   }
 }
 

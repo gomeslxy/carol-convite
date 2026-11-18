@@ -10,7 +10,7 @@ tags:
   - react19
   - typescript
 status: active
-updated: 2026-11-14
+updated: 2026-11-17
 related:
   - "[[00-INDEX]]"
   - "[[02-envelope-3d-e-animacoes]]"
@@ -20,7 +20,7 @@ related:
 # 01 · Arquitetura e Estrutura
 
 > [!info] Resumo Arquitetural
-> A aplicação segue o modelo **Next.js 15 App Router** com geração estática (`○ Static`) na rota `/`, separando configuração e metadados no lado do servidor (`layout.tsx`, `page.tsx`, `event.ts`) da camada interativa 3D e modais no cliente.
+> A aplicação segue o modelo **Next.js 15 App Router** com geração estática (`○ Static`) na rota `/`, separando configuração e metadados no lado do servidor (`layout.tsx`, `page.tsx`, `event.ts`) da camada interativa contínua no cliente (`CoverGate`, `HeroPoster`, `InvitationContent`).
 
 ---
 
@@ -30,10 +30,10 @@ related:
 carol/
 ├─ .agents/skills/obsidian-markdown/SKILL.md  # Skill Obsidian para agentes
 ├─ Docs/                                      # Cofre Obsidian (Base de Conhecimento)
-├─ public/images/                             # Cutout da Carol e adesivos PNG sem fundo
+├─ public/images/                             # Cutout P&B da Carol (carol-cutout.png) e brasão da capa (brasao-barroco-c.png)
 ├─ src/
 │  ├─ app/
-│  │  ├─ globals.css                          # Tema Tailwind v4, linho CSS leve, glass-royal-card 60fps e animações GPU
+│  │  ├─ globals.css                          # Tema Tailwind v4, bg-paper-fine, bg-poster-paper e animações GPU
 │  │  ├─ layout.tsx                           # Server Component: fontes, SEO/OG, SmoothScrollProvider
 │  │  ├─ page.tsx                             # Server Component: entrada principal (<InvitationExperience />)
 │  │  ├─ icon.tsx                             # Favicon PNG 64x64 (monograma C em Azul Royal e Prata)
@@ -45,23 +45,16 @@ carol/
 │  │  └─ event.ts                             # Fonte única de verdade do evento + cache de data
 │  ├─ lib/
 │  │  └─ utils.ts                             # Clipboard, Google Agenda, .ics, Maps, Waze, WhatsApp
-│  └─ components/
-│     ├─ InvitationExperience.tsx             # Orquestrador de estágios ("closed" -> "opening" -> "open")
-│     ├─ Envelope3DOpening.tsx                # Gateway 3D com forro interno, selo magnético e GSAP timeline
-│     ├─ InvitationContent.tsx                # Carta expandida, agenda integrada, GSAP ScrollTrigger e brilho estático
-│     ├─ CarolHeroCollage.tsx                 # Colagem editorial da Carol (versão compacta e completa)
-│     ├─ CountdownTimer.tsx                   # Contador em cápsulas de cristal com rolagem 3D (React.memo)
-│     ├─ InteractiveActions.tsx               # 2 medalhões cromados equilibrados (Local da Festa e Confirmar Presença)
-│     ├─ SmoothScrollProvider.tsx             # Contextos separados (ScrollLockContext + SmoothScrollContext)
-│     ├─ LuxuryParticles.tsx                  # Confetes calibrados, fireMiniCelebration, estrelas e poeira estelar GPU
-│     ├─ BowDecoration.tsx                    # Lacinhos de alta-costura em fita acetinada (royal, silver, duo)
-│     ├─ Ornaments.tsx                        # FoilBalloon18, Emblem18, SilverDivider, DressCodeIcon, CornerFiligree
-│     ├─ ui/
-│     │  └─ Sheet.tsx                         # Modal / Bottom-sheet acessível (Portal, ESC, drag-to-close, cantoneiras)
-│     └─ sheets/
-│        ├─ SheetButton.tsx                   # Botão reutilizável (link externo ou submit)
-│        ├─ LocationSheet.tsx                 # Cartão perolado, mapa embed, copiar endereço, Maps, Waze, Agenda/.ics
-│        └─ RsvpSheet.tsx                     # Formulário validado com envio ao WhatsApp e micro-celebração
+│  ├─ components/
+│  │  ├─ InvitationExperience.tsx             # Orquestrador de estágios ("closed" -> "opening" -> "open")
+│  │  ├─ CoverGate.tsx                        # Capa bipartida em papel #F4F5F7, moldura #B8C0CC/#0A2463 e brasão barroco PNG transparent
+│  │  ├─ HeroPoster.tsx                       # Pôster animado em código + estrelas exportadas (GlitterBlueStar, MetallicSilverStar)
+│  │  ├─ InvitationContent.tsx                # Papel contínuo #F1F2F4: pôster + apresentação + countdown + local + RSVP + rodapé (whileInView)
+│  │  ├─ CountdownTimer.tsx                   # Contador no estilo do pôster com pílulas royal-navy e rolagem 3D (React.memo)
+│  │  ├─ SmoothScrollProvider.tsx             # ScrollLockContext + sincronização Lenis via gsap.ticker
+│  │  ├─ LuxuryParticles.tsx                  # Confetes calibrados (fireLuxuryCelebration e fireMiniCelebration)
+│  │  ├─ BowDecoration.tsx                    # Lacinhos de alta-costura em fita acetinada (royal, silver, duo)
+│  │  └─ Ornaments.tsx                        # CornerFiligree geométrica em prata metálica (zero flores)
 ├─ AGENTS.md / GEMINI.md                      # Protocolo persistente de leitura/escrita em Docs/
 └─ next.config.ts                             # reactStrictMode, poweredByHeader: false, optimizePackageImports
 ```
@@ -74,9 +67,8 @@ carol/
 | :--- | :--- | :--- |
 | `src/app/layout.tsx` | **Server Component** | Carrega fontes (`next/font/google`), gera `metadata` / Open Graph e envolve a árvore no `SmoothScrollProvider`. |
 | `src/app/page.tsx` | **Server Component** | Renderiza `<InvitationExperience />` permitindo pré-renderização estática da página. |
-| `src/components/CarolHeroCollage.tsx` | **Shared / Puro** | Sem estado nem hooks de cliente; utiliza CSS puro GPU-accelerated (`memo`). |
-| `src/components/BowDecoration.tsx` & `Ornaments.tsx` | **Shared / Puro** | SVGs vetoriais puros com `useId` e `memo`. |
-| Demais componentes em `src/components/` | **Client Components** | Interatividade 3D, `useEffect`, `gsap`, `framer-motion`, `createPortal` e timers. |
+| `src/components/BowDecoration.tsx` & `Ornaments.tsx` | **Shared / Puro** | SVGs vetoriais puros com `useId` e `memo` (`Bow`, `CornerFiligree`). |
+| Demais componentes em `src/components/` | **Client Components** | Interatividade, `CoverGate`, `HeroPoster`, `InvitationContent` (Local & RSVP integrados com `whileInView`), `CountdownTimer` e Lenis. |
 
 ---
 
@@ -87,7 +79,7 @@ Todo o conteúdo editorial e funcional reside em `EVENT` (`EventConfig`):
 * **Identidade:** `name: "Carol"`, `initial: "C"`, `age: 18`, `siteUrl: "https://convitecarol.site"`.
 * **Data e Fuso:** `dateISO: "2027-07-17T19:30:00-03:00"`, `timeZone: "America/Sao_Paulo"`, `durationHours: 5`.
 * **Textos:** Citação de Walt Disney (`quoteText`, `quoteAuthor`), `openingText`, `dressCode: "Esporte Fino"`, `dressCodeNote` e `closingText`.
-* **Local (`venue`):** Nome, endereço e `mapsQuery` consumidos por `LocationSheet.tsx` e `lib/utils.ts`.
+* **Local (`venue`):** Nome, endereço e `mapsQuery` consumidos diretamente na seção Local da Festa em `InvitationContent.tsx` e `lib/utils.ts`.
 * **RSVP (`rsvp`):** WhatsApp (`5519971345909`), prazo (`17 de junho de 2027`) e limite de acompanhantes (`maxGuests: 6`).
 
 > [!important] Regra Editorial Inviolável
@@ -98,19 +90,18 @@ Todo o conteúdo editorial e funcional reside em `EVENT` (`EventConfig`):
 
 ---
 
-## Fluxo de Dados e Ações Interativas
+## Fluxo de Dados e Seções Integradas
 
 ```mermaid
 flowchart TD
     CFG["src/config/event.ts (EVENT)"] --> LAYOUT["layout.tsx (Metadata & OG)"]
-    CFG --> ENV["Envelope3DOpening.tsx"]
-    CFG --> CONTENT["InvitationContent.tsx"]
+    CFG --> COVER["CoverGate.tsx"]
+    CFG --> POSTER["HeroPoster.tsx"]
+    CFG --> CONTENT["InvitationContent.tsx (Papel Contínuo + Local + RSVP)"]
     CFG --> COUNT["CountdownTimer.tsx"]
-    CFG --> SHEETS["sheets/ (Location, Rsvp)"]
-    UTILS["src/lib/utils.ts"] --> SHEETS
-    ACTIONS["InteractiveActions.tsx"] --> SHEET["ui/Sheet.tsx (Portal)"]
-    SHEET --> SHEETS
+    UTILS["src/lib/utils.ts"] --> CONTENT
+    PARTICLES["LuxuryParticles.tsx"] --> COVER
+    PARTICLES --> CONTENT
 ```
 
 Veja também: [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].
-

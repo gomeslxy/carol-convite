@@ -1,6 +1,6 @@
 # Convite Interativo · Carol 18 Anos
 
-Convite digital mobile-first com envelope animado, selo de cera, confete, contador regressivo e ações interativas.
+Convite digital editorial *mobile-first* com capa bipartida de luxo, broche metálico em alto-relevo, pôster comemorativo animado em código (globos espelhados, letreiro, estrelas e colagem fotográfica) e continuação contínua em papel texturizado com contagem regressiva, mapa do evento e confirmação de presença integrada via WhatsApp.
 
 **Stack:** Next.js 15 (App Router) · TypeScript · Tailwind CSS v4 · Framer Motion · GSAP + ScrollTrigger · Lenis · canvas-confetti · Lucide React
 
@@ -23,20 +23,18 @@ Dia da semana, mês e ano são calculados automaticamente a partir da data.
 
 ```
 src/
-├─ app/                       layout (fontes), page, globals.css (tema + texturas)
-├─ config/event.ts            dados do evento
-├─ lib/utils.ts               clipboard, Google Agenda/.ics, Maps, Waze, WhatsApp
+├─ app/                        layout (fontes), page, globals.css (tema + papéis/texturas)
+├─ config/event.ts             dados do evento
+├─ lib/utils.ts                clipboard, Google Agenda/.ics, Maps, Waze, WhatsApp
 └─ components/
    ├─ InvitationExperience.tsx orquestrador de estágios do convite
-   ├─ Envelope3DOpening.tsx   envelope 3D em camadas, selo "C · 18" e confetes
-   ├─ CountdownTimer.tsx      contador regressivo com dígitos em 3D
-   ├─ InteractiveActions.tsx  botões medalhão (Local e RSVP) + sheets
-   ├─ BowDecoration.tsx       laços acetinados SVG (Bow)
-   ├─ InvitationContent.tsx   página interna + animações GSAP/ScrollTrigger
-   ├─ Ornaments.tsx           brasão, cantoneiras e divisores prateados
-   ├─ SmoothScrollProvider.tsx Lenis + GSAP ticker + trava de scroll
-   ├─ sheets/                 conteúdo dos modais (local e RSVP)
-   └─ ui/Sheet.tsx            bottom-sheet com arrastar para fechar
+   ├─ CoverGate.tsx            capa bipartida com portas verticais e broche metálico "C"
+   ├─ HeroPoster.tsx           pôster animado em código (globos espelhados, letreiro, data e foto P&B)
+   ├─ InvitationContent.tsx    papel texturizado contínuo: pôster + contagem + local + RSVP integrado
+   ├─ CountdownTimer.tsx       contador regressivo com dígitos em 3D no estilo do pôster
+   ├─ BowDecoration.tsx        laços acetinados SVG (Bow)
+   ├─ Ornaments.tsx            cantoneiras e divisores prateados
+   └─ SmoothScrollProvider.tsx Lenis + GSAP ticker + trava de scroll
 ```
 
 ## Deploy
@@ -48,4 +46,3 @@ Importe o repositório na Vercel — nenhuma variável de ambiente é necessári
 - **Lucas Gomes do Amaral** (`@gomeslxy`)
 - **E-mail:** [la181009@gmail.com](mailto:la181009@gmail.com)
 - **GitHub:** [https://github.com/gomeslxy](https://github.com/gomeslxy)
-

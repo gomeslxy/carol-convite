@@ -46,7 +46,7 @@ function useCountdown(target: number, active: boolean): TimeLeft | null {
 const RollingDigit = memo(function RollingDigit({ digit }: { digit: string }) {
   return (
     <span
-      className="relative inline-block h-[1.18em] w-[0.64em] overflow-hidden align-top"
+      className="relative inline-block h-[1.15em] w-[0.64em] overflow-hidden align-top"
       style={{ perspective: "420px" }}
     >
       <AnimatePresence initial={false} mode="popLayout">
@@ -55,8 +55,8 @@ const RollingDigit = memo(function RollingDigit({ digit }: { digit: string }) {
           initial={{ y: "-78%", rotateX: 38, scale: 0.9, opacity: 0 }}
           animate={{ y: "0%", rotateX: 0, scale: 1, opacity: 1 }}
           exit={{ y: "78%", rotateX: -38, scale: 0.9, opacity: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex items-center justify-center text-white will-change-transform [text-shadow:0_2px_10px_rgba(15,23,42,0.5)]"
+          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 flex items-center justify-center text-royal-navy will-change-transform"
         >
           {digit}
         </motion.span>
@@ -65,76 +65,47 @@ const RollingDigit = memo(function RollingDigit({ digit }: { digit: string }) {
   );
 });
 
-const CrystalSeparator = memo(function CrystalSeparator() {
-  return (
-    <span
-      className="pointer-events-none absolute top-[42%] -right-[6px] sm:-right-[10px] z-20 flex -translate-y-1/2 flex-col items-center gap-1.5 animate-pulse"
-      aria-hidden
-    >
-      <span className="size-1 sm:size-1.5 rotate-45 rounded-[1px] bg-silver-200/85 shadow-[0_0_6px_rgba(255,255,255,0.65)]" />
-      <span className="size-1 sm:size-1.5 rotate-45 rounded-[1px] bg-silver-200/85 shadow-[0_0_6px_rgba(255,255,255,0.65)]" />
-    </span>
-  );
-});
-
 const CountdownUnit = memo(function CountdownUnit({
   value,
   label,
   ready,
-  showSeparator,
+  showDivider,
 }: {
   value: number;
   label: string;
   ready: boolean;
-  showSeparator: boolean;
+  showDivider: boolean;
 }) {
   const digits = String(value).padStart(2, "0").split("");
   const isThreeDigits = digits.length >= 3;
 
   return (
-    <div className="relative min-w-0">
-      <div className="glass-royal-card interactive-sheen relative flex flex-col items-center justify-between overflow-hidden rounded-2xl px-1.5 pt-2.5 pb-2.5 sm:rounded-[20px] sm:px-2.5 sm:pt-3.5 sm:pb-3">
-        {/* Filete especular superior da cápsula */}
+    <div className="relative flex min-w-0 flex-col items-center justify-center px-1 py-1 sm:px-2">
+      <span
+        className={`flex items-center justify-center font-serif font-bold tabular-nums leading-none tracking-tight text-royal-navy transition-opacity duration-500 ${
+          isThreeDigits
+            ? "text-[clamp(24px,6.4vw,42px)] sm:text-[42px]"
+            : "text-[clamp(28px,7.4vw,46px)] sm:text-[46px]"
+        } ${ready ? "opacity-100" : "opacity-0"}`}
+        aria-hidden
+      >
+        {ready ? (
+          digits.map((d, i) => <RollingDigit key={`${digits.length}-${i}`} digit={d} />)
+        ) : (
+          <span className="inline-block h-[1.15em] w-[1.28em]" />
+        )}
+      </span>
+
+      <span className="mt-2.5 inline-flex items-center justify-center rounded-full border border-white/15 bg-royal-navy px-2.5 py-0.5 sm:px-3.5 sm:py-1 font-sans text-[8px] sm:text-[10px] font-bold tracking-[0.1em] sm:tracking-[0.16em] text-white uppercase shadow-[0_4px_10px_rgba(7,23,57,0.24)]">
+        {label}
+      </span>
+
+      {showDivider && (
         <span
-          className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/75 to-transparent"
+          className="pointer-events-none absolute top-2 right-0 bottom-2 w-px bg-gradient-to-b from-transparent via-royal-deep/25 to-transparent"
           aria-hidden
         />
-
-        {/* Micro-estrela prateada no topo */}
-        <span
-          className="relative z-10 mb-1 text-[7px] sm:text-[8px] leading-none text-silver-200/70"
-          aria-hidden
-        >
-          ✦
-        </span>
-
-        {/* Dígitos com rolagem 3D em GPU */}
-        <span
-          className={`relative z-10 flex items-center justify-center font-serif tabular-nums leading-none font-normal tracking-tight text-white transition-opacity duration-500 ${
-            isThreeDigits
-              ? "text-[clamp(21px,5.8vw,38px)] sm:text-[38px]"
-              : "text-[clamp(24px,6.8vw,42px)] sm:text-[42px]"
-          } ${ready ? "opacity-100" : "opacity-0"}`}
-          aria-hidden
-        >
-          {ready ? (
-            digits.map((d, i) => (
-              <RollingDigit key={`${digits.length}-${i}`} digit={d} />
-            ))
-          ) : (
-            <span className="inline-block h-[1.18em] w-[1.28em]" />
-          )}
-        </span>
-
-        {/* Divisória sutil + rótulo */}
-        <span className="hairline-silver relative z-10 mt-2 mb-1.5 h-px w-4/5 opacity-45" aria-hidden />
-
-        <span className="relative z-10 pl-[0.12em] font-serif text-[7.5px] sm:text-[9.5px] font-semibold tracking-[0.12em] sm:tracking-[0.18em] text-silver-200/90 uppercase">
-          {label}
-        </span>
-      </div>
-
-      {showSeparator && <CrystalSeparator />}
+      )}
     </div>
   );
 });
@@ -145,13 +116,13 @@ export default function CountdownTimer({ active = true }: { active?: boolean }) 
 
   if (time?.done) {
     return (
-      <div className="glass-royal-card mx-auto max-w-[360px] rounded-3xl px-6 py-5 text-center">
-        <p className="text-silver-luxury px-4 font-script text-4xl sm:text-5xl">
+      <div className="mx-auto w-full max-w-[380px] rounded-2xl border border-royal-deep/15 bg-white/80 px-6 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16)]">
+        <p className="font-serif text-2xl sm:text-3xl font-bold text-royal-navy">
           Chegou o grande dia!
         </p>
-        <p className="mt-2 font-serif text-[11px] font-semibold tracking-[0.22em] text-silver-200 uppercase">
+        <span className="mt-3 inline-block rounded-full bg-royal-navy px-5 py-1.5 font-sans text-[11px] font-bold tracking-[0.2em] text-white uppercase">
           TE ESPERO PARA CELEBRAR
-        </p>
+        </span>
       </div>
     );
   }
@@ -169,13 +140,19 @@ export default function CountdownTimer({ active = true }: { active?: boolean }) 
   ];
 
   return (
-    <div className="w-full text-center">
-      <h2 className="text-silver-luxury inline-block px-5 py-1 font-script text-[clamp(40px,10.5vw,52px)] leading-[1.3]">
-        Faltam:
-      </h2>
+    <div className="w-full max-w-[440px] text-center">
+      {/* Título no mesmo padrão do bloco de data do pôster */}
+      <div className="mx-auto flex w-full max-w-[360px] items-center gap-3 sm:gap-4">
+        <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+        <h2 className="font-serif text-[20px] sm:text-[26px] font-bold leading-none tracking-wide text-royal-navy">
+          Contagem Regressiva
+        </h2>
+        <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+      </div>
 
+      {/* Cápsula translúcida com borda 1px, brilho interno e divisórias sutis */}
       <div
-        className="mx-auto mt-3.5 grid w-full max-w-[432px] grid-cols-4 gap-2 sm:gap-3.5"
+        className="mx-auto mt-4 grid w-full grid-cols-4 rounded-2xl border border-royal-deep/15 bg-white/75 px-1.5 py-4 sm:px-3 sm:py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16),0_4px_12px_-4px_rgba(10,36,99,0.08)]"
         role="timer"
         aria-live="off"
         aria-label={
@@ -190,7 +167,7 @@ export default function CountdownTimer({ active = true }: { active?: boolean }) 
             value={u.value}
             label={u.label}
             ready={ready}
-            showSeparator={idx < units.length - 1}
+            showDivider={idx < units.length - 1}
           />
         ))}
       </div>
