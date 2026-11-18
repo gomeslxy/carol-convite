@@ -12,7 +12,7 @@ tags:
   - dns
   - seo
 status: active
-updated: 2026-11-14
+updated: 2026-11-17
 related:
   - "[[00-INDEX]]"
   - "[[01-arquitetura-e-estrutura]]"
@@ -30,13 +30,15 @@ related:
 
 ## Pipeline Vercel & Configuração Next.js
 
-A aplicação é 100% estática (`○ Static` em `/`) e **não requer variáveis de ambiente** (conforme `README.md`).
+A aplicação é 100% estática (`○ Static` em `/`) e **não requer variáveis de ambiente** (nenhum segredo ou `NEXT_PUBLIC_*` exposto no bundle cliente).
 
 * **`next.config.ts`:**
   * `reactStrictMode: true`
   * `poweredByHeader: false`
   * `eslint: { ignoreDuringBuilds: true }` (o projeto não utiliza ESLint; a validação de código é garantida por `tsc --noEmit`).
+  * `images: { formats: ["image/avif", "image/webp"] }`
   * `experimental.optimizePackageImports: ["lucide-react", "framer-motion"]`
+  * `headers()` globais (`/(.*)`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin` e `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
 * **Comandos de Verificação:**
   * Typecheck: `npm run typecheck` (ou `npm.cmd run typecheck` no Windows/PowerShell)
   * Build de produção: `npm run build` (ou `npm.cmd run build`)

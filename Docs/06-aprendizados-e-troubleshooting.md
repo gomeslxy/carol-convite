@@ -142,7 +142,17 @@ related:
   * Rodar `Lenis` em `lerp: 0.12` com `requestAnimationFrame` nativo, usar `overflow-x-clip` em `bg-poster-paper` e `contain: "strict"` no container do `<iframe>` do mapa.
   * Aplicar `whileInView` individual por bloco (`viewport={{ once: true, amount: 0.14 }}`, duração `0.95s`) para que cada elemento anime exatamente ao entrar na área útil da tela.
 
-Veja também: [[02-envelope-3d-e-animacoes]], [[05-changelog-e-decisoes]].
+---
+
+## 12. Variable Fonts no `next/font/google` & Atributos `width`/`height` em `<svg>` com Tailwind v4
+
+> [!warning] Armadilhas de Build de Fontes e Proporção de SVGs
+> 1. **`next/font/google` com `weight` explícito em Variable Fonts:** Declarar múltiplos pesos discretos em fontes variáveis (como `Plus_Jakarta_Sans`) gera dezenas de regras `@font-face` e pode disparar `TypeError: Cannot read properties of null (reading '1')` no `next/font/google/loader.js`.
+> 2. **Atributos HTML `width`/`height` em `<svg>`:** Diferente de `<img>` (que recebe `height: auto` no preflight do Tailwind v4), `<svg>` com `width` e `height` explícitos mantém a altura fixa do atributo quando apenas `w-*` é aplicado via classe, distorcendo a proporção se `h-auto` / `aspect-*` não forem declarados.
+
+* **Solução:**
+  * Omitir `weight` em `Cinzel` e `Plus_Jakarta_Sans` (`src/app/layout.tsx`) para servir as *variable fonts* nativas (`2` e `4` `@font-face` no subset `latin`) com `display: "swap"` e `preload: true`.
+  * Combinar `width` e `height` explícitos com `h-auto` e `aspect-[W/H]` em todos os SVGs dimensionados apenas por largura (`GlitterBlueStar`, `MetallicSilverStar`, `Bow`, `RoyalGlitterPartyHat`, `RoyalGlossyBalloons`, `MirrorDiscoBall`), preservando `aspect-square` onde o caller controla `size-*`.
 
 Veja também: [[00-INDEX]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]], [[05-changelog-e-decisoes]].
 

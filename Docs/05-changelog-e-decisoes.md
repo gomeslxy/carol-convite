@@ -24,6 +24,47 @@ related:
 
 ---
 
+## [2026-11-17] · Refino Editorial da Seção de Citação & Boas-Vindas
+
+### ADR-025: Hierarquia Tipográfica da Citação de Walt Disney e Separação do Convite Pessoal
+* **Motivação:** Evitar bloco contínuo de caixa alta (`Cinzel` + `uppercase`) e aspas duplicadas na abertura, dando legibilidade e contraste editorial de papelaria fina mantendo 100% do texto original.
+* **Alteração (`src/components/InvitationContent.tsx`):**
+  * Adicionada moldura interna sutil (`border-royal-deep/10`), cantoneiras `CornerFiligree` (`tl`/`tr`) e ornamento `— ✦ —` substituindo a aspa duplicada.
+  * Citação (`EVENT.quoteText`) migrada para `font-sans` itálico em caixa normal (`14.5px`/`16px`), preservando `EVENT.quoteAuthor` em `font-serif` (`Cinzel`).
+  * `EVENT.openingText` separado em bloco editorial próprio logo abaixo do cartão em `font-sans` (`normal-case`, `font-semibold`), com divisor gradiente sutil antes da contagem regressiva.
+
+---
+
+## [2026-11-17] · Correção do Nome Oficial do Local (`Videira Hall`)
+
+### ADR-024: Atualização de `EVENT.venue.name` para `Videira Hall`
+* **Contexto:** O nome `Espaço Royal Eventos` era um placeholder anterior; o espaço real localizado na `Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP` é o **Videira Hall**.
+* **Alteração:** Atualizado `venue.name` para `"Videira Hall"` e `venue.mapsQuery` para `"Videira Hall, Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP"` em `src/config/event.ts`.
+
+---
+
+## [2026-11-17] · Ritmo de Scroll Contemplativo (`1.5s` Repetível) & Broche Sem Efeitos de Clique
+
+### ADR-023: Duração `1.5s` com `once: false` nas Seções Inferiores & Remoção de Ondas/Fagulhas no Broche
+* **Motivação:** Equiparar a velocidade e presença visual das animações de entrada das seções inferiores ao ritmo do `HeroPoster` (substituindo a transição sutil de `0.95s`), permitir que as animações se repitam sempre que o convidado rolar para cima e para baixo, e deixar apenas a animação limpa do broche e das portas ao clicar na capa.
+* **Alterações:**
+  * **`InvitationContent.tsx`:** `REVEAL_TRANSITION.duration` ajustado de `0.95` para `1.5`, `REVEAL_INITIAL` ampliado para `{ opacity: 0, y: 42, scale: 0.94 }` e `VIEWPORT_CONFIG.once` alterado de `true` para `false`.
+  * **`CoverGate.tsx`:** Removidas as duas ondas de choque (`motion.span`) e as 14 fagulhas (`UNSEAL_SPARKS`) disparadas ao clicar no broche, ajustando os tempos de abertura (`opening` em `180ms`, `onOpenStart` em `550ms`, `onOpenComplete` em `2250ms`).
+
+---
+
+## [2026-11-17] · Auditoria de Performance, GPU 60fps & Segurança Básica do RSVP
+
+### ADR-022: Compressão Lossless, Remoção do GSAP, Code Splitting, GPU-Only & Blindagem do RSVP
+* **Contexto:** Auditoria profunda de Web Performance (LCP, INP, CLS), aceleração exclusiva por GPU em 60fps e segurança dos inputs do formulário RSVP com regra estrita de **zero regressão visual**.
+* **Decisões:**
+  1. **Assets Lossless & Configuração Next.js (`public/images/`, `next.config.ts`):** Recomprimidos com `sharp` (`compressionLevel: 9`, `adaptiveFiltering: true`, `effort: 10`) mantendo canal alfa e dimensões Retina 100% intactos: `brasao-barroco-c.png` (`242.423 -> 208.962` bytes, `-13,8%`) e `carol-cutout.png` (`655.384 -> 413.770` bytes, `-36,9%`); `cover-ornament-backdrop-right.png` mantido em `123.171` bytes (`-26,9%` no total de imagens). Habilitados `images: { formats: ["image/avif", "image/webp"] }` e `headers()` de segurança HTTP (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
+  2. **Remoção do `gsap`, Fontes Variáveis & Code Splitting (`package.json`, `CoverGate.tsx`, `layout.tsx`, `InvitationExperience.tsx`, `InvitationContent.tsx`):** Substituído `gsap.timeline()` em `CoverGate.tsx` por `timersRef` + `scheduleTimer` com cleanup no unmount e desinstalado `gsap` (`package.json` / `package-lock.json`). `Cinzel` e `Plus_Jakarta_Sans` configuradas como *variable fonts* nativas (`display: "swap"`, `preload: true`). Aplicado `next/dynamic` em `InvitationContent` e `CountdownTimer` mantendo geração estática (`/` em `62.7 kB`, First Load JS `166 kB`).
+  3. **Zero CLS, GPU 60fps & Carregamento Abaixo da Dobra (`CoverGate.tsx`, `HeroPoster.tsx`, `BowDecoration.tsx`, `Ornaments.tsx`, `globals.css`, `InvitationContent.tsx`):** Adicionados `width`/`height` e `aspect-*` (+ `h-auto` onde aplicável) em todos os SVGs; `carol-cutout.png` migrado para `next/image` (`loading="lazy"`, `decoding="async"`, `sizes`); removida transição CSS de `filter` no hover do brasão em `CoverGate.tsx`; adicionado `[data-active="false"] * { will-change: auto !important }` em `globals.css` e `will-change` controlado em `.animate-crest-float` / `.animate-brooch-shimmer`; substituído `layoutId="rsvp-inline-pill"` por indicador único animado por `transform` (`x`), refinadas classes `transition` genéricas para `transition-colors` / `transition-[transform,opacity]` e aplicado `IntersectionObserver` (`rootMargin: "320px 0px"`) para montar o `<iframe>` do Google Maps somente quando `revealed` e próximo à viewport.
+  4. **Segurança & Anti-Spam do RSVP (`src/lib/utils.ts`, `InvitationContent.tsx`):** Criados `RSVP_LIMITS` (`name: 80`, `companion: 80`, `message: 280`), `sanitizeSingleLineInput`, `sanitizeMultilineInput` e `validateRsvpInput` (remoção de tags HTML, `<`, `>`, payloads `javascript:`/`data:`/`vbscript:`, caracteres de controle, normalização de espaços e validação de letras/tipos). No formulário, adicionados `maxLength`, sanitização de `<`/`>`, campo **Honeypot** oculto (`website`, `tabIndex={-1}`, `aria-hidden="true"`), trava imediata (`isSubmitting` + `isSubmittingRef`) e *cooldown* de `15s` persistido em `localStorage`. Confirmada ausência total de variáveis `NEXT_PUBLIC_*` ou segredos expostos.
+
+---
+
 ## [2026-11-17] · Scroll 60fps, `whileInView` por Bloco & Remoção de Confete na Capa
 
 ### ADR-021: Fluidez de Scroll em 60fps, `CoverGate` Sem Confete e Animações Inferiores Individuais

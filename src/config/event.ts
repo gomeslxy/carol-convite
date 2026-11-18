@@ -53,9 +53,9 @@ export const EVENT: EventConfig = {
   dressCodeNote: "Tons de azul royal e prata são reservados à aniversariante.",
   closingText: "Conto com sua presença!",
   venue: {
-    name: "Espaço Royal Eventos",
+    name: "Videira Hall",
     address: "Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP",
-    mapsQuery: "Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP",
+    mapsQuery: "Videira Hall, Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP",
   },
   rsvp: {
     whatsapp: "5519971345909",

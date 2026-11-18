@@ -44,19 +44,19 @@ carol/
 │  ├─ config/
 │  │  └─ event.ts                             # Fonte única de verdade do evento + cache de data
 │  ├─ lib/
-│  │  └─ utils.ts                             # Clipboard, Google Agenda, .ics, Maps, Waze, WhatsApp
+│  │  └─ utils.ts                             # Clipboard, Google Agenda, .ics, Maps, Waze, WhatsApp, sanitização & validação RSVP
 │  ├─ components/
-│  │  ├─ InvitationExperience.tsx             # Orquestrador de estágios ("closed" -> "opening" -> "open")
+│  │  ├─ InvitationExperience.tsx             # Orquestrador de estágios ("closed" -> "opening" -> "open") + dynamic import de InvitationContent
 │  │  ├─ CoverGate.tsx                        # Capa bipartida em papel #F4F5F7, moldura #B8C0CC/#0A2463 e brasão barroco PNG transparent
 │  │  ├─ HeroPoster.tsx                       # Pôster animado em código + estrelas exportadas (GlitterBlueStar, MetallicSilverStar)
-│  │  ├─ InvitationContent.tsx                # Papel contínuo #F1F2F4: pôster + apresentação + countdown + local + RSVP + rodapé (whileInView)
+│  │  ├─ InvitationContent.tsx                # Papel contínuo #F1F2F4: pôster + apresentação + countdown (dynamic) + mapa lazy + RSVP blindado
 │  │  ├─ CountdownTimer.tsx                   # Contador no estilo do pôster com pílulas royal-navy e rolagem 3D (React.memo)
 │  │  ├─ SmoothScrollProvider.tsx             # ScrollLockContext + Lenis em RAF nativo (lerp: 0.12)
 │  │  ├─ LuxuryParticles.tsx                  # Confete calibrado (fireMiniCelebration para o RSVP)
 │  │  ├─ BowDecoration.tsx                    # Lacinhos de alta-costura em fita acetinada (royal, silver, duo)
 │  │  └─ Ornaments.tsx                        # CornerFiligree geométrica em prata metálica (zero flores)
 ├─ AGENTS.md / GEMINI.md                      # Protocolo persistente de leitura/escrita em Docs/
-└─ next.config.ts                             # reactStrictMode, poweredByHeader: false, optimizePackageImports
+└─ next.config.ts                             # reactStrictMode, poweredByHeader: false, images AVIF/WebP, headers de segurança e optimizePackageImports
 ```
 
 ---

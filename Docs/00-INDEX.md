@@ -51,9 +51,9 @@ Convite digital interativo mobile-first para a festa de **18 anos da Carol** (`1
 | Linguagem | TypeScript (`strict: true`) | `^5.9.3` |
 | Estilização | Tailwind CSS + PostCSS | `^4.3.5` |
 | Animações & UI | Framer Motion | `^14.12.0` |
-| Timeline da Capa | GSAP (Timeline de `CoverGate`) | `^3.15.1` |
+| Timeline da Capa | Timers nativos (`CoverGate`) + CSS/Framer Motion | — |
 | Smooth Scroll | Lenis (`@studio-freight/lenis` em RAF nativo) | `^1.0.42` |
-| Partículas | `canvas-confetti` (RSVP) | `^1.9.4` |
+| Partículas | `canvas-confetti` (RSVP lazy import) | `^1.9.4` |
 | Ícones | `lucide-react` | `^1.72.0` |
 
 ---

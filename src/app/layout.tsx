@@ -14,7 +14,6 @@ const greatVibes = Great_Vibes({
 
 const cinzel = Cinzel({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-cinzel",
   display: "swap",
   preload: true,
@@ -22,7 +21,6 @@ const cinzel = Cinzel({
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-jakarta",
   display: "swap",
   preload: true,

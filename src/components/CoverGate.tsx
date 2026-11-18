@@ -37,23 +37,6 @@ const DOOR_OPEN_TRANSITION = {
   ease: LUXURY_EASE,
 } as const;
 
-const UNSEAL_SPARKS = [
-  { x: -116, y: -68, size: 11, rot: -25, delay: 0, color: "#FFFFFF" },
-  { x: 118, y: -58, size: 10, rot: 30, delay: 0.04, color: "#93C5FD" },
-  { x: -134, y: 14, size: 9, rot: 15, delay: 0.08, color: "#CBD5E1" },
-  { x: 136, y: 18, size: 11, rot: -18, delay: 0.04, color: "#FFFFFF" },
-  { x: -94, y: 92, size: 10, rot: 42, delay: 0.1, color: "#1E40AF" },
-  { x: 98, y: 88, size: 11, rot: -35, delay: 0.05, color: "#E2E8F0" },
-  { x: -28, y: -124, size: 9, rot: 12, delay: 0.03, color: "#60A5FA" },
-  { x: 34, y: -118, size: 10, rot: -14, delay: 0.08, color: "#FFFFFF" },
-  { x: -38, y: 120, size: 9, rot: 22, delay: 0.05, color: "#B8C0CC" },
-  { x: 32, y: 116, size: 10, rot: -20, delay: 0.09, color: "#93C5FD" },
-  { x: -70, y: -102, size: 8, rot: 18, delay: 0.11, color: "#3B82F6" },
-  { x: 76, y: -96, size: 8, rot: -22, delay: 0.07, color: "#FFFFFF" },
-  { x: -72, y: 108, size: 8, rot: 28, delay: 0.11, color: "#CBD5E1" },
-  { x: 74, y: 104, size: 8, rot: -26, delay: 0.08, color: "#60A5FA" },
-] as const;
-
 const CORNER_ROTATION: Record<"tl" | "tr" | "bl" | "br", string> = {
   tl: "none",
   tr: "scale(-1, 1)",
@@ -298,23 +281,23 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
       return;
     }
 
-    // 1. Destrave limpo do broche + ondas de choque + fagulhas estelares (sem confetes)
+    // 1. Dissolução limpa do broche (sem ondas de choque nem partículas)
     setPhase("unsealing");
 
-    // 2. Abertura lenta e fluida das portas (e liberação imediata do scroll)
+    // 2. Abertura fluida das portas (e liberação imediata do scroll)
     scheduleTimer(() => {
       setPhase("opening");
-    }, 580);
+    }, 180);
 
     // 3. Disparo do HeroPoster em plena visibilidade
     scheduleTimer(() => {
       onOpenStartRef.current();
-    }, 950);
+    }, 550);
 
     // 4. Desmontagem do overlay após as portas deixarem a tela
     scheduleTimer(() => {
       onOpenCompleteRef.current();
-    }, 2600);
+    }, 2250);
   }, [clearTimers, prefersReducedMotion, scheduleTimer, sealRawX, sealRawY]);
 
   const isIdle = phase === "idle";
@@ -382,54 +365,6 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
           style={{ x: isIdle ? sealX : 0, y: isIdle ? sealY : 0 }}
           className="relative flex items-center justify-center"
         >
-          {isAnimatingDoors && (
-            <>
-              <motion.span
-                initial={{ scale: 0.65, opacity: 0.78 }}
-                animate={{ scale: 3.1, opacity: 0 }}
-                transition={{ duration: 1.45, ease: LUXURY_EASE }}
-                className="pointer-events-none absolute size-36 sm:size-44 rounded-full border-2 border-[#60A5FA]/70"
-                aria-hidden
-              />
-              <motion.span
-                initial={{ scale: 0.55, opacity: 0.7 }}
-                animate={{ scale: 3.6, opacity: 0 }}
-                transition={{ duration: 1.7, delay: 0.14, ease: LUXURY_EASE }}
-                className="pointer-events-none absolute size-36 sm:size-44 rounded-full border border-[#CBD5E1]/85"
-                aria-hidden
-              />
-
-              {UNSEAL_SPARKS.map((spark, idx) => (
-                <motion.svg
-                  key={`spark-${idx}`}
-                  width={spark.size}
-                  height={spark.size}
-                  viewBox="0 0 24 24"
-                  initial={{ x: 0, y: 0, scale: 0.25, opacity: 0.95, rotate: 0 }}
-                  animate={{
-                    x: spark.x,
-                    y: spark.y,
-                    scale: [0.25, 1.28, 0.25],
-                    opacity: [0, 1, 0],
-                    rotate: spark.rot,
-                  }}
-                  transition={{
-                    duration: 1.35,
-                    delay: spark.delay,
-                    ease: LUXURY_EASE,
-                  }}
-                  className="pointer-events-none absolute z-30"
-                  aria-hidden
-                >
-                  <path
-                    d="M12 0 C13.5 8 16 10.5 24 12 C16 13.5 13.5 16 12 24 C10.5 16 8 13.5 0 12 C8 10.5 10.5 8 12 0 Z"
-                    fill={spark.color}
-                  />
-                </motion.svg>
-              ))}
-            </>
-          )}
-
           <motion.button
             type="button"
             onClick={handleTriggerOpen}

@@ -29,7 +29,7 @@ related:
 * **Aniversariante:** Carol (`Caroline Maria`) — **18 anos**
 * **Data e Horário:** **17 de Julho de 2027**, às **19:30** (fuso `America/Sao_Paulo`)
 * **Traje:** **Esporte Fino** — *"Tons de azul royal e prata são reservados à aniversariante."* (`EVENT.dressCodeNote`)
-* **Local Padrão Configurado:** Espaço Royal Eventos — Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP
+* **Local Padrão Configurado:** Videira Hall — Alameda José Boldrini - Bairro Videiras, Indaiatuba - SP
 
 > [!quote] Frase Oficial de Abertura
 > “Você pode sonhar, criar, desenhar e construir o lugar mais maravilhoso do mundo. Mas é necessário ter pessoas para transformar seu sonho em realidade.” – Walt Disney
@@ -54,7 +54,7 @@ related:
 2. **Pôster Hero Animado (`HeroPoster.tsx`):** Recriação 100% em código (React + SVG + Tailwind + Framer Motion) do pôster principal sem corte reto na base, com 3 globos espelhados 3D (`MirrorDiscoBall`) com aro especular e *parallax* no scroll, letreiro metálico `"HAPPY BiRthdAy"` em blocos retangulares com entrada *staggered*, estrelas em glitter azul royal e prata 3D chanfrada, bloco editorial da data (`Julho · SÁB | 17 | 19:30 · 2027`) e a foto P&B da Carol bebê (`carol-cutout.png`, `833x1024`) em container percentual travado com chapéu cônico em glitter azul royal (sombra projetada e pompom volumoso de 40 fios), laço azul acetinado preso na faixa e cluster de balões glossy azul royal com nós e fases independentes.
 3. **Continuação Contínua em Papel Texturizado (`InvitationContent.tsx`):** O mesmo papel artesanal (`bg-poster-paper`) segue sem interrupções do pôster ao rodapé, conectado nas laterais por `GlitterBlueStar` e `MetallicSilverStar`:
    * **Apresentação & Contagem Regressiva:** Pílula azul-marinho **`CAROL • 18 ANOS`** entre filetes, citação de Walt Disney e texto de convite em tipografia serifada clássica, **`CountdownTimer`** no estilo visual do bloco de data do pôster e atalhos para **Google Agenda** e **iPhone / Outlook (`.ics`)**.
-   * **Local da Festa (Seção Integrada):** Título serifado ladeado por linhas horizontais, nome do espaço (`Espaço Royal Eventos`), endereço completo, faixa de **Horário (`19:30`)** e **Traje (`Esporte Fino`)**, mapa embed do Google Maps e botões funcionais para **Google Maps**, **Waze** e **Copiar Endereço**.
+   * **Local da Festa (Seção Integrada):** Título serifado ladeado por linhas horizontais, nome do espaço (`Videira Hall`), endereço completo, faixa de **Horário (`19:30`)** e **Traje (`Esporte Fino`)**, mapa embed do Google Maps e botões funcionais para **Google Maps**, **Waze** e **Copiar Endereço**.
    * **Confirmação de Presença / RSVP (Seção Integrada):** Formulário completo com seletor de presença, nome completo, quantidade total de pessoas, campos dinâmicos para **nome de cada acompanhante**, recado opcional, celebração estelar (`fireMiniCelebration`), **feedback visual de confirmação na tela** e envio formatado para o **WhatsApp**.
 
 Veja também: [[00-INDEX]], [[01-arquitetura-e-estrutura]], [[02-envelope-3d-e-animacoes]], [[03-design-system-e-responsividade]].

@@ -69,13 +69,13 @@ export interface InvitationContentProps {
 }
 
 const REVEAL_TRANSITION = {
-  duration: 0.95,
+  duration: 1.5,
   ease: [0.16, 1, 0.3, 1],
 } as const;
 
-const REVEAL_INITIAL = { opacity: 0, y: 32, scale: 0.97 } as const;
+const REVEAL_INITIAL = { opacity: 0, y: 42, scale: 0.94 } as const;
 const REVEAL_VISIBLE = { opacity: 1, y: 0, scale: 1 } as const;
-const VIEWPORT_CONFIG = { once: true, amount: 0.14 } as const;
+const VIEWPORT_CONFIG = { once: false, amount: 0.14 } as const;
 
 /** Título editorial serifado ladeado por filetes horizontais no estilo do pôster. */
 function SectionHeading({ title }: { title: string }) {
@@ -255,19 +255,19 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
       const lines =
         data.attendance === "yes"
           ? [
-              `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel} às ${FORMATTED_EVENT_DATE.time}!`,
-              "",
-              `👤 Nome: ${data.name}`,
-              `👥 Total de pessoas: ${data.guests}`,
-              ...(data.companions.length > 0
-                ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
-                : []),
-            ]
+            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel} às ${FORMATTED_EVENT_DATE.time}!`,
+            "",
+            `👤 Nome: ${data.name}`,
+            `👥 Total de pessoas: ${data.guests}`,
+            ...(data.companions.length > 0
+              ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
+              : []),
+          ]
           : [
-              `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
-              "",
-              `👤 Nome: ${data.name}`,
-            ];
+            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
+            "",
+            `👤 Nome: ${data.name}`,
+          ];
 
       if (data.message) {
         lines.push(`💌 Recado: ${data.message}`);
@@ -446,36 +446,66 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
               </motion.div>
 
-              {/* Citação de Walt Disney e boas-vindas integradas ao papel */}
+              {/* Citação de Walt Disney em cartão editorial com cantoneiras e filete interno */}
               <motion.div
                 initial={REVEAL_INITIAL}
                 whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
                 viewport={VIEWPORT_CONFIG}
                 transition={REVEAL_TRANSITION}
-                className={`mt-7 w-full max-w-[460px] rounded-2xl px-5 py-6 sm:px-7 sm:py-7 ${cardSurfaceCls}`}
+                className={`relative mt-7 w-full max-w-[460px] rounded-2xl px-6 py-7 sm:px-9 sm:py-8 ${cardSurfaceCls}`}
               >
-                <span
-                  className="block font-serif text-[32px] leading-none text-royal-deep/55"
+                <div
+                  className="pointer-events-none absolute inset-2.5 rounded-xl border border-royal-deep/10"
+                  aria-hidden
+                />
+                <CornerFiligree
+                  position="tl"
+                  tone="slate"
+                  className="absolute top-2.5 left-2.5 size-8 sm:size-10 opacity-45"
+                />
+                <CornerFiligree
+                  position="tr"
+                  tone="slate"
+                  className="absolute top-2.5 right-2.5 size-8 sm:size-10 opacity-45"
+                />
+
+                <div
+                  className="relative mb-3.5 flex items-center justify-center gap-2.5 text-royal-deep/50"
                   aria-hidden
                 >
-                  “
-                </span>
+                  <span className="h-px w-8 bg-royal-deep/25" />
+                  <span className="text-[11px] leading-none">✦</span>
+                  <span className="h-px w-8 bg-royal-deep/25" />
+                </div>
 
-                <blockquote className="-mt-1 font-serif text-[13.5px] sm:text-[15px] font-medium italic leading-[1.85] tracking-[0.02em] text-royal-navy">
+                <blockquote className="relative font-sans text-[14.5px] sm:text-[16px] font-normal italic leading-[1.8] tracking-[0.01em] text-royal-navy/90">
                   {EVENT.quoteText}
                 </blockquote>
 
-                <div className="mt-3.5 flex items-center justify-center gap-3">
-                  <span className="h-px w-8 bg-royal-deep/35" />
-                  <cite className="font-serif text-[10.5px] sm:text-[11.5px] font-bold not-italic tracking-[0.18em] text-royal-deep uppercase">
+                <div className="relative mt-4 flex items-center justify-center gap-3">
+                  <span className="h-px w-7 bg-royal-deep/30" />
+                  <cite className="font-serif text-[10.5px] sm:text-[11.5px] font-bold not-italic tracking-[0.2em] text-royal-deep uppercase">
                     {EVENT.quoteAuthor}
                   </cite>
-                  <span className="h-px w-8 bg-royal-deep/35" />
+                  <span className="h-px w-7 bg-royal-deep/30" />
                 </div>
+              </motion.div>
 
-                <p className="mx-auto mt-4 max-w-[380px] font-sans text-[12px] sm:text-[13px] font-semibold leading-[1.75] tracking-[0.06em] text-royal-navy/85 uppercase">
+              {/* Mensagem pessoal de convite destacada fora da citação */}
+              <motion.div
+                initial={REVEAL_INITIAL}
+                whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
+                viewport={VIEWPORT_CONFIG}
+                transition={{ ...REVEAL_TRANSITION, delay: 0.1 }}
+                className="mt-6 w-full max-w-[410px] px-2"
+              >
+                <p className="font-sans text-[14px] sm:text-[15.5px] font-semibold leading-[1.7] text-royal-navy">
                   {EVENT.openingText}
                 </p>
+                <span
+                  className="mx-auto mt-4 block h-[1.5px] w-16 bg-gradient-to-r from-transparent via-royal-deep/45 to-transparent"
+                  aria-hidden
+                />
               </motion.div>
 
               {/* Contador ao vivo no estilo do pôster */}
@@ -516,8 +546,8 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   onClick={handleDownloadIcs}
                   aria-live="polite"
                   className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors ${icsSaved
-                      ? "border-royal-navy bg-royal-navy text-white"
-                      : "border-royal-deep/20 bg-white/85 text-royal-navy hover:border-royal-deep hover:bg-white"
+                    ? "border-royal-navy bg-royal-navy text-white"
+                    : "border-royal-deep/20 bg-white/85 text-royal-navy hover:border-royal-deep hover:bg-white"
                     }`}
                 >
                   <AnimatePresence mode="wait" initial={false}>
@@ -675,8 +705,8 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                     onClick={handleCopyAddress}
                     aria-live="polite"
                     className={`col-span-2 sm:col-span-1 flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2.5 font-sans text-[12.5px] font-semibold transition-colors ${copiedAddress
-                        ? "border-royal-navy bg-royal-navy text-white shadow-[0_8px_18px_-8px_rgba(7,23,57,0.45)]"
-                        : "border-royal-deep/20 bg-white/95 text-royal-navy hover:border-royal-deep hover:bg-white"
+                      ? "border-royal-navy bg-royal-navy text-white shadow-[0_8px_18px_-8px_rgba(7,23,57,0.45)]"
+                      : "border-royal-deep/20 bg-white/95 text-royal-navy hover:border-royal-deep hover:bg-white"
                       }`}
                   >
                     <AnimatePresence mode="wait" initial={false}>

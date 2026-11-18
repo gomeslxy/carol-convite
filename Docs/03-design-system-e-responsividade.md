@@ -52,9 +52,9 @@ related:
 
 | Variável CSS | Fonte Google | Papel Tipográfico |
 | :--- | :--- | :--- |
-| `--font-cinzel` (`font-serif`) | `Cinzel` (`400, 500, 600, 700`) | `"TOQUE PARA ABRIR"` na capa, data (`Julho`, `17`), títulos de seção (`Contagem Regressiva`, `Local da Festa`, `Confirmar Presença`), citação e encerramento |
-| `--font-jakarta` (`font-sans`) | `Plus Jakarta Sans` (`300, 400, 500, 600`) | Letreiro geométrico, `SÁB`, `19:30`, pílulas (`2027`, `CAROL • 18 ANOS`, rótulos do contador), formulários, endereço e botões |
-| `--font-great-vibes` (`font-script`) | `Great Vibes` (`400`) | Monograma sutil `"Carol"` na capa fechada `CoverGate` |
+| `--font-cinzel` (`font-serif`) | `Cinzel` (`variable font`, `preload: true`, `display: "swap"`) | `"TOQUE PARA ABRIR"` na capa, data (`Julho`, `17`), títulos de seção (`Contagem Regressiva`, `Local da Festa`, `Confirmar Presença`), citação e encerramento |
+| `--font-jakarta` (`font-sans`) | `Plus Jakarta Sans` (`variable font`, `preload: true`, `display: "swap"`) | Letreiro geométrico, `SÁB`, `19:30`, pílulas (`2027`, `CAROL • 18 ANOS`, rótulos do contador), formulários, endereço e botões |
+| `--font-great-vibes` (`font-script`) | `Great Vibes` (`400`, `preload: true`, `display: "swap"`) | Monograma sutil `"Carol"` na capa fechada `CoverGate` |
 
 ---
 
