@@ -24,6 +24,17 @@ related:
 
 ---
 
+## [2026-11-17] · Separação Broche Puro vs. Decoração na Página (`CoverGate`)
+
+### ADR-020: Broche Barroco Isolado Sem Fundo/Flores + Decoração Independente na Página (Laços, Riscos Chiques, Estrelas e Toque Floral)
+* **Motivação:** Corrigir o feedback visual da `CoverGate`: o broche possuía um halo circular visível atrás dele e flores acopladas no mesmo PNG, enquanto a composição de referência exige dois itens independentes — o selo puro em destaque acima da fresta e a decoração ornamental impressa na página ao redor/atrás dele, priorizando **laços acetinados Azul Royal**, **riscos caligráficos chiques**, **estrelas** e apenas um toque sutil floral.
+* **Alterações:**
+  * **Broche Puro Sem Fundo (`public/images/brasao-barroco-c.png`):** Restaurado o selo barroco perolado limpo (`576×610`, ~242 KB, zero flores externas e zero fundo) com neutralização integral de pixels quentes/dourados para **Prata/Madrepérola Frio** e monograma **"C"** em **Azul Royal**.
+  * **Remoção do Halo Circular (`CoverGate.tsx` & `globals.css`):** Removido o disco `radial-gradient` (`animate-halo-pulse`) atrás do broche; mantido apenas o `drop-shadow` recortado do selo e o shimmer restrito ao medalhão interno `"C"` (`w-[42%]`), eliminando também o keyframe `halo-pulse` em `globals.css`.
+  * **Decoração Independente da Página (`CoverPageCenterOrnament` em `CoverGate.tsx` & `BowDecoration.tsx`):** Re-exportado `BowGlyph` em `BowDecoration.tsx` e criada a composição vetorial central (`540×740`) dividida perfeitamente ao meio entre a porta esquerda (`viewBox="0 0 270 740"`) e a porta direita (`viewBox="270 0 270 740"`), atrás do broche: 3 laços acetinados Azul Royal (`BowGlyph`), moldura geométrica vertical alongada, riscos caligráficos fluidos, estrelas facetadas/brilhantes (`FacetedPageStar`, `FourPointStar`) e toques botânicos delicados (~20%), mantendo livre a lateral direita do selo para **`TOQUE PARA ABRIR`** (`CurvedCrestCaption` em `viewBox="0 0 576 610"`, `R = 324`).
+
+---
+
 ## [2026-11-17] · Auditoria Completa: Novo Brasão IA, Retrato Cirúrgico & 60fps
 
 ### ADR-019: Novo Brasão IA Royal & Prata (`760x882`), Texto Curvo à Direita, Física *Spring* e Ancoragem Percentual no Retrato

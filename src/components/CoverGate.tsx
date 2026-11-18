@@ -12,6 +12,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { BowGlyph } from "@/components/BowDecoration";
 import { fireLuxuryCelebration } from "@/components/LuxuryParticles";
 import { useScrollLock } from "@/components/SmoothScrollProvider";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
@@ -27,8 +28,8 @@ export interface CoverGateProps {
 }
 
 const CREST_SRC = "/images/brasao-barroco-c.png";
-const CREST_WIDTH = 760;
-const CREST_HEIGHT = 882;
+const CREST_WIDTH = 576;
+const CREST_HEIGHT = 610;
 
 const LUXURY_EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -41,29 +42,16 @@ const DOOR_SPRING_TRANSITION = {
 } as const;
 
 const UNSEAL_SPARKS = [
-  { x: -102, y: -58, size: 10, rot: -25, delay: 0, color: "#FFFFFF" },
-  { x: 104, y: -50, size: 9, rot: 30, delay: 0.02, color: "#93C5FD" },
-  { x: -118, y: 12, size: 8, rot: 15, delay: 0.04, color: "#CBD5E1" },
-  { x: 118, y: 16, size: 10, rot: -18, delay: 0.02, color: "#FFFFFF" },
-  { x: -82, y: 84, size: 9, rot: 42, delay: 0.05, color: "#1E40AF" },
-  { x: 86, y: 78, size: 10, rot: -35, delay: 0.03, color: "#E2E8F0" },
-  { x: -24, y: -112, size: 8, rot: 12, delay: 0.01, color: "#60A5FA" },
-  { x: 30, y: -106, size: 9, rot: -14, delay: 0.04, color: "#FFFFFF" },
-  { x: -34, y: 108, size: 8, rot: 22, delay: 0.02, color: "#B8C0CC" },
-  { x: 28, y: 104, size: 9, rot: -20, delay: 0.05, color: "#93C5FD" },
-] as const;
-
-const AMBIENT_CREST_SPARKS = [
-  { top: "12%", left: "16%", size: 10, color: "#1E40AF", delay: "0s", dur: "3.6s", desktopOnly: false },
-  { top: "8%", left: "78%", size: 9, color: "#60A5FA", delay: "0.9s", dur: "4.1s", desktopOnly: false },
-  { top: "48%", left: "4%", size: 8, color: "#94A3B8", delay: "1.5s", dur: "3.8s", desktopOnly: false },
-  { top: "74%", left: "89%", size: 10, color: "#0A2463", delay: "0.5s", dur: "4.3s", desktopOnly: false },
-  { top: "86%", left: "22%", size: 9, color: "#3B82F6", delay: "1.9s", dur: "3.9s", desktopOnly: false },
-  { top: "24%", left: "88%", size: 8, color: "#FFFFFF", delay: "1.2s", dur: "3.5s", desktopOnly: false },
-  { top: "30%", left: "9%", size: 7, color: "#FFFFFF", delay: "2.3s", dur: "4.2s", desktopOnly: true },
-  { top: "90%", left: "66%", size: 8, color: "#93C5FD", delay: "0.7s", dur: "4.0s", desktopOnly: true },
-  { top: "4%", left: "48%", size: 7, color: "#CBD5E1", delay: "1.7s", dur: "3.7s", desktopOnly: true },
-  { top: "64%", left: "11%", size: 8, color: "#1E40AF", delay: "2.1s", dur: "4.4s", desktopOnly: true },
+  { x: -96, y: -56, size: 10, rot: -25, delay: 0, color: "#FFFFFF" },
+  { x: 98, y: -48, size: 9, rot: 30, delay: 0.02, color: "#93C5FD" },
+  { x: -112, y: 12, size: 8, rot: 15, delay: 0.04, color: "#CBD5E1" },
+  { x: 112, y: 16, size: 10, rot: -18, delay: 0.02, color: "#FFFFFF" },
+  { x: -78, y: 78, size: 9, rot: 42, delay: 0.05, color: "#1E40AF" },
+  { x: 82, y: 74, size: 10, rot: -35, delay: 0.03, color: "#E2E8F0" },
+  { x: -24, y: -106, size: 8, rot: 12, delay: 0.01, color: "#60A5FA" },
+  { x: 28, y: -102, size: 9, rot: -14, delay: 0.04, color: "#FFFFFF" },
+  { x: -32, y: 102, size: 8, rot: 22, delay: 0.02, color: "#B8C0CC" },
+  { x: 26, y: 98, size: 9, rot: -20, delay: 0.05, color: "#93C5FD" },
 ] as const;
 
 const CORNER_ROTATION: Record<"tl" | "tr" | "bl" | "br", string> = {
@@ -74,8 +62,93 @@ const CORNER_ROTATION: Record<"tl" | "tr" | "bl" | "br", string> = {
 };
 
 /**
- * Ornamento barroco delicado com ramos estilizados e arabescos em Azul Royal & Prata
- * para emoldurar os cantos da capa sem poluir o centro.
+ * Estrela facetada bicolor de 5 pontas em Azul Royal ou Prata para a decoração da página.
+ */
+function FacetedPageStar({
+  x,
+  y,
+  r,
+  rot = 0,
+  tone = "royal",
+}: {
+  x: number;
+  y: number;
+  r: number;
+  rot?: number;
+  tone?: "royal" | "silver";
+}) {
+  const pts: [string, string][] = [];
+  for (let i = 0; i < 10; i++) {
+    const rad = ((i * 36 - 90) * Math.PI) / 180;
+    const len = i % 2 === 0 ? r : r * 0.42;
+    pts.push([(Math.cos(rad) * len).toFixed(1), (Math.sin(rad) * len).toFixed(1)]);
+  }
+  const poly = pts.map((p) => p.join(",")).join(" ");
+  const isRoyal = tone === "royal";
+
+  return (
+    <g transform={`translate(${x}, ${y}) rotate(${rot})`}>
+      <polygon
+        points={poly}
+        fill={isRoyal ? "#1E40AF" : "#CBD5E1"}
+        stroke={isRoyal ? "#071739" : "#64748B"}
+        strokeWidth="0.95"
+        strokeLinejoin="round"
+      />
+      <polygon
+        points={`0,0 ${pts[0].join(",")} ${pts[1].join(",")}`}
+        fill={isRoyal ? "#60A5FA" : "#FFFFFF"}
+        opacity="0.82"
+      />
+      <polygon
+        points={`0,0 ${pts[2].join(",")} ${pts[3].join(",")}`}
+        fill={isRoyal ? "#3B82F6" : "#F8FAFC"}
+        opacity="0.68"
+      />
+      <polygon
+        points={`0,0 ${pts[8].join(",")} ${pts[9].join(",")}`}
+        fill={isRoyal ? "#93C5FD" : "#FFFFFF"}
+        opacity="0.74"
+      />
+    </g>
+  );
+}
+
+/** Estrela lapidada de 4 pontas (✦) para acentos estelares na página. */
+function FourPointStar({
+  x,
+  y,
+  s,
+  fill = "#0A2463",
+  opacity = 0.88,
+  twinkleDelay,
+}: {
+  x: number;
+  y: number;
+  s: number;
+  fill?: string;
+  opacity?: number;
+  twinkleDelay?: string;
+}) {
+  const d = `M ${x} ${y - s} C ${x + s * 0.18} ${y - s * 0.24} ${x + s * 0.24} ${y - s * 0.18} ${x + s} ${y} C ${x + s * 0.24} ${y + s * 0.18} ${x + s * 0.18} ${y + s * 0.24} ${x} ${y + s} C ${x - s * 0.18} ${y + s * 0.24} ${x - s * 0.24} ${y + s * 0.18} ${x - s} ${y} C ${x - s * 0.24} ${y - s * 0.18} ${x - s * 0.18} ${y - s * 0.24} ${x} ${y - s} Z`;
+
+  if (twinkleDelay !== undefined) {
+    return (
+      <path
+        d={d}
+        fill={fill}
+        opacity={opacity}
+        style={{ transformOrigin: `${x}px ${y}px`, animationDelay: twinkleDelay }}
+        className="animate-spark-twinkle"
+      />
+    );
+  }
+
+  return <path d={d} fill={fill} opacity={opacity} />;
+}
+
+/**
+ * Ornamento de canto com riscos caligráficos chiques, estrela e laçada fina em Azul Royal & Prata.
  */
 function EditorialCornerOrnament({
   position,
@@ -86,83 +159,331 @@ function EditorialCornerOrnament({
 }) {
   return (
     <svg
-      viewBox="0 0 88 88"
+      viewBox="0 0 96 96"
       className={`pointer-events-none select-none overflow-visible ${className}`}
       style={{ transform: CORNER_ROTATION[position] }}
       aria-hidden
     >
-      {/* Moldura angular dupla prata & azul royal */}
       <path
-        d="M 3 76 L 3 8 Q 3 3 8 3 L 76 3"
+        d="M 3 84 L 3 9 Q 3 3 9 3 L 84 3"
         fill="none"
         stroke="#B8C0CC"
         strokeWidth="1.2"
         strokeLinecap="round"
       />
       <path
-        d="M 10 58 L 10 14 L 14 10 L 58 10"
+        d="M 11 64 L 11 15 L 15 11 L 64 11"
         fill="none"
         stroke="#0A2463"
-        strokeOpacity="0.42"
+        strokeOpacity="0.4"
         strokeWidth="0.95"
         strokeLinecap="round"
       />
 
-      {/* Arabescos barrocos e folhagens delicadas em Prata e Azul Royal */}
+      {/* Riscos caligráficos fluidos em Azul Royal & Prata */}
       <path
-        d="M 14 48 C 14 33, 21 21, 35 16 C 28 19, 21 27, 20 38"
+        d="M 15 56 C 15 36, 24 22, 42 16 C 31 20, 22 30, 21 44"
         fill="none"
         stroke="#1E40AF"
-        strokeOpacity="0.45"
-        strokeWidth="1.15"
+        strokeOpacity="0.52"
+        strokeWidth="1.25"
         strokeLinecap="round"
       />
       <path
-        d="M 48 14 C 33 14, 21 21, 16 35 C 19 28, 27 21, 38 20"
+        d="M 56 15 C 36 15, 22 24, 16 42 C 20 31, 30 22, 44 21"
         fill="none"
         stroke="#94A3B8"
-        strokeOpacity="0.85"
-        strokeWidth="1.15"
+        strokeOpacity="0.88"
+        strokeWidth="1.2"
         strokeLinecap="round"
       />
-
-      {/* Folhas estilizadas sutis */}
       <path
-        d="M 21 21 C 24 14, 31 14, 32 19 C 28 21, 24 22, 21 21 Z"
+        d="M 22 22 C 30 14, 38 18, 34 25 C 30 30, 23 27, 22 22 Z"
+        fill="none"
+        stroke="#0A2463"
+        strokeOpacity="0.42"
+        strokeWidth="0.95"
+      />
+
+      {/* Estrela de 4 pontas no vértice */}
+      <path
+        d="M 11 5.5 C 12 9 13 10 16.5 11 C 13 12 12 13 11 16.5 C 10 13 9 12 5.5 11 C 9 10 10 9 11 5.5 Z"
         fill="#0A2463"
-        fillOpacity="0.28"
+        fillOpacity="0.78"
       />
       <path
-        d="M 21 21 C 14 24, 14 31, 19 32 C 21 28, 22 24, 21 21 Z"
+        d="M 28 24 C 28.6 26.2 29.8 27.4 32 28 C 29.8 28.6 28.6 29.8 28 32 C 27.4 29.8 26.2 28.6 24 28 C 26.2 27.4 27.4 26.2 28 24 Z"
         fill="#1E40AF"
-        fillOpacity="0.24"
+        fillOpacity="0.65"
       />
-      <path
-        d="M 14 30 C 16 34, 15 39, 12 41 C 11 37, 12 33, 14 30 Z"
-        fill="#94A3B8"
-        fillOpacity="0.52"
-      />
-      <path
-        d="M 30 14 C 34 16, 39 15, 41 12 C 37 11, 33 12, 30 14 Z"
-        fill="#94A3B8"
-        fillOpacity="0.52"
-      />
-
-      {/* Voluta de remate e cristal lapidado no vértice */}
-      <path
-        d="M 10 6.5 L 13.5 10 L 10 13.5 L 6.5 10 Z"
-        fill="#0A2463"
-        fillOpacity="0.72"
-      />
-      <circle cx="24" cy="24" r="1.4" fill="#1E40AF" fillOpacity="0.55" />
     </svg>
   );
 }
 
 /**
- * Moldura perimetral e cantoneiras ornamentais de cada aba da capa bipartida.
+ * Decoração artística independente impressa NA PÁGINA (dividida entre as portas esquerda e direita),
+ * posicionada atrás do broche: riscos caligráficos chiques, 3 laços acetinados Azul Royal,
+ * estrelas facetadas/brilhantes e toques sutis de flores estilizadas em Azul Royal & Prata.
+ * A lateral direita imediata do broche permanece limpa para o texto "TOQUE PARA ABRIR".
  */
-function CoverDoorFrame({ side }: { side: "left" | "right" }) {
+function CoverPageCenterOrnament({
+  side,
+  animateStars,
+}: {
+  side: "left" | "right";
+  animateStars: boolean;
+}) {
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const petalGrad = `page-petal-${uid}`;
+  const leafGrad = `page-leaf-${uid}`;
+  const isLeft = side === "left";
+
+  const renderBlossom = (x: number, y: number, scale: number, rot: number, opacity: number) => (
+    <g transform={`translate(${x}, ${y}) rotate(${rot}) scale(${scale})`} opacity={opacity}>
+      {[0, 72, 144, 216, 288].map((angle) => (
+        <path
+          key={angle}
+          d="M 0 -2 C -12 -18, -8 -30, 0 -28 C 8 -30, 12 -18, 0 -2 Z"
+          transform={`rotate(${angle})`}
+          fill={`url(#${petalGrad})`}
+          stroke="#0A2463"
+          strokeOpacity="0.32"
+          strokeWidth="0.8"
+        />
+      ))}
+      <circle cx="0" cy="0" r="3.5" fill="#0A2463" />
+      <circle cx="-1" cy="-1" r="1.2" fill="#93C5FD" />
+    </g>
+  );
+
+  const renderLeaf = (x: number, y: number, scale: number, rot: number, opacity: number) => (
+    <g transform={`translate(${x}, ${y}) rotate(${rot}) scale(${scale})`} opacity={opacity}>
+      <path
+        d="M 0 0 C -9 -14, -7 -32, 0 -42 C 7 -32, 9 -14, 0 0 Z"
+        fill={`url(#${leafGrad})`}
+        stroke="#0A2463"
+        strokeOpacity="0.38"
+        strokeWidth="0.8"
+      />
+      <line x1="0" y1="-2" x2="0" y2="-38" stroke="#E2E8F0" strokeOpacity="0.62" strokeWidth="0.7" />
+    </g>
+  );
+
+  return (
+    <svg
+      viewBox={isLeft ? "0 0 270 740" : "270 0 270 740"}
+      className={`pointer-events-none absolute top-1/2 -translate-y-1/2 aspect-[270/740] w-[clamp(162px,46.6vw,202px)] max-w-[32.5dvh] md:w-[224px] select-none ${
+        isLeft ? "right-0" : "left-0"
+      }`}
+      aria-hidden
+    >
+      <defs>
+        <radialGradient id={petalGrad} cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#DBEAFE" />
+          <stop offset="55%" stopColor="#3B82F6" />
+          <stop offset="100%" stopColor="#0A2463" />
+        </radialGradient>
+        <linearGradient id={leafGrad} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#60A5FA" />
+          <stop offset="55%" stopColor="#1E40AF" />
+          <stop offset="100%" stopColor="#071739" />
+        </linearGradient>
+      </defs>
+
+      {/* 1. Moldura geométrica vertical alongada em Prata e Azul Royal (centro em 270, 370) */}
+      <path
+        d="M 270 34 L 372 370 L 270 706 L 168 370 Z"
+        fill="none"
+        stroke="rgba(148,163,184,0.72)"
+        strokeWidth="1.2"
+      />
+      <path
+        d="M 270 60 L 360 370 L 270 680 L 180 370 Z"
+        fill="none"
+        stroke="rgba(10,36,99,0.26)"
+        strokeWidth="0.95"
+      />
+      <line x1="270" y1="16" x2="270" y2="724" stroke="rgba(10,36,99,0.22)" strokeWidth="1.1" />
+
+      {/* 2. Riscos caligráficos chiques (arabescos fluidos em Azul Royal & Prata) */}
+      <path
+        d="M 258 232 C 202 114, 92 100, 72 190 C 58 250, 120 282, 146 244 C 164 218, 132 198, 118 218"
+        fill="none"
+        stroke="#0A2463"
+        strokeOpacity="0.78"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 244 220 C 194 134, 114 122, 92 194"
+        fill="none"
+        stroke="#94A3B8"
+        strokeOpacity="0.9"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+
+      {/* Risco superior direito (acima da zona do texto "TOQUE PARA ABRIR") */}
+      <path
+        d="M 282 224 C 322 114, 408 66, 456 128 C 476 156, 444 190, 422 170"
+        fill="none"
+        stroke="#1E40AF"
+        strokeOpacity="0.7"
+        strokeWidth="1.95"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 290 212 C 330 132, 394 94, 434 136"
+        fill="none"
+        stroke="#CBD5E1"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+
+      {/* Curva elegante flanqueando a lateral esquerda do broche */}
+      <path
+        d="M 162 304 C 66 344, 52 464, 136 518 C 176 544, 216 512, 196 484"
+        fill="none"
+        stroke="#1E40AF"
+        strokeOpacity="0.64"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 150 330 C 82 370, 80 448, 144 496"
+        fill="none"
+        stroke="#94A3B8"
+        strokeOpacity="0.82"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+      />
+
+      {/* Cascata inferior simétrica de riscos e S-curves */}
+      <path
+        d="M 250 516 C 188 622, 90 636, 104 700 C 115 740, 172 734, 178 694"
+        fill="none"
+        stroke="#0A2463"
+        strokeOpacity="0.78"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 290 516 C 352 622, 450 636, 436 700 C 425 740, 368 734, 362 694"
+        fill="none"
+        stroke="#1E40AF"
+        strokeOpacity="0.72"
+        strokeWidth="1.95"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 262 530 C 234 642, 194 716, 244 734"
+        fill="none"
+        stroke="#94A3B8"
+        strokeOpacity="0.88"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 278 530 C 306 642, 346 716, 296 734"
+        fill="none"
+        stroke="#94A3B8"
+        strokeOpacity="0.88"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+
+      {/* 3. Um pouco de flor & folhas delicadas (~20%, equilibradas atrás dos laços) */}
+      {renderLeaf(218, 176, 1.0, -38, 0.78)}
+      {renderLeaf(238, 160, 0.84, -12, 0.68)}
+      {renderBlossom(186, 190, 0.84, -15, 0.84)}
+      {renderLeaf(332, 164, 0.86, 40, 0.68)}
+      {renderLeaf(202, 598, 1.02, -142, 0.78)}
+      {renderLeaf(336, 604, 0.94, 138, 0.72)}
+      {renderBlossom(368, 618, 0.78, 20, 0.78)}
+      {renderBlossom(170, 584, 0.72, -28, 0.74)}
+
+      {/* 4. Estrelas facetadas & cintilações em Azul Royal e Prata */}
+      <FacetedPageStar x={118} y={170} r={15} rot={-12} tone="royal" />
+      <FacetedPageStar x={412} y={144} r={13} rot={14} tone="silver" />
+      <FacetedPageStar x={94} y={404} r={14} rot={8} tone="silver" />
+      <FacetedPageStar x={402} y={664} r={15} rot={18} tone="royal" />
+      <FacetedPageStar x={144} y={658} r={12.5} rot={-16} tone="silver" />
+
+      <FourPointStar
+        x={270}
+        y={22}
+        s={16}
+        fill="#0A2463"
+        opacity={0.9}
+        twinkleDelay={animateStars ? "0s" : undefined}
+      />
+      <FourPointStar
+        x={270}
+        y={718}
+        s={16}
+        fill="#0A2463"
+        opacity={0.9}
+        twinkleDelay={animateStars ? "1.6s" : undefined}
+      />
+      <FourPointStar
+        x={70}
+        y={296}
+        s={11}
+        fill="#1E40AF"
+        opacity={0.82}
+        twinkleDelay={animateStars ? "0.7s" : undefined}
+      />
+      <FourPointStar
+        x={110}
+        y={548}
+        s={11}
+        fill="#60A5FA"
+        opacity={0.92}
+        twinkleDelay={animateStars ? "1.2s" : undefined}
+      />
+      <FourPointStar
+        x={448}
+        y={202}
+        s={10.5}
+        fill="#1E40AF"
+        opacity={0.82}
+        twinkleDelay={animateStars ? "0.4s" : undefined}
+      />
+      <FourPointStar
+        x={444}
+        y={580}
+        s={11.5}
+        fill="#60A5FA"
+        opacity={0.92}
+        twinkleDelay={animateStars ? "2.0s" : undefined}
+      />
+
+      {/* 5. Laços acetinados esculturais em Azul Royal (reutilizando BowGlyph de alta-costura) */}
+      <g transform="translate(270, 162) scale(0.76) translate(-80, -48)">
+        <BowGlyph variant="royal" idPrefix={`${uid}-top-bow`} />
+      </g>
+
+      <g transform="translate(158, 238) rotate(-24) scale(0.5) translate(-80, -48)">
+        <BowGlyph variant="duo" idPrefix={`${uid}-left-bow`} />
+      </g>
+
+      <g transform="translate(270, 558) scale(1.0) translate(-80, -48)">
+        <BowGlyph variant="royal" idPrefix={`${uid}-bottom-bow`} />
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Moldura perimetral, cantoneiras caligráficas e metade da decoração central da página.
+ */
+function CoverDoorFrame({
+  side,
+  animateStars,
+}: {
+  side: "left" | "right";
+  animateStars: boolean;
+}) {
   const isLeft = side === "left";
 
   return (
@@ -172,8 +493,8 @@ function CoverDoorFrame({ side }: { side: "left" | "right" }) {
         className="absolute inset-0"
         style={{
           background: isLeft
-            ? "linear-gradient(90deg, rgba(7,23,57,0.065) 0%, transparent 24%), linear-gradient(180deg, rgba(7,23,57,0.045) 0%, transparent 18%, transparent 82%, rgba(7,23,57,0.055) 100%)"
-            : "linear-gradient(270deg, rgba(7,23,57,0.065) 0%, transparent 24%), linear-gradient(180deg, rgba(7,23,57,0.045) 0%, transparent 18%, transparent 82%, rgba(7,23,57,0.055) 100%)",
+            ? "linear-gradient(90deg, rgba(7,23,57,0.06) 0%, transparent 24%), linear-gradient(180deg, rgba(7,23,57,0.045) 0%, transparent 18%, transparent 82%, rgba(7,23,57,0.055) 100%)"
+            : "linear-gradient(270deg, rgba(7,23,57,0.06) 0%, transparent 24%), linear-gradient(180deg, rgba(7,23,57,0.045) 0%, transparent 18%, transparent 82%, rgba(7,23,57,0.055) 100%)",
         }}
       />
 
@@ -194,23 +515,26 @@ function CoverDoorFrame({ side }: { side: "left" | "right" }) {
 
       <EditorialCornerOrnament
         position={isLeft ? "tl" : "tr"}
-        className={`absolute top-3.5 sm:top-6 size-14 sm:size-20 ${
+        className={`absolute top-3.5 sm:top-6 size-16 sm:size-22 ${
           isLeft ? "left-3.5 sm:left-6" : "right-3.5 sm:right-6"
         }`}
       />
       <EditorialCornerOrnament
         position={isLeft ? "bl" : "br"}
-        className={`absolute bottom-3.5 sm:bottom-6 size-14 sm:size-20 ${
+        className={`absolute bottom-3.5 sm:bottom-6 size-16 sm:size-22 ${
           isLeft ? "left-3.5 sm:left-6" : "right-3.5 sm:right-6"
         }`}
       />
+
+      {/* Decoração da página separada do broche e dividida pela fresta central */}
+      <CoverPageCenterOrnament side={side} animateStars={animateStars} />
     </div>
   );
 }
 
 /**
- * Texto curvo "TOQUE PARA ABRIR" posicionado exclusivamente na lateral direita do brasão,
- * acompanhando em arco a curvatura externa direita do medalhão central (viewBox 760x882).
+ * Texto curvo "TOQUE PARA ABRIR" contornando suavemente a lateral direita do broche limpo
+ * diretamente sobre o papel claro (sem disco ou fundo atrás).
  */
 function CurvedCrestCaption({ visible }: { visible: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -226,13 +550,13 @@ function CurvedCrestCaption({ visible }: { visible: boolean }) {
       aria-hidden
     >
       <defs>
-        {/* Arco direito concêntrico ao medalhão (centro 446.1, 429.4 | raio 288 | -53° a +23°) */}
-        <path id={arcId} d="M 618.2,201.0 A 288,288 0 0 1 709.4,541.1" />
+        {/* Arco direito concêntrico ao selo (centro 288, 305 | raio 324 | -48° a +34°) */}
+        <path id={arcId} d="M 504.8,64.2 A 324,324 0 0 1 556.6,486.2" />
       </defs>
 
       <text
         fill="#071739"
-        fontSize="30"
+        fontSize="31"
         fontWeight={600}
         className="animate-breathe-soft font-serif uppercase"
         style={{ letterSpacing: "0.17em" }}
@@ -248,12 +572,13 @@ function CurvedCrestCaption({ visible }: { visible: boolean }) {
 /**
  * ─────────────────────────────────────────────────────────────────────────────
  *  CAPA DE ABERTURA BIPARTIDA (CoverGate)
- *  - Portas bipartidas 50% / 50% em papel artesanal (#F4F5F7) com vinheta e
- *    junção central realista em alto-relevo + cantoneiras barrocas Royal & Prata.
- *  - Brasão barroco perolado com ornamentos externos em Azul Royal & Prata
- *    (zero dourado) + halo luminoso, reflexo especular diagonal (shimmer) e
- *    micropartículas cintilantes em GPU.
- *  - Chamada "TOQUE PARA ABRIR" contornando suavemente a lateral direita do selo.
+ *  - Portas bipartidas 50% / 50% em papel artesanal (#F4F5F7) contendo a
+ *    decoração separada da página (laços Royal Blue, riscos caligráficos chiques,
+ *    estrelas facetadas e toques sutis botânicos) que se abre junto com as portas.
+ *  - Broche central independente em Madrepérola & Prata com "C" em Azul Royal
+ *    (zero fundo, zero círculo atrás, zero flores acopladas), sobreposto à fresta
+ *    com sombra projetada realista e shimmer restrito ao esmalte interno.
+ *  - Chamada "TOQUE PARA ABRIR" contornando suavemente a lateral direita do broche.
  *  - Abertura fluida por física spring (transform: translate3d) e liberação do Lenis.
  * ─────────────────────────────────────────────────────────────────────────────
  */
@@ -336,14 +661,14 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
       return;
     }
 
-    // 1. Dissolução do brasão + explosão leve de brilhos azuis e prateados (~340ms)
+    // 1. Dissolução do broche + explosão leve de brilhos azuis e prateados (~340ms)
     setPhase("unsealing");
     confettiCleanupRef.current = fireLuxuryCelebration(confettiRef.current);
 
     const tl = gsap.timeline();
     timelineRef.current = tl;
 
-    // 2. Abertura fluida das portas bipartidas com física spring
+    // 2. Abertura fluida das portas bipartidas com física spring (carregando a decoração da página)
     tl.call(
       () => {
         setPhase("opening");
@@ -361,13 +686,15 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
   const isUnsealing = phase === "unsealing";
   const isOpening = phase === "opening";
   const isAnimatingDoors = isUnsealing || isOpening;
+  const animatePageStars = isIdle && !prefersReducedMotion;
 
   return (
     <div
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className={`fixed inset-0 z-40 h-dvh w-screen overflow-hidden select-none touch-none ${isOpening ? "pointer-events-none" : "pointer-events-auto"
-        }`}
+      className={`fixed inset-0 z-40 h-dvh w-screen overflow-hidden select-none touch-none ${
+        isOpening ? "pointer-events-none" : "pointer-events-auto"
+      }`}
       role="dialog"
       aria-modal="true"
       aria-label={`Capa do convite de ${EVENT.name} — ${EVENT.age} Anos`}
@@ -383,7 +710,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
         className="bg-paper-fine absolute inset-y-0 left-0 z-20 w-1/2 overflow-hidden border-r border-[#B8C0CC]/80 shadow-[inset_-1px_0_0_rgba(255,255,255,0.92),inset_-12px_0_22px_-14px_rgba(7,23,57,0.16),8px_0_28px_-6px_rgba(7,23,57,0.28),2px_0_6px_-2px_rgba(7,23,57,0.15)]"
         aria-hidden
       >
-        <CoverDoorFrame side="left" />
+        <CoverDoorFrame side="left" animateStars={animatePageStars} />
 
         {/* Identidade editorial discreta no canto superior esquerdo */}
         <div className="pointer-events-none absolute top-8 left-8 sm:top-12 sm:left-14 flex flex-col items-start">
@@ -414,7 +741,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
         className="bg-paper-fine absolute inset-y-0 right-0 z-10 w-1/2 overflow-hidden shadow-[inset_18px_0_30px_-12px_rgba(7,23,57,0.26),inset_3px_0_6px_-1px_rgba(7,23,57,0.14)]"
         aria-hidden
       >
-        <CoverDoorFrame side="right" />
+        <CoverDoorFrame side="right" animateStars={animatePageStars} />
 
         {/* Data oficial discreta no canto inferior direito */}
         <div className="pointer-events-none absolute right-8 bottom-8 sm:right-14 sm:bottom-12 flex items-center gap-1.5 font-serif text-[9px] sm:text-[10px] tracking-[0.24em] text-[#071739]/68 uppercase">
@@ -427,7 +754,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
       </motion.div>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          BRASÃO BARROCO CENTRAL + HALO + SHIMMER + TEXTO CURVO À DIREITA
+          BROCHE BARROCO PURO CENTRAL (ZERO FUNDO) + TEXTO CURVO À DIREITA
          ════════════════════════════════════════════════════════════════════════ */}
       <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
         <motion.div
@@ -467,7 +794,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
             </>
           )}
 
-          {/* Botão Interativo do Brasão Barroco + Texto Curvo à Direita */}
+          {/* Botão Interativo do Broche Puro (sem fundo/círculo atrás) + Texto Curvo à Direita */}
           <motion.button
             type="button"
             onClick={handleTriggerOpen}
@@ -475,7 +802,7 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
             aria-label={`Abrir convite de ${EVENT.name} — ${EVENT.age} Anos`}
             initial={false}
             animate={isIdle ? { scale: 1, opacity: 1 } : { scale: 1.12, opacity: 0 }}
-            whileHover={isIdle ? { scale: 1.035 } : undefined}
+            whileHover={isIdle ? { scale: 1.04 } : undefined}
             whileTap={isIdle ? { scale: 0.94 } : undefined}
             transition={
               isIdle
@@ -483,52 +810,12 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
                 : { duration: 0.34, ease: LUXURY_EASE }
             }
             style={{ willChange: isAnimatingDoors ? "transform, opacity" : "auto" }}
-            className="pointer-events-auto group relative z-20 -translate-x-[3.5%] cursor-pointer rounded-full p-3 sm:p-5 outline-none focus-visible:ring-4 focus-visible:ring-[#0A2463]/35"
+            className="pointer-events-auto group relative z-20 cursor-pointer rounded-full p-4 sm:p-5 outline-none focus-visible:ring-4 focus-visible:ring-[#0A2463]/35"
           >
             {/* Micro-flutuação vertical idle (~4.2s, GPU translate3d) */}
             <div className={isIdle ? "animate-crest-float relative" : "relative"}>
-              <div className="relative aspect-[760/882] w-[clamp(226px,64vw,268px)] max-w-[44dvh] md:w-[300px]">
-                {/* Halo luminoso suave em Azul Royal e Prata atrás do medalhão */}
-                <div
-                  className={`pointer-events-none absolute top-[48.7%] left-[58.7%] aspect-square w-[92%] -translate-x-1/2 -translate-y-1/2 rounded-full ${
-                    isIdle && !prefersReducedMotion ? "animate-halo-pulse" : ""
-                  }`}
-                  style={{
-                    background:
-                      "radial-gradient(circle, rgba(255,255,255,0.88) 0%, rgba(147,197,253,0.26) 42%, rgba(30,64,175,0.12) 66%, transparent 76%)",
-                  }}
-                  aria-hidden
-                />
-
-                {/* Micropartículas brilhantes flutuando discretamente ao redor (adaptativas no mobile) */}
-                {isIdle && !prefersReducedMotion && (
-                  <div className="pointer-events-none absolute inset-0" aria-hidden>
-                    {AMBIENT_CREST_SPARKS.map((sp, idx) => (
-                      <svg
-                        key={`ambient-${idx}`}
-                        viewBox="0 0 24 24"
-                        style={{
-                          top: sp.top,
-                          left: sp.left,
-                          width: sp.size,
-                          height: sp.size,
-                          animationDelay: sp.delay,
-                          animationDuration: sp.dur,
-                        }}
-                        className={`animate-spark-twinkle pointer-events-none absolute ${
-                          sp.desktopOnly ? "hidden sm:block" : "block"
-                        }`}
-                      >
-                        <path
-                          d="M12 0 C13.5 8 16 10.5 24 12 C16 13.5 13.5 16 12 24 C10.5 16 8 13.5 0 12 C8 10.5 10.5 8 12 0 Z"
-                          fill={sp.color}
-                        />
-                      </svg>
-                    ))}
-                  </div>
-                )}
-
-                {/* Brasão Barroco com ornamentos externos Royal & Prata (FCP prioritário) */}
+              <div className="relative aspect-[576/610] w-[clamp(150px,43vw,186px)] max-w-[30dvh] md:w-[206px]">
+                {/* Broche Barroco Transparente em Madrepérola/Prata & "C" Azul Royal (zero fundo) */}
                 <Image
                   src={CREST_SRC}
                   alt={`Brasão monograma ${EVENT.initial} de ${EVENT.name} — ${EVENT.age} anos`}
@@ -538,22 +825,22 @@ export default function CoverGate({ onOpenStart, onOpenComplete }: CoverGateProp
                   fetchPriority="high"
                   loading="eager"
                   decoding="sync"
-                  sizes="(max-width: 767px) 268px, 300px"
+                  sizes="(max-width: 767px) 186px, 206px"
                   draggable={false}
-                  className="relative z-10 size-full object-contain transition-[filter] duration-300 ease-out [filter:drop-shadow(0_16px_24px_rgba(7,23,57,0.22))_drop-shadow(0_6px_10px_rgba(10,36,99,0.14))_drop-shadow(0_2px_4px_rgba(7,23,57,0.10))] group-hover:[filter:drop-shadow(0_22px_32px_rgba(7,23,57,0.28))_drop-shadow(0_8px_14px_rgba(10,36,99,0.18))_drop-shadow(0_3px_6px_rgba(7,23,57,0.14))]"
+                  className="relative z-10 size-full object-contain transition-[filter] duration-300 ease-out [filter:drop-shadow(0_14px_22px_rgba(7,23,57,0.24))_drop-shadow(0_5px_9px_rgba(10,36,99,0.16))_drop-shadow(0_2px_3px_rgba(7,23,57,0.12))] group-hover:[filter:drop-shadow(0_20px_30px_rgba(7,23,57,0.30))_drop-shadow(0_8px_14px_rgba(10,36,99,0.20))_drop-shadow(0_3px_5px_rgba(7,23,57,0.14))]"
                 />
 
-                {/* Reflexo especular diagonal (shimmer) passando suavemente pelo esmalte do selo */}
+                {/* Reflexo especular diagonal (shimmer) estritamente dentro do medalhão interno "C" */}
                 {isIdle && !prefersReducedMotion && (
                   <div
-                    className="pointer-events-none absolute top-[48.7%] left-[58.7%] z-20 aspect-square w-[58%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
+                    className="pointer-events-none absolute top-1/2 left-1/2 z-20 aspect-square w-[42%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
                     aria-hidden
                   >
                     <div
                       className="animate-brooch-shimmer absolute -inset-y-8 left-0 w-[38%]"
                       style={{
                         background:
-                          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 25%, rgba(255,255,255,0.62) 50%, rgba(147,197,253,0.18) 75%, transparent 100%)",
+                          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.10) 25%, rgba(255,255,255,0.56) 50%, rgba(147,197,253,0.16) 75%, transparent 100%)",
                       }}
                     />
                   </div>

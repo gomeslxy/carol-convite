@@ -26,7 +26,6 @@
   --animate-disco-glint: disco-glint 3.4s ease-in-out infinite;
   --animate-breathe-soft: breathe-soft 3.2s ease-in-out infinite;
   --animate-brooch-shimmer: brooch-shimmer 5.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-  --animate-halo-pulse: halo-pulse 4.4s ease-in-out infinite;
   --animate-spark-twinkle: spark-twinkle 3.8s ease-in-out infinite;
 }
 
@@ -236,18 +235,6 @@ html.lenis body {
   100% {
     opacity: 0;
     transform: translate3d(245%, 0, 0) rotate(26deg);
-  }
-}
-
-@keyframes halo-pulse {
-  0%,
-  100% {
-    opacity: 0.54;
-    transform: scale3d(0.96, 0.96, 1);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale3d(1.04, 1.04, 1);
   }
 }
 

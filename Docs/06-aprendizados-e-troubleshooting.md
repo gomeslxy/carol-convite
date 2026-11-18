@@ -66,7 +66,7 @@ related:
 > [!bug] Concorrência de `next dev` Ativo com `next build` (ou Cache `.next` Inconsistente)
 > Quando existem processos `next dev` (`start-server.js`) rodando em background no mesmo diretório — ou após remoção/renomeação de componentes com cache `.next` inconsistente — o servidor de desenvolvimento recompila sob demanda e sobrescreve `.next/server/app-paths-manifest.json` sem a entrada `"/_not-found/page"`, fazendo o `next build` falhar na etapa *Collecting page data* com `[Error: Invariant: no direct app page entry found for /_not-found]`.
 
-* **Solução:** Encerrar quaisquer processos `next dev` concorrentes no mesmo repositório, remover a pasta `.next` e executar o build limpo (`Remove-Item -Recurse -Force .next; npm.cmd run build`).
+* **Solução:** Encerrar quaisquer processos `next dev` concorrentes no mesmo repositório, remover a pasta `.next` e executar o build limpo (`Remove-Item -Recurse -Force .next; npm.cmd run build`). Caso um supervisor externo reinicie `next dev` continuamente em `.next`, execute um build isolado com `$env:NEXT_DIST_DIR=".next-build"; npm.cmd run build` (suportado em `next.config.ts`) e remova `.next-build` ao final.
 
 ---
 
@@ -123,7 +123,8 @@ related:
 
 > [!tip] Remoção de Halo, Preservação de Brilhos Internos & `<textPath>` Sem Cortes
 > * **Recorte com Fundo Isolado + Ilhas Internas (`brasao-barroco-c.png`):** Ao recortar ilustrações detalhadas sobre fundo branco (`#FFFFFF`) que possuem destaques perolados internos (`>= 250`), nunca remova ilhas claras indiscriminadamente perto do selo — aplique *flood-fill* conectado a partir das bordas e limite a limpeza de buracos fechados apenas a regiões grandes (`size >= 150`) fora do raio máximo da borda ondulada (`minR >= 298`), aplicando descontaminação cromática de 2px na fronteira.
-> * **Texto Curvo Sincronizado à Direita (`CurvedCrestCaption`):** Usar o mesmo `viewBox` das dimensões reais do PNG (`760x882`) dentro do container `aspect-[760/882]` trava matematicamente o arco `<path>` (`centro 446.1, 429.4 | R = 288`) ao contorno externo direito do medalhão em qualquer resolução (`360px` a desktop), eliminando desalinhamentos e garantindo espaço livre entre os ramos superiores e inferiores.
+> * **Separação Broche vs. Decoração de Página via `viewBox` Bipartido (`CoverGate.tsx`):** Para criar a ilusão física de que a decoração ornamental pertence às folhas do convite (atrás do broche) e se abre ao meio junto com as portas, compartilhe o mesmo sistema de coordenadas mestre (`540×740`) rendendo `viewBox="0 0 270 740"` ancorado em `right-0` na porta esquerda e `viewBox="270 0 270 740"` ancorado em `left-0` na porta direita, usando o mesmo `aspect-[270/740]` travado proporcionalmente à largura do broche. Nunca use um disco `radial-gradient` atrás de broches PNG sem fundo, pois cria aparência de círculo recortado.
+* **Texto Curvo Sincronizado à Direita (`CurvedCrestCaption`):** Usar o mesmo `viewBox` das dimensões reais do PNG (`576×610`) dentro do container `aspect-[576/610]` trava matematicamente o arco `<path>` (`centro 288, 305 | R = 324`) ao contorno externo direito do medalhão em qualquer resolução (`360px` a desktop), eliminando colisões e cortes.
 > * **Ancoragem Percentual de Adereços (`HeroPoster.tsx`):** Posicionar acessórios sobre fotos recortadas usando `top`/`left`/`right` e `w-[...%]` exclusivamente em `%` dentro de um único container com `aspect-[833/1024]` garante paridade absoluta entre mobile e desktop, impedindo que chapéu e laço escorreguem para a testa ou olhos.
 > * **`will-change` sob Demanda:** Aplicar `will-change: transform` somente nos estágios `unsealing` / `opening` evita alocação prematura de camadas GPU enquanto a capa está em repouso.
 

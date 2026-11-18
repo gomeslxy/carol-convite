@@ -33,25 +33,28 @@ related:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> idle : "Stage: closed (Scroll travado em 100dvh, halo + shimmer + partículas adaptativas)"
-    idle --> unsealing : "Clique/toque no brasão (whileTap scale 0.94 + partículas + scale 1.12 / opacity 0 em 340ms)"
-    unsealing --> opening : "0.34s — Portas deslizam (-102% / +102%) em física spring (stiffness 62, damping 16)"
+    [*] --> idle : "Stage: closed (Scroll travado em 100dvh, decoração nas portas + broche puro central)"
+    idle --> unsealing : "Clique/toque no broche (whileTap scale 0.94 + partículas + scale 1.12 / opacity 0 em 340ms)"
+    unsealing --> opening : "0.34s — Portas deslizam (-102% / +102%) em física spring levando a decoração da página"
     opening --> open : "1.36s — CoverGate desmonta, onOpenComplete() libera Lenis Scroll"
     open --> [*]
 ```
 
-* Se `prefers-reduced-motion: reduce` estiver ativo no sistema operacional, partículas e shimmer são ocultados, parallax é zerado e a abertura salta diretamente para `opening`, liberando o scroll em `0.20s`.
+* Se `prefers-reduced-motion: reduce` estiver ativo no sistema operacional, estrelas animadas e shimmer são ocultados, parallax é zerado e a abertura salta diretamente para `opening`, liberando o scroll em `0.20s`.
 
 ---
 
 ## Arquitetura da Capa Bipartida (`CoverGate.tsx`)
 
-* **Portas Verticais (`50%` esquerda / `50%` direita):** Superfície `bg-paper-fine` em papel artesanal off-white/pérola (`#F4F5F7`) com vinheta perimetral sutil, molduras duplas e cantoneiras barrocas delicadas (`EditorialCornerOrnament`) em Azul Royal (`#0A2463`, `#1E40AF`) e Prata (`#B8C0CC`, `#94A3B8`), sombra multicamada realista na junção central e filetes verticais paralelos.
-* **Brasão Barroco Royal & Prata (`public/images/brasao-barroco-c.png`):** Imagem PNG transparente (`760x882`, ~297 KB, zero dourado/champagne, com ramos botânicos, flores delicadas e arabescos externos em Azul Royal, Safira e Prata), carregada com `<Image priority fetchPriority="high" loading="eager" decoding="sync" />` e `initial={false}` para *First Paint* instantâneo (`CLS = 0`).
-  * **Efeitos GPU-Only ao Redor do Selo:** Halo luminoso radial em Azul Royal/Prata (`animate-halo-pulse`), reflexo especular diagonal passando pelo esmalte circular (`animate-brooch-shimmer` em `translate3d` + `rotate(26deg)` sem requisição extra) e micropartículas estelares adaptativas (`AMBIENT_CREST_SPARKS`: 6 no mobile / 10 no desktop com `animate-spark-twinkle`).
-  * **Texto Curvo Exclusivo à Direita (`CurvedCrestCaption`):** `<svg viewBox="0 0 760 882">` sincronizado com as dimensões do asset, desenhando **`TOQUE PARA ABRIR`** em `Cinzel` (`#071739`, `fontSize: 30`, `tracking: 0.17em`) ao longo de `<path>` concêntrico à lateral direita do medalhão (`centro 446.1, 429.4`, `raio 288`, `-53°` a `+23°`), com respiração suave (`animate-breathe-soft`) e encaixe confortável de `360px` ao desktop.
-  * `will-change: transform` aplicado nas portas e no botão do brasão **apenas durante a abertura** (`isUnsealing || isOpening`), economizando memória de camada GPU em repouso.
-  * Ao clicar/tocar (`handleTriggerOpen`): resposta tátil *spring* rápida (`scale: 0.94`), explosão de 10 fagulhas estelares (`UNSEAL_SPARKS`) + `fireLuxuryCelebration` (orçamento calibrado para mobile), dissolução do brasão (`scale: 1.12, opacity: 0` em `340ms`) seguida pela abertura das portas com física *spring* (`stiffness: 62, damping: 16, mass: 1`).
+* **Portas Verticais (`50%` esquerda / `50%` direita) + Decoração Independente da Página (`CoverPageCenterOrnament`):**
+  * Superfície `bg-paper-fine` em papel artesanal off-white/pérola (`#F4F5F7`) com vinheta perimetral sutil, molduras duplas e cantoneiras caligráficas com estrelas (`EditorialCornerOrnament`) em Azul Royal e Prata.
+  * Em camada impressa **sobre as portas da página** (dividida exatamente na junção central via `viewBox="0 0 270 740"` à esquerda e `viewBox="270 0 270 740"` à direita), `CoverPageCenterOrnament` reúne: **3 laços acetinados Azul Royal** (`BowGlyph` de `BowDecoration.tsx`), **riscos caligráficos fluidos chiques**, moldura geométrica vertical alongada, **estrelas facetadas e brilhantes** (`FacetedPageStar`, `FourPointStar` com `animate-spark-twinkle`) e toques botânicos sutis (~20%). Ao abrir as portas, a decoração parte-se e desliza com cada folha de papel.
+* **Broche Barroco Puro Sem Fundo (`public/images/brasao-barroco-c.png`):**
+  * Imagem PNG recortada (`576x610`, ~242 KB, zero dourado/champagne — relevo em Madrepérola/Prata Frio e monograma `"C"` em Azul Royal, **sem fundo, sem halo circular e sem flores acopladas**), carregada com `<Image priority fetchPriority="high" loading="eager" decoding="sync" />` e `initial={false}` (`CLS = 0`).
+  * Flutua sobre a fresta central (`z-30`) com `filter: drop-shadow(...)` realista, micro-flutuação vertical GPU (`animate-crest-float`) e reflexo especular diagonal (`animate-brooch-shimmer`) restrito ao medalhão interno `"C"` (`w-[42%]`).
+  * **Texto Curvo Exclusivo à Direita (`CurvedCrestCaption`):** `<svg viewBox="0 0 576 610">` sincronizado com as dimensões reais do broche, desenhando **`TOQUE PARA ABRIR`** diretamente sobre o papel claro ao longo de `<path>` concêntrico à lateral direita do selo (`centro 288, 305`, `raio 324`, `-48°` a `+34°`), em `Cinzel` (`#071739`, `fontSize: 31`, `tracking: 0.17em`) com `animate-breathe-soft`.
+  * `will-change: transform` aplicado nas portas e no botão do broche **apenas durante a abertura** (`isUnsealing || isOpening`), economizando memória de camada GPU em repouso.
+  * Ao clicar/tocar (`handleTriggerOpen`): resposta tátil *spring* rápida (`scale: 0.94`), explosão de 10 fagulhas estelares (`UNSEAL_SPARKS`) + `fireLuxuryCelebration` (orçamento calibrado para mobile), dissolução do broche (`scale: 1.12, opacity: 0` em `340ms`) seguida pela abertura das portas com física *spring* (`stiffness: 62, damping: 16, mass: 1`).
 
 ---
 
