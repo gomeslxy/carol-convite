@@ -34,7 +34,7 @@ Este repositório utiliza uma **Base de Conhecimento viva no estilo Obsidian (Se
 
 * **Identidade Visual:** Paleta estrita **Azul Royal**, **Branco/Off-White Perolado** e **Prata Metálico**. **Proibição estrita de elementos florais** — utilizar exclusivamente lacinhos de fita acetinada (`BowDecoration.tsx`).
 * **Proibição Estrita de Sugestões de Presentes / Pix:** É terminantemente proibido incluir qualquer menção, botão, modal, ícone, chave Pix ou lista de sugestões de presentes no convite (considerado inconveniente para o evento).
-* **Dados Oficiais Imutáveis:** Data **17 de Julho de 2027** (`17/07`), às **20:30** (`America/Sao_Paulo`), e traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
+* **Dados Oficiais Imutáveis:** Data **17 de Julho de 2027** (`17/07`), às **19:30** (`America/Sao_Paulo`), e traje **Esporte Fino** (tons de azul royal e prata reservados à aniversariante).
 * **Configuração Única:** Dados do evento (nome, idade, data/hora, citações, traje, local e WhatsApp) vivem centralizados em `src/config/event.ts`.
 * **Ambiente Windows/PowerShell:** Sempre executar comandos npm via `npm.cmd` (ex.: `npm.cmd run typecheck`, `npm.cmd run build`).
 

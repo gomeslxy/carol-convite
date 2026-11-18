@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
-  CalendarDays,
   CalendarPlus,
   Check,
   CheckCircle2,
@@ -43,6 +42,7 @@ import {
   googleCalendarUrl,
   googleMapsEmbedUrl,
   googleMapsUrl,
+  sanitizeSingleLineInput,
   validateRsvpInput,
   wazeUrl,
   whatsappUrl,
@@ -250,12 +250,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
       companions: string[];
       message: string;
     }) => {
-      const dateLabel = FORMATTED_EVENT_DATE.short.replace(/\s·\s/g, "/");
-
       const lines =
         data.attendance === "yes"
           ? [
-            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${dateLabel} às ${FORMATTED_EVENT_DATE.time}!`,
+            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
             "",
             `👤 Nome: ${data.name}`,
             `👥 Total de pessoas: ${data.guests}`,
@@ -264,7 +262,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
               : []),
           ]
           : [
-            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos. 🤍`,
+            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
             "",
             `👤 Nome: ${data.name}`,
           ];
@@ -326,7 +324,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
     setMessage(cleanData.message);
     if (cleanData.attendance === "yes") {
       setCompanions((prev) =>
-        prev.map((item, idx) => cleanData.companions[idx] ?? item.replace(/[<>]/g, "").trim()),
+        prev.map((item) => sanitizeSingleLineInput(item, RSVP_LIMITS.companion)),
       );
     }
 
@@ -620,7 +618,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   {EVENT.venue.name}
                 </p>
 
-                <p className="mt-2 font-sans text-[13.5px] sm:text-[14.5px] font-medium leading-relaxed text-slate-700">
+                <p className="mt-2 font-sans text-[13.5px] sm:text-[14.5px] font-medium leading-relaxed text-royal-navy/80">
                   {EVENT.venue.address}
                 </p>
 
@@ -763,7 +761,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 whileInView={revealed ? REVEAL_VISIBLE : REVEAL_INITIAL}
                 viewport={VIEWPORT_CONFIG}
                 transition={{ ...REVEAL_TRANSITION, delay: 0.06 }}
-                className="mt-3 font-sans text-[12.5px] sm:text-[13.5px] text-slate-600"
+                className="mt-3 font-sans text-[12.5px] sm:text-[13.5px] text-royal-navy/75"
               >
                 Por gentileza, confirme sua presença até{" "}
                 <strong className="font-bold text-royal-navy">{EVENT.rsvp.deadline}</strong>.
@@ -977,7 +975,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                         className="block font-sans text-[11px] font-bold tracking-[0.16em] text-royal-navy uppercase"
                       >
                         Recado para a {EVENT.name}{" "}
-                        <span className="font-normal tracking-normal lowercase text-slate-500">
+                        <span className="font-normal tracking-normal lowercase text-silver-500">
                           (opcional)
                         </span>
                       </label>
@@ -1038,7 +1036,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                         </p>
                       </div>
 
-                      <p className="mt-1.5 font-sans text-[12.5px] text-slate-700">
+                      <p className="mt-1.5 font-sans text-[12.5px] text-royal-navy/85">
                         Obrigado, <strong className="text-royal-navy">{submittedRsvp.name}</strong>.{" "}
                         {submittedRsvp.attendance === "yes"
                           ? `Registramos ${submittedRsvp.guests} ${submittedRsvp.guests === 1 ? "pessoa" : "pessoas"
@@ -1060,7 +1058,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                         rel="noopener noreferrer"
                         className="mt-3.5 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition-colors hover:bg-royal-deep"
                       >
-                        <CalendarDays className="size-4 shrink-0" />
+                        <MessageCircle className="size-4 shrink-0" />
                         <span>Abrir WhatsApp novamente</span>
                       </motion.a>
                     </motion.div>

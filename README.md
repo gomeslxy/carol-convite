@@ -31,7 +31,7 @@ Convite digital editorial *mobile-first* com capa bipartida de luxo, broche met�
 - **Framework:** [Next.js 15](https://nextjs.org/) (App Router, Turbopack, React 19)
 - **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
 - **Estilização:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Animações:** [Framer Motion](https://www.framer.com/motion/) + [GSAP](https://gsap.com/) (ScrollTrigger)
+- **Animações:** [Framer Motion](https://www.framer.com/motion/) + CSS GPU (`translate3d` / `opacity`)
 - **Scroll Suave:** [@studio-freight/lenis](https://github.com/darkroomengineering/lenis)
 - **Efeitos de Celebração:** [canvas-confetti](https://github.com/catdad/canvas-confetti)
 - **Ícones:** [Lucide React](https://lucide.dev/)
@@ -89,7 +89,7 @@ export const EVENT: EventConfig = {
   name: "Carol",
   initial: "C",
   age: 18,
-  dateISO: "2027-07-17T20:30:00-03:00",
+  dateISO: "2027-07-17T19:30:00-03:00",
   durationHours: 5,
   timeZone: "America/Sao_Paulo",
   dressCode: "Esporte Fino",
@@ -114,21 +114,28 @@ export const EVENT: EventConfig = {
 src/
 ├── app/
 │   ├── globals.css              # Variáveis CSS, temas perolados, gradientes e texturas
-│   ├── layout.tsx               # Metadados SEO, Open Graph, Favicons e fontes tipográficas
-│   └── page.tsx                 # Ponto de entrada da aplicação
+│   ├── layout.tsx               # Metadados SEO, Open Graph, JSON-LD, favicons e fontes tipográficas
+│   ├── opengraph-image.tsx      # Banner Open Graph dinâmico (1200x630) derivado de event.ts
+│   ├── page.tsx                 # Ponto de entrada da aplicação
+│   ├── robots.ts                # Regras de indexação apontando para sitemap.xml
+│   ├── sitemap.ts               # Sitemap XML oficial de https://convitecarol.site
+│   └── twitter-image.tsx        # Banner Twitter Card dinâmico (1200x630) derivado de event.ts
 ├── components/
 │   ├── BowDecoration.tsx        # Laços acetinados decorativos vetorizados em SVG
 │   ├── CountdownTimer.tsx       # Contador regressivo com relevo 3D
 │   ├── CoverGate.tsx            # Capa bipartida com portas e broche metálico interativo
 │   ├── HeroPoster.tsx           # Pôster hero animado com iluminação e tipografia
 │   ├── InvitationContent.tsx    # Seções de detalhes, mapa, calendário e RSVP
-│   ├── InvitationExperience.tsx # Orquestrador principal das transições de abertura
+│   ├── InvitationExperience.tsx # Orquestrador de pré-carregamento e transições de abertura
+│   ├── LuxuryParticles.tsx      # Celebração sob demanda via canvas-confetti no RSVP
 │   ├── Ornaments.tsx            # Divisores e cantoneiras prateadas editoriais
-│   └── SmoothScrollProvider.tsx # Provider de scroll inercial (Lenis + GSAP)
+│   ├── Preloader.tsx            # Tela de carregamento inicial sincronizada com fontes e imagens
+│   └── SmoothScrollProvider.tsx # Provider de scroll inercial (Lenis em RAF nativo)
 ├── config/
 │   └── event.ts                 # Configurações do evento e formatadores de data determinísticos
 └── lib/
-    └── utils.ts                 # Utilitários para Maps, Waze, Google Calendar, .ics e WhatsApp
+    ├── og-image.tsx             # Gerador compartilhado do banner social (Open Graph / Twitter)
+    └── utils.ts                 # Utilitários para Maps, Waze, Google Calendar, .ics (RFC 5545) e WhatsApp
 ```
 
 ---

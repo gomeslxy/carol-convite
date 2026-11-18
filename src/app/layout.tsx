@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Great_Vibes, Plus_Jakarta_Sans } from "next/font/google";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
-import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
+import { EVENT, EVENT_TIMESTAMP, FORMATTED_EVENT_DATE } from "@/config/event";
 import "./globals.css";
 
 const greatVibes = Great_Vibes({
@@ -27,7 +27,28 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 const siteTitle = `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`;
-const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos no dia 17 de Julho de 2027, às ${FORMATTED_EVENT_DATE.time}. Confirme sua presença e confira os detalhes.`;
+const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos — ${FORMATTED_EVENT_DATE.long}, às ${FORMATTED_EVENT_DATE.time}, no ${EVENT.venue.name}. Confirme sua presença e confira os detalhes.`;
+
+const eventJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SocialEvent",
+  name: siteTitle,
+  description: siteDescription,
+  startDate: EVENT.dateISO,
+  endDate: new Date(EVENT_TIMESTAMP + EVENT.durationHours * 3_600_000).toISOString(),
+  eventStatus: "https://schema.org/EventScheduled",
+  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  url: EVENT.siteUrl,
+  location: {
+    "@type": "Place",
+    name: EVENT.venue.name,
+    address: EVENT.venue.address,
+  },
+  organizer: {
+    "@type": "Person",
+    name: EVENT.name,
+  },
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(EVENT.siteUrl),
@@ -55,6 +76,7 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   manifest: "/manifest.json",
+  // Imagens OG/Twitter vêm de `opengraph-image.tsx` / `twitter-image.tsx` (geradas a partir de `event.ts`).
   openGraph: {
     title: siteTitle,
     description: siteDescription,
@@ -62,20 +84,11 @@ export const metadata: Metadata = {
     siteName: `${EVENT.name} — ${EVENT.age} Anos`,
     locale: "pt_BR",
     type: "website",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`,
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/og-image.png"],
   },
   appleWebApp: {
     capable: true,
@@ -100,6 +113,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       suppressHydrationWarning
     >
       <body className="font-sans">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
+        />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
       </body>
     </html>

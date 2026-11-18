@@ -30,7 +30,6 @@ export interface EventConfig {
   rsvp: {
     /** Número com DDI + DDD, apenas dígitos. Ex.: 5511999999999 */
     whatsapp: string;
-    defaultMessage: string;
     deadline: string;
     maxGuests: number;
   };
@@ -41,7 +40,8 @@ export const EVENT: EventConfig = {
   name: "Carol",
   initial: "C",
   age: 18,
-  dateISO: "2027-07-17T20:30:00-03:00",
+  /** Horário oficial: Sábado, 17/07/2027 às 19:30 (Brasília) = 2027-07-17T22:30:00Z. */
+  dateISO: "2027-07-17T19:30:00-03:00",
   durationHours: 5,
   timeZone: "America/Sao_Paulo",
   quoteText:
@@ -59,8 +59,6 @@ export const EVENT: EventConfig = {
   },
   rsvp: {
     whatsapp: "5519971345909",
-    defaultMessage:
-      "Olá, Carol! 💙 Quero confirmar minha presença na sua festa de 18 anos no dia 17/07/2027!",
     deadline: "17 de junho de 2027",
     maxGuests: 6,
   },
@@ -69,6 +67,8 @@ export const EVENT: EventConfig = {
 /* ───────────────────────── Helpers ───────────────────────── */
 
 const strip = (value: string) => value.replace(/\./g, "").replace(/-feira/i, "").trim();
+const capitalize = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
 export interface FormattedDate {
   weekday: string;
@@ -76,8 +76,14 @@ export interface FormattedDate {
   day: string;
   month: string;
   year: string;
+  /** Horário 24h no fuso do evento (ex.: "19:30"). */
   time: string;
+  /** "17 · 07 · 2027" */
   short: string;
+  /** "17/07/2027" */
+  numeric: string;
+  /** "Sábado, 17 de Julho de 2027" */
+  long: string;
 }
 
 const formattedDateCache = new Map<string, FormattedDate>();
@@ -97,15 +103,19 @@ export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
   const year = fmt({ year: "numeric" });
   const fullWeekday = strip(fmt({ weekday: "long" })).toUpperCase();
   const shortWeekday = strip(fmt({ weekday: "short" })).toUpperCase();
+  const month = strip(fmt({ month: "long" })).toUpperCase();
 
   const result: FormattedDate = {
     weekday: fullWeekday,
     weekdayShort: shortWeekday,
     day,
-    month: strip(fmt({ month: "long" })).toUpperCase(),
+    month,
     year,
-    time: fmt({ hour: "2-digit", minute: "2-digit", hour12: false }),
+    // `hourCycle: "h23"` evita o bug "24:30" de alguns motores com `hour12: false`.
+    time: fmt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
     short: `${day} · ${monthNum} · ${year}`,
+    numeric: `${day}/${monthNum}/${year}`,
+    long: `${capitalize(fullWeekday)}, ${day} de ${capitalize(month)} de ${year}`,
   };
 
   formattedDateCache.set(cacheKey, result);
