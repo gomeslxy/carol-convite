@@ -27,7 +27,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 const siteTitle = `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`;
-const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos no dia 17 de Julho, às ${FORMATTED_EVENT_DATE.time}. Confirme sua presença e confira os detalhes.`;
+const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos no dia 17 de Julho de 2027, às ${FORMATTED_EVENT_DATE.time}. Confirme sua presença e confira os detalhes.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(EVENT.siteUrl),
@@ -42,18 +42,40 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/manifest.json",
   openGraph: {
     title: siteTitle,
     description: siteDescription,
     url: "/",
     siteName: `${EVENT.name} — ${EVENT.age} Anos`,
-    type: "website",
     locale: "pt_BR",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
+    images: ["/og-image.png"],
   },
   appleWebApp: {
     capable: true,
@@ -67,7 +89,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#F1F2F4",
+  themeColor: "#0A2463",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

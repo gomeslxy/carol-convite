@@ -1,0 +1,26 @@
+{
+  "name": "Carol — 18 Anos",
+  "short_name": "Carol 18",
+  "description": "Convite oficial para a celebração de 18 anos da Carol.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A2463",
+  "theme_color": "#0A2463",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
