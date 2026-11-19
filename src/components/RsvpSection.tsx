@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   AlertCircle,
   CheckCircle2,
@@ -25,13 +25,17 @@ import { fireMiniCelebration } from "@/components/LuxuryParticles";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
 import {
   RSVP_LIMITS,
+  isInAppBrowser,
+  openExternalUrl,
   sanitizeSingleLineInput,
+  sliceUnicode,
   validateRsvpInput,
   whatsappUrl,
 } from "@/lib/utils";
 
 const RSVP_COOLDOWN_KEY = "carol-18-rsvp-cooldown-v1";
 const RSVP_RECEIPT_KEY = "carol-18-rsvp-receipt-v1";
+const RSVP_PENDING_SYNC_KEY = "carol-18-rsvp-pending-sync-v1";
 const RSVP_COOLDOWN_MS = 15_000;
 
 type Attendance = "yes" | "no";
@@ -41,12 +45,15 @@ interface RsvpErrorField {
   companionIndex?: number;
 }
 
-interface SubmittedRsvp {
+interface CleanRsvpPayload {
   name: string;
   attendance: Attendance;
   guests: number;
   companions: string[];
   message: string;
+}
+
+interface SubmittedRsvp extends CleanRsvpPayload {
   whatsappHref: string;
 }
 
@@ -77,6 +84,35 @@ interface RsvpSectionProps {
   reducedMotion: boolean;
 }
 
+function persistPendingSync(payload: CleanRsvpPayload | null): void {
+  try {
+    if (payload) {
+      window.localStorage.setItem(RSVP_PENDING_SYNC_KEY, JSON.stringify(payload));
+    } else {
+      window.localStorage.removeItem(RSVP_PENDING_SYNC_KEY);
+    }
+  } catch {
+    /* ambiente sem acesso ao localStorage */
+  }
+}
+
+async function postRsvpToServer(payload: CleanRsvpPayload): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return false;
+  }
+  try {
+    const res = await fetch("/api/rsvp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, honeypot: "" }),
+      keepalive: true,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpSectionProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const companionInputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -84,6 +120,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
   const radioNoRef = useRef<HTMLButtonElement>(null);
   const submitTimerRef = useRef<number | null>(null);
   const isSubmittingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const ids = {
     name: useId(),
@@ -105,42 +142,77 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
   const [formError, setFormError] = useState<string | null>(null);
   const [errorField, setErrorField] = useState<RsvpErrorField | null>(null);
   const [submittedRsvp, setSubmittedRsvp] = useState<SubmittedRsvp | null>(null);
+  const [pendingSync, setPendingSync] = useState(false);
+  const [inApp, setInApp] = useState(false);
 
-  const buildWhatsappHrefFromData = useCallback(
-    (data: {
-      name: string;
-      attendance: Attendance;
-      guests: number;
-      companions: string[];
-      message: string;
-    }) => {
-      const lines =
-        data.attendance === "yes"
-          ? [
-              `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
-              "",
-              `👤 Nome: ${data.name}`,
-              `👥 Total de pessoas: ${data.guests}`,
-              ...(data.companions.length > 0
-                ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
-                : []),
-            ]
-          : [
-              `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
-              "",
-              `👤 Nome: ${data.name}`,
-            ];
+  const buildWhatsappHrefFromData = useCallback((data: CleanRsvpPayload) => {
+    const lines =
+      data.attendance === "yes"
+        ? [
+            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
+            "",
+            `👤 Nome: ${data.name}`,
+            `👥 Total de pessoas: ${data.guests}`,
+            ...(data.companions.length > 0
+              ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
+              : []),
+          ]
+        : [
+            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
+            "",
+            `👤 Nome: ${data.name}`,
+          ];
 
-      if (data.message) {
-        lines.push(`💌 Recado: ${data.message}`);
-      }
+    if (data.message) {
+      lines.push(`💌 Recado: ${data.message}`);
+    }
 
-      return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
-    },
-    [],
-  );
+    return whatsappUrl(EVENT.rsvp.whatsapp, lines.join("\n"));
+  }, []);
+
+  const syncWithRetryQueue = useCallback(async (payload: CleanRsvpPayload) => {
+    const ok = await postRsvpToServer(payload);
+    if (ok) {
+      persistPendingSync(null);
+      if (isMountedRef.current) setPendingSync(false);
+      return;
+    }
+    persistPendingSync(payload);
+    if (isMountedRef.current) setPendingSync(true);
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    setInApp(isInAppBrowser());
+
+    const flushPendingSync = () => {
+      try {
+        const rawPending = window.localStorage.getItem(RSVP_PENDING_SYNC_KEY);
+        if (!rawPending) return;
+        const parsed: unknown = JSON.parse(rawPending);
+        if (typeof parsed !== "object" || parsed === null) {
+          persistPendingSync(null);
+          return;
+        }
+        const rec = parsed as Record<string, unknown>;
+        const validated = validateRsvpInput({
+          name: rec.name,
+          attendance: rec.attendance,
+          guests: rec.guests,
+          companions: rec.companions,
+          message: rec.message ?? "",
+          maxGuests: EVENT.rsvp.maxGuests,
+        });
+        if (!validated.ok) {
+          persistPendingSync(null);
+          return;
+        }
+        void syncWithRetryQueue(validated.data);
+      } catch {
+        /* ignora erro de leitura/parse no localStorage */
+      }
+    };
+
     try {
       const stored = window.localStorage.getItem(RSVP_COOLDOWN_KEY);
       const parsed = stored ? Number(stored) : 0;
@@ -163,24 +235,32 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
           });
           if (restored.ok) {
             setSubmittedRsvp({
-              name: restored.data.name,
-              attendance: restored.data.attendance,
-              guests: restored.data.guests,
-              companions: restored.data.companions,
-              message: restored.data.message,
+              ...restored.data,
               whatsappHref: buildWhatsappHrefFromData(restored.data),
             });
           }
         }
       }
+
+      if (window.localStorage.getItem(RSVP_PENDING_SYNC_KEY)) {
+        setPendingSync(true);
+        flushPendingSync();
+      }
     } catch {
       /* ambiente sem acesso ao localStorage ou JSON inválido */
     }
 
+    const handleOnline = () => {
+      flushPendingSync();
+    };
+    window.addEventListener("online", handleOnline);
+
     return () => {
+      isMountedRef.current = false;
+      window.removeEventListener("online", handleOnline);
       if (submitTimerRef.current !== null) window.clearTimeout(submitTimerRef.current);
     };
-  }, [buildWhatsappHrefFromData]);
+  }, [buildWhatsappHrefFromData, syncWithRetryQueue]);
 
   useEffect(() => {
     if (cooldownUntil <= Date.now()) {
@@ -213,9 +293,10 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
   const updateGuestsCount = useCallback(
     (next: number) => {
       const clamped = Math.max(1, Math.min(EVENT.rsvp.maxGuests, next));
+      const needed = Math.max(0, clamped - 1);
+      companionInputsRef.current.length = needed;
       setGuests(clamped);
       setCompanions((prev) => {
-        const needed = Math.max(0, clamped - 1);
         if (prev.length === needed) return prev;
         if (prev.length > needed) return prev.slice(0, needed);
         return [...prev, ...Array<string>(needed - prev.length).fill("")];
@@ -233,7 +314,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
   );
 
   const handleCompanionChange = useCallback((index: number, value: string) => {
-    const cleanValue = value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.companion);
+    const cleanValue = sliceUnicode(value.replace(/[<>]/g, ""), RSVP_LIMITS.companion);
     setCompanions((prev) => {
       const next = [...prev];
       next[index] = cleanValue;
@@ -256,7 +337,12 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
 
   const handleRadioKeyDown = useCallback(
     (current: Attendance, e: KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+      if (
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown"
+      ) {
         e.preventDefault();
         const next: Attendance = current === "yes" ? "no" : "yes";
         selectAttendance(next);
@@ -352,26 +438,13 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
     setCooldownUntil(nextCooldown);
     try {
       window.localStorage.setItem(RSVP_COOLDOWN_KEY, String(nextCooldown));
-      window.localStorage.setItem(
-        RSVP_RECEIPT_KEY,
-        JSON.stringify({
-          name: cleanData.name,
-          attendance: cleanData.attendance,
-          guests: cleanData.guests,
-          companions: cleanData.companions,
-          message: cleanData.message,
-        }),
-      );
+      window.localStorage.setItem(RSVP_RECEIPT_KEY, JSON.stringify(cleanData));
     } catch {
       /* ambiente sem acesso ao localStorage */
     }
 
-    void fetch("/api/rsvp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...cleanData, honeypot: "" }),
-      keepalive: true,
-    }).catch(() => undefined);
+    // Dispara persistência em background com fila offline automática
+    void syncWithRetryQueue(cleanData);
 
     const cleanWhatsappHref = buildWhatsappHrefFromData(cleanData);
 
@@ -380,21 +453,17 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
     }
 
     setSubmittedRsvp({
-      name: cleanData.name,
-      attendance: cleanData.attendance,
-      guests: cleanData.guests,
-      companions: cleanData.companions,
-      message: cleanData.message,
+      ...cleanData,
       whatsappHref: cleanWhatsappHref,
     });
 
-    // Mantém chamada síncrona dentro do gesto do usuário para não acionar bloqueio de pop-up no iOS Safari
-    window.open(cleanWhatsappHref, "_blank", "noopener,noreferrer");
+    // Mantém redirecionamento síncrono dentro do gesto do usuário com compatibilidade WebView e fallback real
+    openExternalUrl(cleanWhatsappHref, { preferSameTabInApp: true });
 
     if (submitTimerRef.current !== null) window.clearTimeout(submitTimerRef.current);
     submitTimerRef.current = window.setTimeout(() => {
       isSubmittingRef.current = false;
-      setIsSubmitting(false);
+      if (isMountedRef.current) setIsSubmitting(false);
       submitTimerRef.current = null;
     }, 600);
   };
@@ -403,13 +472,14 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
   const revealVisible = reducedMotion ? REVEAL_REDUCED_VISIBLE : REVEAL_VISIBLE;
   const revealTransition = reducedMotion ? REVEAL_REDUCED_TRANSITION : REVEAL_TRANSITION;
   const companionsCount = Math.max(0, guests - 1);
+  const messageCharCount = Array.from(message).length;
 
   return (
     <section
       className="mt-14 sm:mt-16 flex w-full flex-col items-center"
       aria-label="Confirmação de presença"
     >
-      <motion.div
+      <m.div
         initial={revealInitial}
         whileInView={revealed ? revealVisible : revealInitial}
         viewport={HEADING_VIEWPORT}
@@ -423,9 +493,9 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
           </h2>
           <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
         </div>
-      </motion.div>
+      </m.div>
 
-      <motion.p
+      <m.p
         initial={revealInitial}
         whileInView={revealed ? revealVisible : revealInitial}
         viewport={HEADING_VIEWPORT}
@@ -434,9 +504,9 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
       >
         Por gentileza, confirme sua presença até{" "}
         <strong className="font-bold text-royal-navy">{EVENT.rsvp.deadline}</strong>.
-      </motion.p>
+      </m.p>
 
-      <motion.div
+      <m.div
         initial={revealInitial}
         whileInView={revealed ? revealVisible : revealInitial}
         viewport={INTERACTIVE_VIEWPORT}
@@ -468,7 +538,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
             aria-label="Confirmação de presença"
           >
             <div className="pointer-events-none absolute inset-1.5 grid grid-cols-2 gap-2" aria-hidden>
-              <motion.span
+              <m.span
                 initial={false}
                 animate={{ x: attendance === "yes" ? "0%" : "calc(100% + 0.5rem)" }}
                 transition={
@@ -525,10 +595,10 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
               id={ids.name}
               type="text"
               required
-              maxLength={RSVP_LIMITS.name}
+              maxLength={RSVP_LIMITS.name * 2}
               value={name}
               onChange={(e) => {
-                setName(e.target.value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.name));
+                setName(sliceUnicode(e.target.value.replace(/[<>]/g, ""), RSVP_LIMITS.name));
                 if (formError) setFormError(null);
                 if (errorField) setErrorField(null);
               }}
@@ -547,7 +617,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
           {/* Quantidade e Nomes dos Acompanhantes */}
           <AnimatePresence initial={false} mode="wait">
             {attendance === "yes" && (
-              <motion.div
+              <m.div
                 key="guests-block"
                 initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -585,7 +655,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                         <span className="flex size-full items-center justify-center">{guests}</span>
                       ) : (
                         <AnimatePresence initial={false} mode="popLayout">
-                          <motion.span
+                          <m.span
                             key={guests}
                             initial={{ y: 14, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
@@ -594,7 +664,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                             className="absolute inset-0 flex items-center justify-center"
                           >
                             {guests}
-                          </motion.span>
+                          </m.span>
                         </AnimatePresence>
                       )}
                     </span>
@@ -637,7 +707,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                           }}
                           type="text"
                           required
-                          maxLength={RSVP_LIMITS.companion}
+                          maxLength={RSVP_LIMITS.companion * 2}
                           value={companions[idx] ?? ""}
                           onChange={(e) => handleCompanionChange(idx, e.target.value)}
                           placeholder={`Nome completo do acompanhante ${idx + 1}`}
@@ -656,14 +726,14 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                     })}
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
           {/* Alerta de Validação (Nome ou Acompanhantes) */}
           <AnimatePresence>
             {formError && (
-              <motion.div
+              <m.div
                 id={ids.formError}
                 initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -675,7 +745,7 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
               >
                 <AlertCircle className="size-4 shrink-0 text-silver-200" aria-hidden />
                 <span>{formError}</span>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
@@ -693,27 +763,27 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
               </label>
               <span
                 className={`font-sans text-[10.5px] tabular-nums ${
-                  message.length >= 240 ? "font-semibold text-royal-deep" : "text-silver-500"
+                  messageCharCount >= 240 ? "font-semibold text-royal-deep" : "text-silver-500"
                 }`}
               >
-                {message.length}/{RSVP_LIMITS.message}
+                {messageCharCount}/{RSVP_LIMITS.message}
               </span>
             </div>
             <textarea
               id={ids.message}
               value={message}
               onChange={(e) =>
-                setMessage(e.target.value.replace(/[<>]/g, "").slice(0, RSVP_LIMITS.message))
+                setMessage(sliceUnicode(e.target.value.replace(/[<>]/g, ""), RSVP_LIMITS.message))
               }
               rows={2}
-              maxLength={RSVP_LIMITS.message}
+              maxLength={RSVP_LIMITS.message * 2}
               placeholder="Deixe uma mensagem especial…"
               className={`${INPUT_CLS} resize-none`}
             />
           </div>
 
           {/* Botão de Envio com trava imediata e cooldown anti-spam */}
-          <motion.button
+          <m.button
             type="submit"
             disabled={isSubmitting || cooldownRemainingSec > 0}
             whileHover={
@@ -732,13 +802,13 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                   ? `Aguarde ${cooldownRemainingSec}s para reenviar`
                   : "Confirmar Presença pelo WhatsApp"}
             </span>
-          </motion.button>
+          </m.button>
         </form>
 
         {/* Feedback Visual Celebrado de Confirmação após Envio */}
         <AnimatePresence>
           {submittedRsvp && (
-            <motion.div
+            <m.div
               initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
@@ -769,25 +839,31 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                   : "Sentiremos sua falta neste dia especial."}
               </p>
 
+              {pendingSync && (
+                <p className="mt-2 font-sans text-[11px] font-medium text-royal-deep">
+                  Sem conexão no momento — confirmação salva localmente e pronta para enviar pelo WhatsApp.
+                </p>
+              )}
+
               <p className="mt-2 font-sans text-[11px] text-royal-navy/65">
                 Caso o WhatsApp não abra automaticamente, toque abaixo:
               </p>
 
               <div className="mt-3 flex flex-col items-center justify-center gap-2 sm:flex-row">
-                <motion.a
+                <m.a
                   whileHover={reducedMotion ? undefined : { y: -1 }}
                   whileTap={reducedMotion ? undefined : { scale: 0.97 }}
                   href={submittedRsvp.whatsappHref}
                   onClick={(e) => {
                     if (submittedRsvp.whatsappHref === "#") e.preventDefault();
                   }}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target={inApp ? undefined : "_blank"}
+                  rel={inApp ? undefined : "noopener noreferrer"}
                   className={`inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-royal-navy px-5 py-2.5 font-sans text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(7,23,57,0.55)] transition-colors hover:bg-royal-deep ${FOCUS_RING_CLS}`}
                 >
                   <MessageCircle className="size-4 shrink-0" aria-hidden />
                   <span>Enviar / Abrir no WhatsApp</span>
-                </motion.a>
+                </m.a>
 
                 <button
                   type="button"
@@ -797,10 +873,10 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                   Alterar confirmação
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
     </section>
   );
 });

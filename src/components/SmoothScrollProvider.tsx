@@ -1,6 +1,6 @@
 "use client";
 
-import Lenis from "@studio-freight/lenis";
+import type Lenis from "@studio-freight/lenis";
 import {
   createContext,
   useCallback,
@@ -24,6 +24,9 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   const lockCount = useRef(0);
   const rafIdRef = useRef<number | null>(null);
   const unlockResizeRafRef = useRef<number | null>(null);
+  const destroyedRef = useRef(false);
+  const lenisLoadingRef = useRef(false);
+  const prefersReducedRef = useRef(false);
 
   const stopRaf = useCallback(() => {
     if (rafIdRef.current !== null) {
@@ -34,12 +37,23 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
 
   const startRaf = useCallback(() => {
     const instance = lenisRef.current;
-    if (!instance || rafIdRef.current !== null || lockCount.current > 0 || document.hidden) {
+    if (
+      !instance ||
+      destroyedRef.current ||
+      rafIdRef.current !== null ||
+      lockCount.current > 0 ||
+      document.hidden
+    ) {
       return;
     }
 
     const tick = (time: number) => {
-      if (!lenisRef.current || lockCount.current > 0 || document.hidden) {
+      if (
+        !lenisRef.current ||
+        destroyedRef.current ||
+        lockCount.current > 0 ||
+        document.hidden
+      ) {
         rafIdRef.current = null;
         return;
       }
@@ -49,6 +63,52 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
 
     rafIdRef.current = window.requestAnimationFrame(tick);
   }, []);
+
+  const ensureLenis = useCallback(() => {
+    if (
+      typeof window === "undefined" ||
+      destroyedRef.current ||
+      lenisRef.current ||
+      lenisLoadingRef.current ||
+      lockCount.current > 0 ||
+      prefersReducedRef.current
+    ) {
+      return;
+    }
+
+    // Touch mobile/tablets usam scroll nativo 60/120fps sem chunk de Lenis nem loop RAF ocioso
+    if (!window.matchMedia("(pointer: fine)").matches) {
+      return;
+    }
+
+    lenisLoadingRef.current = true;
+    void import("@studio-freight/lenis")
+      .then(({ default: LenisCtor }) => {
+        lenisLoadingRef.current = false;
+        if (destroyedRef.current || lenisRef.current) return;
+
+        const instance = new LenisCtor({
+          lerp: 0.12,
+          smoothWheel: true,
+          wheelMultiplier: 1,
+          touchMultiplier: 1,
+        });
+
+        lenisRef.current = instance;
+        if (lockCount.current > 0) {
+          document.documentElement.classList.add("scroll-locked");
+          instance.stop();
+          stopRaf();
+        } else {
+          document.documentElement.classList.remove("scroll-locked");
+          instance.resize();
+          startRaf();
+        }
+      })
+      .catch(() => {
+        lenisLoadingRef.current = false;
+      });
+  }, [startRaf, stopRaf]);
 
   const lock = useCallback(() => {
     if (unlockResizeRafRef.current !== null) {
@@ -68,9 +128,13 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
     lockCount.current -= 1;
     if (lockCount.current === 0) {
       document.documentElement.classList.remove("scroll-locked");
-      lenisRef.current?.start();
-      lenisRef.current?.resize();
-      startRaf();
+      if (lenisRef.current) {
+        lenisRef.current.start();
+        lenisRef.current.resize();
+        startRaf();
+      } else {
+        ensureLenis();
+      }
       if (unlockResizeRafRef.current !== null) {
         window.cancelAnimationFrame(unlockResizeRafRef.current);
       }
@@ -81,60 +145,75 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
         }
       });
     }
-  }, [startRaf]);
+  }, [ensureLenis, startRaf]);
 
   useEffect(() => {
+    destroyedRef.current = false;
     if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
 
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) {
-      if (lockCount.current > 0) {
-        document.documentElement.classList.add("scroll-locked");
-      } else {
-        document.documentElement.classList.remove("scroll-locked");
-      }
-      return;
-    }
+    prefersReducedRef.current = prefersReduced;
 
-    const instance = new Lenis({
-      lerp: 0.12,
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 1,
-    });
-
-    lenisRef.current = instance;
     if (lockCount.current > 0) {
       document.documentElement.classList.add("scroll-locked");
-      instance.stop();
-      stopRaf();
     } else {
       document.documentElement.classList.remove("scroll-locked");
-      startRaf();
+      ensureLenis();
     }
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
         stopRaf();
       } else if (lockCount.current === 0) {
-        startRaf();
+        if (lenisRef.current) {
+          startRaf();
+        } else {
+          ensureLenis();
+        }
       }
     };
 
+    const handlePageShow = () => {
+      if (lockCount.current > 0) {
+        document.documentElement.classList.add("scroll-locked");
+        lenisRef.current?.stop();
+        stopRaf();
+      } else {
+        document.documentElement.classList.remove("scroll-locked");
+        if (lenisRef.current) {
+          lenisRef.current.start();
+          lenisRef.current.resize();
+          startRaf();
+        } else {
+          ensureLenis();
+        }
+      }
+    };
+
+    const handlePageHide = () => {
+      stopRaf();
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("pagehide", handlePageHide);
 
     return () => {
+      destroyedRef.current = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("pagehide", handlePageHide);
       stopRaf();
       if (unlockResizeRafRef.current !== null) {
         window.cancelAnimationFrame(unlockResizeRafRef.current);
         unlockResizeRafRef.current = null;
       }
-      instance.destroy();
+      lenisRef.current?.destroy();
       lenisRef.current = null;
+      document.documentElement.classList.remove("scroll-locked");
     };
-  }, [startRaf, stopRaf]);
+  }, [ensureLenis, startRaf, stopRaf]);
 
   const lockValue = useMemo<ScrollLockContextValue>(() => ({ lock, unlock }), [lock, unlock]);
 

@@ -25,22 +25,24 @@ function createLuxuryShapes(confetti: typeof confettiType): confettiType.Shape[]
  * para celebrar a confirmação de presença no formulário RSVP.
  */
 export function fireMiniCelebration(origin: { x: number; y: number } = { x: 0.5, y: 0.6 }): void {
-  void import("canvas-confetti").then(({ default: confetti }) => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    const shapes = createLuxuryShapes(confetti);
-    confetti({
-      colors: ["#FFFFFF", "#E2E8F0", "#CBD5E1", "#60A5FA", "#1D4ED8", "#0A2463"],
-      shapes,
-      particleCount: isMobile ? 18 : 28,
-      spread: 76,
-      startVelocity: 26,
-      decay: 0.9,
-      gravity: 0.58,
-      scalar: 0.78,
-      ticks: isMobile ? 140 : 165,
-      origin,
-      zIndex: 90,
-      disableForReducedMotion: true,
-    });
-  });
+  void import("canvas-confetti")
+    .then(({ default: confetti }) => {
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      const shapes = createLuxuryShapes(confetti);
+      confetti({
+        colors: ["#FFFFFF", "#E2E8F0", "#CBD5E1", "#60A5FA", "#1D4ED8", "#0A2463"],
+        shapes,
+        particleCount: isMobile ? 18 : 28,
+        spread: 76,
+        startVelocity: 26,
+        decay: 0.9,
+        gravity: 0.58,
+        scalar: 0.78,
+        ticks: isMobile ? 140 : 165,
+        origin,
+        zIndex: 90,
+        disableForReducedMotion: true,
+      });
+    })
+    .catch(() => undefined);
 }

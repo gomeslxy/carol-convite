@@ -1,20 +1,31 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { CalendarPlus, Check, ExternalLink } from "lucide-react";
+import { m } from "framer-motion";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo } from "react";
 import HeroPoster, {
   GlitterBlueStar,
   MetallicSilverStar,
 } from "@/components/HeroPoster";
-import LocationSection from "@/components/LocationSection";
 import { CornerFiligree } from "@/components/Ornaments";
-import RsvpSection from "@/components/RsvpSection";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
-import { downloadIcs, googleCalendarUrl } from "@/lib/utils";
+import { useSafeReducedMotion } from "@/hooks/useSafeReducedMotion";
 
-const CountdownTimer = dynamic(() => import("@/components/CountdownTimer"));
+const CountdownTimer = dynamic(() => import("@/components/CountdownTimer"), {
+  loading: () => <div className="h-[154px] sm:h-[196px] w-full max-w-[440px]" aria-hidden />,
+});
+
+const CalendarActions = dynamic(() => import("@/components/CalendarActions"), {
+  loading: () => <div className="mt-5 h-11 w-full max-w-[360px]" aria-hidden />,
+});
+
+const LocationSection = dynamic(() => import("@/components/LocationSection"), {
+  loading: () => <div className="mt-14 sm:mt-16 h-[560px] sm:h-[580px] w-full" aria-hidden />,
+});
+
+const RsvpSection = dynamic(() => import("@/components/RsvpSection"), {
+  loading: () => <div className="mt-14 sm:mt-16 h-[560px] w-full" aria-hidden />,
+});
 
 export interface InvitationContentProps {
   /** Começa a animar a entrada do pôster e conteúdo (quando as portas da capa abrem). */
@@ -36,34 +47,10 @@ const VIEWPORT_CONFIG = { once: false, amount: 0.14 } as const;
 const CARD_SURFACE_CLS =
   "border border-royal-deep/15 bg-white/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16),0_4px_12px_-4px_rgba(10,36,99,0.08)]";
 
-const FOCUS_RING_CLS =
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-royal-deep/25";
-
-export default function InvitationContent({ revealed }: InvitationContentProps) {
-  const prefersReducedMotion = useReducedMotion();
-  const reducedMotion = Boolean(prefersReducedMotion);
-
-  const [icsSaved, setIcsSaved] = useState(false);
-  const icsTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (icsTimerRef.current !== null) window.clearTimeout(icsTimerRef.current);
-    };
-  }, []);
-
-  const handleDownloadIcs = useCallback(() => {
-    downloadIcs(EVENT);
-    setIcsSaved(true);
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      navigator.vibrate?.(10);
-    }
-    if (icsTimerRef.current !== null) window.clearTimeout(icsTimerRef.current);
-    icsTimerRef.current = window.setTimeout(() => {
-      setIcsSaved(false);
-      icsTimerRef.current = null;
-    }, 2500);
-  }, []);
+const InvitationContent = memo(function InvitationContent({
+  revealed,
+}: InvitationContentProps) {
+  const reducedMotion = useSafeReducedMotion();
 
   const revealInitial = reducedMotion ? REVEAL_REDUCED_INITIAL : REVEAL_INITIAL;
   const revealVisible = reducedMotion ? REVEAL_REDUCED_VISIBLE : REVEAL_VISIBLE;
@@ -97,7 +84,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
         {/* ════════════════════════════════════════════════════════════════════════
             CONTINUAÇÃO CONTÍNUA NO MESMO PAPEL TEXTURIZADO (Ritmo Editorial)
            ════════════════════════════════════════════════════════════════════════ */}
-        <div className="relative z-[5] pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pt-12 sm:pb-20">
+        <div className="relative z-[5] pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pt-12 sm:pb-[calc(5rem+env(safe-area-inset-bottom))]">
           {/* Estrelas laterais estáticas nas margens externas (zero repaints no scroll) */}
           <GlitterBlueStar
             animClass=""
@@ -135,7 +122,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
               aria-label="Apresentação e contagem regressiva"
             >
               {/* Pílula Azul-Marinho CAROL • 18 ANOS ladeada por linhas */}
-              <motion.div
+              <m.div
                 initial={revealInitial}
                 whileInView={revealed ? revealVisible : revealInitial}
                 viewport={VIEWPORT_CONFIG}
@@ -147,10 +134,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   {EVENT.name.toUpperCase()} • {EVENT.age} ANOS
                 </span>
                 <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
-              </motion.div>
+              </m.div>
 
               {/* Citação de Walt Disney em cartão editorial com cantoneiras e filete interno */}
-              <motion.div
+              <m.div
                 initial={revealInitial}
                 whileInView={revealed ? revealVisible : revealInitial}
                 viewport={VIEWPORT_CONFIG}
@@ -192,10 +179,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   </cite>
                   <span className="h-px w-7 bg-royal-deep/30" />
                 </div>
-              </motion.div>
+              </m.div>
 
               {/* Mensagem pessoal de convite destacada fora da citação */}
-              <motion.div
+              <m.div
                 initial={revealInitial}
                 whileInView={revealed ? revealVisible : revealInitial}
                 viewport={VIEWPORT_CONFIG}
@@ -213,10 +200,10 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   className="mx-auto mt-4 block h-[1.5px] w-16 bg-gradient-to-r from-transparent via-royal-deep/45 to-transparent"
                   aria-hidden
                 />
-              </motion.div>
+              </m.div>
 
-              {/* Contador ao vivo no estilo do pôster */}
-              <motion.div
+              {/* Contador ao vivo no estilo do pôster (carregamento dinâmico abaixo da dobra) */}
+              <m.div
                 initial={revealInitial}
                 whileInView={revealed ? revealVisible : revealInitial}
                 viewport={VIEWPORT_CONFIG}
@@ -224,82 +211,19 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 className="mt-9 flex w-full justify-center"
               >
                 <CountdownTimer active={revealed} />
-              </motion.div>
+              </m.div>
 
-              {/* Ações rápidas de Calendário */}
-              <motion.div
-                initial={revealInitial}
-                whileInView={revealed ? revealVisible : revealInitial}
-                viewport={VIEWPORT_CONFIG}
-                transition={
-                  reducedMotion
-                    ? REVEAL_REDUCED_TRANSITION
-                    : { ...REVEAL_TRANSITION, delay: 0.08 }
-                }
-                className="mt-5 grid w-full max-w-[360px] grid-cols-2 gap-2.5"
-              >
-                <motion.a
-                  whileHover={reducedMotion ? undefined : { y: -1 }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-                  href={googleCalendarUrl(EVENT)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-royal-deep/20 bg-white/85 px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold text-royal-navy shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors hover:border-royal-deep hover:bg-white ${FOCUS_RING_CLS}`}
-                >
-                  <ExternalLink className="size-3.5 shrink-0 text-royal-deep" aria-hidden />
-                  <span>Google Agenda</span>
-                </motion.a>
-
-                <motion.button
-                  type="button"
-                  whileHover={reducedMotion ? undefined : { y: -1 }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-                  onClick={handleDownloadIcs}
-                  aria-live="polite"
-                  className={`flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-xl border px-3 py-2 font-sans text-[11.5px] sm:text-[12px] font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_4px_12px_-6px_rgba(7,23,57,0.18)] transition-colors ${FOCUS_RING_CLS} ${
-                    icsSaved
-                      ? "border-royal-navy bg-royal-navy text-white"
-                      : "border-royal-deep/20 bg-white/85 text-royal-navy hover:border-royal-deep hover:bg-white"
-                  }`}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {icsSaved ? (
-                      <motion.span
-                        key="ics-saved"
-                        initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                        transition={{ duration: 0.16 }}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        <Check className="size-3.5 shrink-0" aria-hidden />
-                        <span>Salvo na agenda!</span>
-                      </motion.span>
-                    ) : (
-                      <motion.span
-                        key="ics-idle"
-                        initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
-                        transition={{ duration: 0.16 }}
-                        className="inline-flex items-center gap-1.5"
-                      >
-                        <CalendarPlus className="size-3.5 shrink-0 text-royal-deep" aria-hidden />
-                        <span>iPhone / Outlook</span>
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              </motion.div>
+              {/* Ações rápidas de Calendário (carregamento dinâmico abaixo da dobra) */}
+              <CalendarActions revealed={revealed} reducedMotion={reducedMotion} />
             </section>
 
             {/* ──────────────────────────────────────────────────────────────────────
-                3. LOCAL DA FESTA (Componente Memoizado Isolado)
+                3. LOCAL DA FESTA (Dynamic + Componente Memoizado Isolado)
                ────────────────────────────────────────────────────────────────────── */}
             <LocationSection revealed={revealed} reducedMotion={reducedMotion} />
 
             {/* ──────────────────────────────────────────────────────────────────────
-                4. CONFIRMAÇÃO DE PRESENÇA / RSVP (Componente Memoizado Isolado)
+                4. CONFIRMAÇÃO DE PRESENÇA / RSVP (Dynamic + Componente Memoizado Isolado)
                ────────────────────────────────────────────────────────────────────── */}
             <RsvpSection revealed={revealed} reducedMotion={reducedMotion} />
 
@@ -307,7 +231,7 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 5. RODAPÉ EDITORIAL
                ────────────────────────────────────────────────────────────────────── */}
             <footer className="mt-14 sm:mt-16 flex w-full flex-col items-center">
-              <motion.p
+              <m.p
                 initial={revealInitial}
                 whileInView={revealed ? revealVisible : revealInitial}
                 viewport={VIEWPORT_CONFIG}
@@ -315,9 +239,9 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                 className="font-serif text-[22px] sm:text-[26px] font-bold tracking-wide text-royal-navy"
               >
                 {EVENT.closingText}
-              </motion.p>
+              </m.p>
 
-              <motion.div
+              <m.div
                 initial={revealInitial}
                 whileInView={revealed ? revealVisible : revealInitial}
                 viewport={VIEWPORT_CONFIG}
@@ -333,11 +257,13 @@ export default function InvitationContent({ revealed }: InvitationContentProps) 
                   {FORMATTED_EVENT_DATE.short}
                 </span>
                 <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
-              </motion.div>
+              </m.div>
             </footer>
           </main>
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default InvitationContent;

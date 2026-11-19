@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Cinzel, Great_Vibes, Plus_Jakarta_Sans } from "next/font/google";
+import { preload } from "react-dom";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { EVENT, EVENT_TIMESTAMP, FORMATTED_EVENT_DATE } from "@/config/event";
+import crestImage from "../../public/images/brasao-barroco-c.webp";
+import backdropImage from "../../public/images/cover-ornament-backdrop-right.webp";
 import "./globals.css";
 
 const greatVibes = Great_Vibes({
@@ -108,6 +111,9 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  preload(crestImage.src, { as: "image", fetchPriority: "high" });
+  preload(backdropImage.src, { as: "image", fetchPriority: "high" });
+
   return (
     <html
       lang="pt-BR"
@@ -117,7 +123,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="font-sans">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd).replace(/</g, "\\u003c") }}
         />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
       </body>

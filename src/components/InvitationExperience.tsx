@@ -1,22 +1,23 @@
 "use client";
 
-import { AnimatePresence, MotionConfig } from "framer-motion";
+import { AnimatePresence, LazyMotion, MotionConfig, domAnimation } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import CoverGate from "@/components/CoverGate";
 import InvitationContent from "@/components/InvitationContent";
 import Preloader from "@/components/Preloader";
 import { useScrollLock } from "@/components/SmoothScrollProvider";
+import crestImage from "../../public/images/brasao-barroco-c.webp";
+import backdropImage from "../../public/images/cover-ornament-backdrop-right.webp";
 
 type Stage = "closed" | "opening" | "open";
 
-const MIN_PRELOADER_MS = 450;
-const PRELOADER_TIMEOUT_MS = 3000;
+const MIN_PRELOADER_MS = 220;
+const FONT_READY_TIMEOUT_MS = 1000;
+const PRELOADER_TIMEOUT_MS = 2000;
 
 const CRITICAL_IMAGE_FALLBACKS: Readonly<Record<string, string>> = {
-  crest: "/images/brasao-barroco-c.png",
-  backdrop: "/images/cover-ornament-backdrop-right.png",
-  carol: "/images/carol-cutout.png",
-  partyHat: "/images/party-hat.png",
+  crest: crestImage.src,
+  backdrop: backdropImage.src,
 };
 
 /**
@@ -90,25 +91,28 @@ async function decodeFallbackUrl(src: string, signal: AbortSignal): Promise<void
   await safeDecodeImage(img);
 }
 
-async function preloadCriticalAssets(signal: AbortSignal): Promise<void> {
+async function preloadDomSelector(
+  selector: string,
+  signal: AbortSignal,
+  fallbacks?: Readonly<Record<string, string>>,
+): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const domImages = Array.from(
-    document.querySelectorAll<HTMLImageElement>("img[data-critical-asset]"),
-  );
-
+  const domImages = Array.from(document.querySelectorAll<HTMLImageElement>(selector));
   const coveredKeys = new Set<string>();
   const tasks: Promise<void>[] = [];
 
   for (const el of domImages) {
-    const key = el.getAttribute("data-critical-asset");
+    const key = el.getAttribute("data-critical-asset") ?? el.getAttribute("data-poster-asset");
     if (key) coveredKeys.add(key);
     tasks.push(decodeDomCriticalImage(el, signal));
   }
 
-  for (const [key, fallbackSrc] of Object.entries(CRITICAL_IMAGE_FALLBACKS)) {
-    if (!coveredKeys.has(key)) {
-      tasks.push(decodeFallbackUrl(fallbackSrc, signal));
+  if (fallbacks) {
+    for (const [key, fallbackSrc] of Object.entries(fallbacks)) {
+      if (!coveredKeys.has(key)) {
+        tasks.push(decodeFallbackUrl(fallbackSrc, signal));
+      }
     }
   }
 
@@ -117,12 +121,10 @@ async function preloadCriticalAssets(signal: AbortSignal): Promise<void> {
 
 /**
  * Orquestra a experiência completa (Mobile & Desktop):
- * - Fase 0: `Preloader` imediato (`bg-paper-fine`) enquanto aguarda `document.fonts.ready`
- *           e `img.decode()` das imagens críticas (mínimo ~450ms, timeout máximo 3000ms).
- * - Fase 1: Capa Bipartida (`CoverGate`) em papel fino off-white/gelo com ornamentos
- *           em Prata & Azul Royal e broche central "C" em alto-relevo (100dvh).
- * - Fase 2: Pôster animado (`HeroPoster`) já montado e decodificado por baixo +
- *           continuação editorial Royal Blue & Silver com liberação fluida do scroll (Lenis).
+ * - Fase 0: `Preloader` imediato (`bg-paper-fine`) enquanto aguarda fontes (race 1000ms)
+ *           e `img.decode()` apenas das 2 imagens da capa (`crest` + `backdrop`, mínimo ~220ms, timeout 2000ms).
+ * - Fase 1: Capa Bipartida (`CoverGate`) com pré-decodificação em background das imagens do pôster.
+ * - Fase 2: Pôster animado (`HeroPoster`) já decodificado por baixo + seções inferiores sob demanda (`next/dynamic`).
  */
 export default function InvitationExperience() {
   const [isAppReady, setIsAppReady] = useState(false);
@@ -134,6 +136,7 @@ export default function InvitationExperience() {
   useEffect(() => {
     let cancelled = false;
     let minTimerId: number | undefined;
+    let fontTimerId: number | undefined;
     let safetyTimerId: number | undefined;
     let rafId: number | undefined;
     const controller = new AbortController();
@@ -143,6 +146,7 @@ export default function InvitationExperience() {
       cancelled = true;
       controller.abort();
       if (minTimerId !== undefined) window.clearTimeout(minTimerId);
+      if (fontTimerId !== undefined) window.clearTimeout(fontTimerId);
       if (safetyTimerId !== undefined) window.clearTimeout(safetyTimerId);
       if (rafId !== undefined) window.cancelAnimationFrame(rafId);
       setIsAppReady(true);
@@ -159,10 +163,24 @@ export default function InvitationExperience() {
 
     const waitFonts =
       typeof document !== "undefined" && "fonts" in document && document.fonts?.ready
-        ? document.fonts.ready.then(() => undefined).catch(() => undefined)
+        ? Promise.race([
+            document.fonts.ready.then(() => undefined).catch(() => undefined),
+            new Promise<void>((resolve) => {
+              fontTimerId = window.setTimeout(resolve, FONT_READY_TIMEOUT_MS);
+            }),
+          ]).finally(() => {
+            if (fontTimerId !== undefined) {
+              window.clearTimeout(fontTimerId);
+              fontTimerId = undefined;
+            }
+          })
         : Promise.resolve();
 
-    const waitImages = preloadCriticalAssets(controller.signal).catch(() => undefined);
+    const waitImages = preloadDomSelector(
+      "img[data-critical-asset]",
+      controller.signal,
+      CRITICAL_IMAGE_FALLBACKS,
+    ).catch(() => undefined);
 
     safetyTimerId = window.setTimeout(commitReady, PRELOADER_TIMEOUT_MS);
 
@@ -172,41 +190,52 @@ export default function InvitationExperience() {
       cancelled = true;
       controller.abort();
       if (minTimerId !== undefined) window.clearTimeout(minTimerId);
+      if (fontTimerId !== undefined) window.clearTimeout(fontTimerId);
       if (safetyTimerId !== undefined) window.clearTimeout(safetyTimerId);
       if (rafId !== undefined) window.cancelAnimationFrame(rafId);
     };
   }, []);
+
+  // Pré-decodifica as imagens do HeroPoster silenciosamente após a capa estar pronta
+  useEffect(() => {
+    if (!isAppReady) return;
+    const controller = new AbortController();
+    void preloadDomSelector("img[data-poster-asset]", controller.signal).catch(() => undefined);
+    return () => controller.abort();
+  }, [isAppReady]);
 
   const handleOpenStart = useCallback(() => setStage("opening"), []);
   const handleOpenComplete = useCallback(() => setStage("open"), []);
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-x-clip md:px-6 md:py-12 lg:px-10 lg:py-16">
-        {/* Iluminação ambiental em Azul Royal e Prata suave no fundo do Desktop */}
-        <div
-          className="pointer-events-none fixed inset-0 -z-10 hidden md:block"
-          style={{
-            background:
-              "radial-gradient(50% 50% at 50% 45%, rgba(10, 36, 99, 0.09) 0%, transparent 72%), radial-gradient(38% 38% at 15% 20%, rgba(30, 64, 175, 0.07) 0%, transparent 65%), radial-gradient(38% 38% at 85% 80%, rgba(148, 163, 184, 0.22) 0%, transparent 65%)",
-          }}
-          aria-hidden
-        />
-
-        <InvitationContent revealed={stage !== "closed"} />
-
-        {stage !== "open" && (
-          <CoverGate
-            ready={isAppReady}
-            onOpenStart={handleOpenStart}
-            onOpenComplete={handleOpenComplete}
+      <LazyMotion features={domAnimation} strict>
+        <div className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-x-clip md:px-6 md:py-12 lg:px-10 lg:py-16">
+          {/* Iluminação ambiental em Azul Royal e Prata suave no fundo do Desktop */}
+          <div
+            className="pointer-events-none fixed inset-0 -z-10 hidden md:block"
+            style={{
+              background:
+                "radial-gradient(50% 50% at 50% 45%, rgba(10, 36, 99, 0.09) 0%, transparent 72%), radial-gradient(38% 38% at 15% 20%, rgba(30, 64, 175, 0.07) 0%, transparent 65%), radial-gradient(38% 38% at 85% 80%, rgba(148, 163, 184, 0.22) 0%, transparent 65%)",
+            }}
+            aria-hidden
           />
-        )}
 
-        <AnimatePresence>
-          {!isAppReady && <Preloader key="app-preloader" />}
-        </AnimatePresence>
-      </div>
+          <InvitationContent revealed={stage !== "closed"} />
+
+          {stage !== "open" && (
+            <CoverGate
+              ready={isAppReady}
+              onOpenStart={handleOpenStart}
+              onOpenComplete={handleOpenComplete}
+            />
+          )}
+
+          <AnimatePresence>
+            {!isAppReady && <Preloader key="app-preloader" />}
+          </AnimatePresence>
+        </div>
+      </LazyMotion>
     </MotionConfig>
   );
 }

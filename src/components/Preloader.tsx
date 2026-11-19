@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { m } from "framer-motion";
 import { useId } from "react";
 import { EVENT } from "@/config/event";
+import { useSafeReducedMotion } from "@/hooks/useSafeReducedMotion";
 
 const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -12,12 +13,12 @@ const LUXURY_EASE = [0.16, 1, 0.3, 1] as const;
  * para eliminar qualquer flash ou pop-in antes da desmontagem via `AnimatePresence`.
  */
 export default function Preloader() {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useSafeReducedMotion();
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const arcGradId = `preloader-arc-${uid}`;
 
   return (
-    <motion.div
+    <m.div
       initial={false}
       animate={{ opacity: 1 }}
       exit={{
@@ -102,6 +103,6 @@ export default function Preloader() {
           {EVENT.initial}
         </span>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

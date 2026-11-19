@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { m, useMotionValue, useSpring } from "framer-motion";
 import Image from "next/image";
 import {
   useCallback,
@@ -12,8 +12,10 @@ import {
 } from "react";
 import { useScrollLock } from "@/components/SmoothScrollProvider";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
-import crestImage from "../../public/images/brasao-barroco-c.png";
-import backdropImage from "../../public/images/cover-ornament-backdrop-right.png";
+import { useSafeReducedMotion } from "@/hooks/useSafeReducedMotion";
+import { triggerHaptic } from "@/lib/utils";
+import crestImage from "../../public/images/brasao-barroco-c.webp";
+import backdropImage from "../../public/images/cover-ornament-backdrop-right.webp";
 
 type GatePhase = "idle" | "unsealing" | "opening";
 
@@ -130,7 +132,7 @@ function CoverDoorFrame({
         }}
       />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{
@@ -141,34 +143,42 @@ function CoverDoorFrame({
         className="pointer-events-none absolute inset-0"
       >
         <div
-          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:top-[max(1.5rem,env(safe-area-inset-top))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] border-[#B8C0CC]/75 ${isLeft
-            ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))] right-2.5 border-y border-l"
-            : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))] left-2.5 border-y border-r"
-            }`}
+          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:top-[max(1.5rem,env(safe-area-inset-top))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] border-[#B8C0CC]/75 ${
+            isLeft
+              ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))] right-2.5 border-y border-l"
+              : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))] left-2.5 border-y border-r"
+          }`}
         />
         <div
-          className={`absolute top-[max(1.25rem,calc(0.375rem+env(safe-area-inset-top)))] bottom-[max(1.25rem,calc(0.375rem+env(safe-area-inset-bottom)))] sm:top-[max(2rem,calc(0.5rem+env(safe-area-inset-top)))] sm:bottom-[max(2rem,calc(0.5rem+env(safe-area-inset-bottom)))] border-[#0A2463]/16 ${isLeft
-            ? "left-[max(1.25rem,calc(0.375rem+env(safe-area-inset-left)))] sm:left-[max(2rem,calc(0.5rem+env(safe-area-inset-left)))] right-4 border-y border-l"
-            : "right-[max(1.25rem,calc(0.375rem+env(safe-area-inset-right)))] sm:right-[max(2rem,calc(0.5rem+env(safe-area-inset-right)))] left-4 border-y border-r"
-            }`}
+          className={`absolute top-[max(1.25rem,calc(0.375rem+env(safe-area-inset-top)))] bottom-[max(1.25rem,calc(0.375rem+env(safe-area-inset-bottom)))] sm:top-[max(2rem,calc(0.5rem+env(safe-area-inset-top)))] sm:bottom-[max(2rem,calc(0.5rem+env(safe-area-inset-bottom)))] border-[#0A2463]/16 ${
+            isLeft
+              ? "left-[max(1.25rem,calc(0.375rem+env(safe-area-inset-left)))] sm:left-[max(2rem,calc(0.5rem+env(safe-area-inset-left)))] right-4 border-y border-l"
+              : "right-[max(1.25rem,calc(0.375rem+env(safe-area-inset-right)))] sm:right-[max(2rem,calc(0.5rem+env(safe-area-inset-right)))] left-4 border-y border-r"
+          }`}
         />
 
         <EditorialCornerBracket
           position={isLeft ? "tl" : "tr"}
-          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] sm:top-[max(1.5rem,env(safe-area-inset-top))] size-9 sm:size-12 ${isLeft ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]" : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
-            }`}
+          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] sm:top-[max(1.5rem,env(safe-area-inset-top))] size-9 sm:size-12 ${
+            isLeft
+              ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]"
+              : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
+          }`}
         />
         <EditorialCornerBracket
           position={isLeft ? "bl" : "br"}
-          className={`absolute bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] size-9 sm:size-12 ${isLeft ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]" : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
-            }`}
+          className={`absolute bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] size-9 sm:size-12 ${
+            isLeft
+              ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]"
+              : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
+          }`}
         />
-      </motion.div>
+      </m.div>
 
       {/* Metade direita cortada colada na divisória central vertical da porta direita (left-0) */}
       {!isLeft && !backdropError && (
         <div className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 aspect-[370/1404] w-[96%] max-w-[205px] md:w-[225px] select-none">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={ready ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
             transition={{
@@ -183,7 +193,7 @@ function CoverDoorFrame({
               alt=""
               width={BACKDROP_WIDTH}
               height={BACKDROP_HEIGHT}
-              priority
+              unoptimized
               fetchPriority="high"
               loading="eager"
               decoding="sync"
@@ -194,7 +204,7 @@ function CoverDoorFrame({
               style={GPU_LAYER_STYLE}
               className="size-full object-contain object-left"
             />
-          </motion.div>
+          </m.div>
         </div>
       )}
     </div>
@@ -218,7 +228,7 @@ function CurvedCrestCaption({
   const arcId = `crest-right-arc-${uid}`;
 
   return (
-    <motion.svg
+    <m.svg
       width={CREST_WIDTH}
       height={CREST_HEIGHT}
       viewBox={`0 0 ${CREST_WIDTH} ${CREST_HEIGHT}`}
@@ -257,7 +267,7 @@ function CurvedCrestCaption({
           TOQUE PARA ABRIR
         </textPath>
       </text>
-    </motion.svg>
+    </m.svg>
   );
 }
 
@@ -279,8 +289,7 @@ export default function CoverGate({
   const [phase, setPhase] = useState<GatePhase>("idle");
   const [backdropError, setBackdropError] = useState(false);
   const [crestError, setCrestError] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
-  const reducedMotion = Boolean(prefersReducedMotion);
+  const reducedMotion = useSafeReducedMotion();
 
   const isOpeningRef = useRef(false);
   const timersRef = useRef<number[]>([]);
@@ -311,7 +320,7 @@ export default function CoverGate({
     };
   }, [clearTimers]);
 
-  // Tração magnética sutil apenas para ponteiros não-touch no desktop
+  // Tração magnética sutil apenas para ponteiros não-touch no desktop (sem getBoundingClientRect)
   const sealRawX = useMotionValue(0);
   const sealRawY = useMotionValue(0);
   const sealX = useSpring(sealRawX, { stiffness: 220, damping: 24, mass: 0.5 });
@@ -320,10 +329,11 @@ export default function CoverGate({
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!ready || isOpeningRef.current || e.pointerType === "touch") return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      const nx = Math.max(-0.5, Math.min(0.5, (e.clientX - rect.left) / rect.width - 0.5));
-      const ny = Math.max(-0.5, Math.min(0.5, (e.clientY - rect.top) / rect.height - 0.5));
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      if (width === 0 || height === 0) return;
+      const nx = Math.max(-0.5, Math.min(0.5, e.clientX / width - 0.5));
+      const ny = Math.max(-0.5, Math.min(0.5, e.clientY / height - 0.5));
       sealRawX.set(nx * 8);
       sealRawY.set(ny * 8);
     },
@@ -343,9 +353,7 @@ export default function CoverGate({
     sealRawX.set(0);
     sealRawY.set(0);
 
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      navigator.vibrate?.(16);
-    }
+    triggerHaptic(16);
 
     const isReduced =
       reducedMotion ||
@@ -389,8 +397,9 @@ export default function CoverGate({
     <div
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className={`fixed inset-0 z-40 overflow-hidden select-none ${isOpening ? "pointer-events-none" : "pointer-events-auto touch-none"
-        }`}
+      className={`fixed inset-0 z-40 overflow-hidden select-none ${
+        isOpening ? "pointer-events-none" : "pointer-events-auto touch-none"
+      }`}
       role={isOpening ? undefined : "dialog"}
       aria-modal={isOpening ? undefined : true}
       aria-hidden={isOpening || undefined}
@@ -398,7 +407,7 @@ export default function CoverGate({
       aria-label={isOpening ? undefined : `Capa do convite de ${EVENT.name} — ${EVENT.age} Anos`}
     >
       {/* Porta Esquerda */}
-      <motion.div
+      <m.div
         initial={false}
         animate={{ x: isOpening ? "-102%" : "0%" }}
         transition={DOOR_OPEN_TRANSITION}
@@ -414,7 +423,7 @@ export default function CoverGate({
           onBackdropError={handleBackdropError}
         />
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -6 }}
           animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: -6 }}
           transition={{
@@ -433,15 +442,15 @@ export default function CoverGate({
               {EVENT.age} ANOS
             </span>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Filetes paralelos prata/azul-marinho na junção central */}
         <div className="pointer-events-none absolute inset-y-6 right-2.5 w-px bg-gradient-to-b from-transparent via-[#B8C0CC]/80 to-transparent" />
         <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-[#0A2463]/32 to-transparent" />
-      </motion.div>
+      </m.div>
 
       {/* Porta Direita */}
-      <motion.div
+      <m.div
         initial={false}
         animate={{ x: isOpening ? "102%" : "0%" }}
         transition={DOOR_OPEN_TRANSITION}
@@ -457,7 +466,7 @@ export default function CoverGate({
           onBackdropError={handleBackdropError}
         />
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 6 }}
           animate={ready ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
           transition={{
@@ -469,22 +478,22 @@ export default function CoverGate({
         >
           <span className="text-[#0A2463]/70">✦</span>
           <span>{FORMATTED_EVENT_DATE.short}</span>
-        </motion.div>
+        </m.div>
 
         {/* Filete paralelo delicado próximo à junção central */}
         <div className="pointer-events-none absolute inset-y-6 left-2.5 w-px bg-gradient-to-b from-transparent via-[#B8C0CC]/80 to-transparent" />
-      </motion.div>
+      </m.div>
 
       {/* ════════════════════════════════════════════════════════════════════════
           BROCHE BARROCO PURO CENTRAL (ZERO FUNDO) + TEXTO CURVO À DIREITA
          ════════════════════════════════════════════════════════════════════════ */}
       <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
-        <motion.div
+        <m.div
           style={{ x: ready && isIdle ? sealX : 0, y: ready && isIdle ? sealY : 0 }}
           className="relative flex items-center justify-center"
         >
           {/* Animação de entrada (opacity, scale, y) exclusivamente no container pai */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={ready ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.9, y: 10 }}
             transition={{
@@ -493,7 +502,7 @@ export default function CoverGate({
               ease: LUXURY_EASE,
             }}
           >
-            <motion.button
+            <m.button
               type="button"
               onClick={handleTriggerOpen}
               disabled={!ready || !isIdle}
@@ -529,7 +538,7 @@ export default function CoverGate({
                     alt={`Brasão monograma ${EVENT.initial} de ${EVENT.name} — ${EVENT.age} anos`}
                     width={CREST_WIDTH}
                     height={CREST_HEIGHT}
-                    priority
+                    unoptimized
                     fetchPriority="high"
                     loading="eager"
                     decoding="sync"
@@ -541,8 +550,9 @@ export default function CoverGate({
                       ...GPU_LAYER_STYLE,
                       filter: CREST_DROP_SHADOW,
                     }}
-                    className={`relative z-10 size-full object-contain ${crestError ? "opacity-0" : ""
-                      }`}
+                    className={`relative z-10 size-full object-contain ${
+                      crestError ? "opacity-0" : ""
+                    }`}
                   />
 
                   {crestError && (
@@ -578,9 +588,9 @@ export default function CoverGate({
                   />
                 </div>
               </div>
-            </motion.button>
-          </motion.div>
-        </motion.div>
+            </m.button>
+          </m.div>
+        </m.div>
       </div>
     </div>
   );

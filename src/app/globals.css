@@ -22,7 +22,6 @@
   --color-ice: #f8fafc;
 
   --animate-crest-float: crest-float 4.2s ease-in-out infinite;
-  --animate-twinkle: twinkle 3.6s ease-in-out infinite;
   --animate-disco-glint: disco-glint 3.4s ease-in-out infinite;
   --animate-breathe-soft: breathe-soft 3.2s ease-in-out infinite;
   --animate-brooch-shimmer: brooch-shimmer 5.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
@@ -48,7 +47,7 @@ html {
 }
 
 body {
-  min-height: 100dvh;
+  min-height: 100svh;
   color: #071739;
   background-color: #f1f2f4;
   background-image:
@@ -149,8 +148,10 @@ html.lenis:not(.scroll-locked) body {
 
 [data-active="false"] .animate-sticker-float,
 [data-active="false"] .animate-sticker-float-alt,
-[data-active="false"] .animate-twinkle,
-[data-active="false"] .animate-disco-glint {
+[data-active="false"] .animate-disco-glint,
+[data-poster-inview="false"] .animate-sticker-float,
+[data-poster-inview="false"] .animate-sticker-float-alt,
+[data-poster-inview="false"] .animate-disco-glint {
   animation-play-state: paused;
 }
 
@@ -183,18 +184,6 @@ html.lenis:not(.scroll-locked) body {
   }
   50% {
     transform: translate3d(0, 3px, 0);
-  }
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: scale3d(0.78, 0.78, 1) rotate(0deg);
-  }
-  50% {
-    opacity: 0.95;
-    transform: scale3d(1.16, 1.16, 1) rotate(24deg);
   }
 }
 

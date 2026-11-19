@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Check, Clock, Copy, MapPin, Navigation, Shirt } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { CornerFiligree } from "@/components/Ornaments";
@@ -9,6 +9,8 @@ import {
   copyToClipboard,
   googleMapsEmbedUrl,
   googleMapsUrl,
+  isInAppBrowser,
+  triggerHaptic,
   wazeUrl,
 } from "@/lib/utils";
 
@@ -46,8 +48,10 @@ const LocationSection = memo(function LocationSection({
   const [shouldLoadMap, setShouldLoadMap] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [inApp, setInApp] = useState(false);
 
   useEffect(() => {
+    setInApp(isInAppBrowser());
     return () => {
       if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
     };
@@ -80,8 +84,8 @@ const LocationSection = memo(function LocationSection({
   const handleCopyAddress = useCallback(async () => {
     const ok = await copyToClipboard(EVENT.venue.address);
     setCopyStatus(ok ? "copied" : "failed");
-    if (ok && typeof navigator !== "undefined" && "vibrate" in navigator) {
-      navigator.vibrate?.(10);
+    if (ok) {
+      triggerHaptic(10);
     }
     if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current);
     copyTimerRef.current = window.setTimeout(() => {
@@ -96,7 +100,7 @@ const LocationSection = memo(function LocationSection({
 
   return (
     <section className="mt-14 sm:mt-16 flex w-full flex-col items-center" aria-label="Local da festa">
-      <motion.div
+      <m.div
         initial={revealInitial}
         whileInView={revealed ? revealVisible : revealInitial}
         viewport={HEADING_VIEWPORT}
@@ -110,9 +114,9 @@ const LocationSection = memo(function LocationSection({
           </h2>
           <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
         </div>
-      </motion.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         initial={revealInitial}
         whileInView={revealed ? revealVisible : revealInitial}
         viewport={INTERACTIVE_VIEWPORT}
@@ -196,31 +200,31 @@ const LocationSection = memo(function LocationSection({
 
         {/* Botões funcionais: Google Maps, Waze e Copiar Endereço */}
         <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-[1fr_0.8fr_1.2fr]">
-          <motion.a
+          <m.a
             whileHover={reducedMotion ? undefined : { y: -1 }}
             whileTap={reducedMotion ? undefined : { scale: 0.96 }}
             href={googleMapsUrl(EVENT.venue.mapsQuery)}
-            target="_blank"
-            rel="noopener noreferrer"
+            target={inApp ? undefined : "_blank"}
+            rel={inApp ? undefined : "noopener noreferrer"}
             className={`flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-royal-navy px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(7,23,57,0.6)] transition-colors hover:bg-royal-deep ${FOCUS_RING_CLS}`}
           >
             <MapPin className="size-4 shrink-0" aria-hidden />
             <span>Google Maps</span>
-          </motion.a>
+          </m.a>
 
-          <motion.a
+          <m.a
             whileHover={reducedMotion ? undefined : { y: -1 }}
             whileTap={reducedMotion ? undefined : { scale: 0.96 }}
             href={wazeUrl(EVENT.venue.mapsQuery)}
-            target="_blank"
-            rel="noopener noreferrer"
+            target={inApp ? undefined : "_blank"}
+            rel={inApp ? undefined : "noopener noreferrer"}
             className={`flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-royal-deep px-3 py-2.5 font-sans text-[12.5px] font-semibold text-white shadow-[0_10px_20px_-8px_rgba(10,36,99,0.55)] transition-colors hover:bg-royal-800 ${FOCUS_RING_CLS}`}
           >
             <Navigation className="size-4 shrink-0" aria-hidden />
             <span>Waze</span>
-          </motion.a>
+          </m.a>
 
-          <motion.button
+          <m.button
             type="button"
             whileHover={reducedMotion ? undefined : { y: -1 }}
             whileTap={reducedMotion ? undefined : { scale: 0.96 }}
@@ -234,7 +238,7 @@ const LocationSection = memo(function LocationSection({
           >
             <AnimatePresence mode="wait" initial={false}>
               {copyStatus === "copied" ? (
-                <motion.span
+                <m.span
                   key="addr-copied"
                   initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -244,9 +248,9 @@ const LocationSection = memo(function LocationSection({
                 >
                   <Check className="size-4 shrink-0" aria-hidden />
                   <span>Copiado!</span>
-                </motion.span>
+                </m.span>
               ) : copyStatus === "failed" ? (
-                <motion.span
+                <m.span
                   key="addr-failed"
                   initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -256,9 +260,9 @@ const LocationSection = memo(function LocationSection({
                 >
                   <Copy className="size-4 shrink-0 text-royal-deep" aria-hidden />
                   <span>Selecione e copie acima</span>
-                </motion.span>
+                </m.span>
               ) : (
-                <motion.span
+                <m.span
                   key="addr-idle"
                   initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -268,12 +272,12 @@ const LocationSection = memo(function LocationSection({
                 >
                   <Copy className="size-4 shrink-0 text-royal-deep" aria-hidden />
                   <span>Copiar Endereço</span>
-                </motion.span>
+                </m.span>
               )}
             </AnimatePresence>
-          </motion.button>
+          </m.button>
         </div>
-      </motion.div>
+      </m.div>
     </section>
   );
 });

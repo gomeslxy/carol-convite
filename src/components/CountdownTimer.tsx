@@ -1,8 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { memo, useEffect, useState } from "react";
+import { AnimatePresence, m, useInView } from "framer-motion";
+import { memo, useEffect, useRef, useState } from "react";
 import { EVENT_TIMESTAMP } from "@/config/event";
+import { useSafeReducedMotion } from "@/hooks/useSafeReducedMotion";
 
 interface TimeLeft {
   days: number;
@@ -23,7 +24,7 @@ function computeTimeLeft(target: number): TimeLeft {
   };
 }
 
-function useCountdown(target: number, active: boolean): TimeLeft | null {
+function useCountdown(target: number, active: boolean, isInView: boolean): TimeLeft | null {
   // null no SSR e no primeiro render cliente -> zero Hydration Mismatch
   const [time, setTime] = useState<TimeLeft | null>(null);
 
@@ -41,7 +42,8 @@ function useCountdown(target: number, active: boolean): TimeLeft | null {
     const tick = () => {
       const next = computeTimeLeft(target);
       setTime(next);
-      if (next.done || document.hidden) {
+      // Pausa ticks contínuos quando concluído, aba oculta ou fora da viewport
+      if (next.done || document.hidden || !isInView) {
         timeoutId = undefined;
         return;
       }
@@ -62,7 +64,7 @@ function useCountdown(target: number, active: boolean): TimeLeft | null {
       clearTimer();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [target, active]);
+  }, [target, active, isInView]);
 
   return time;
 }
@@ -88,7 +90,7 @@ const RollingDigit = memo(function RollingDigit({
       style={{ perspective: "420px" }}
     >
       <AnimatePresence initial={false} mode="popLayout">
-        <motion.span
+        <m.span
           key={digit}
           initial={{ y: "-78%", rotateX: 38, scale: 0.9, opacity: 0 }}
           animate={{ y: "0%", rotateX: 0, scale: 1, opacity: 1 }}
@@ -97,7 +99,7 @@ const RollingDigit = memo(function RollingDigit({
           className="absolute inset-0 flex items-center justify-center text-royal-navy"
         >
           {digit}
-        </motion.span>
+        </m.span>
       </AnimatePresence>
     </span>
   );
@@ -152,21 +154,42 @@ const CountdownUnit = memo(function CountdownUnit({
   );
 });
 
-const CountdownTimer = memo(function CountdownTimer({ active = true }: { active?: boolean }) {
-  const time = useCountdown(EVENT_TIMESTAMP, active);
-  const prefersReducedMotion = useReducedMotion();
-  const reducedMotion = Boolean(prefersReducedMotion);
+const CountdownHeading = memo(function CountdownHeading() {
+  return (
+    <div className="mx-auto flex w-full max-w-[360px] items-center gap-3 sm:gap-4">
+      <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+      <h2 className="whitespace-nowrap font-serif text-[19px] sm:text-[26px] font-bold leading-none tracking-wide text-royal-navy">
+        Contagem Regressiva
+      </h2>
+      <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
+    </div>
+  );
+});
+
+/** Subcomponente folha que isola o tick de 1 segundo do restante da árvore React. */
+const CountdownClock = memo(function CountdownClock({
+  active,
+  reducedMotion,
+}: {
+  active: boolean;
+  reducedMotion: boolean;
+}) {
+  const clockRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(clockRef, { margin: "200px 0px 200px 0px" });
+  const time = useCountdown(EVENT_TIMESTAMP, active, isInView);
   const ready = time !== null;
 
   if (time?.done) {
     return (
-      <div className="mx-auto w-full max-w-[380px] rounded-2xl border border-royal-deep/15 bg-white/80 px-6 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16)]">
-        <p className="font-serif text-2xl sm:text-3xl font-bold text-royal-navy">
-          Chegou o grande dia!
-        </p>
-        <span className="mt-3 inline-block rounded-full bg-royal-navy px-5 py-1.5 font-sans text-[11px] font-bold tracking-[0.2em] text-white uppercase">
-          TE ESPERO PARA CELEBRAR
-        </span>
+      <div ref={clockRef} className="w-full max-w-[440px] text-center">
+        <div className="mx-auto w-full max-w-[380px] rounded-2xl border border-royal-deep/15 bg-white/80 px-6 py-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_16px_36px_-14px_rgba(7,23,57,0.16)]">
+          <p className="font-serif text-2xl sm:text-3xl font-bold text-royal-navy">
+            Chegou o grande dia!
+          </p>
+          <span className="mt-3 inline-block rounded-full bg-royal-navy px-5 py-1.5 font-sans text-[11px] font-bold tracking-[0.2em] text-white uppercase">
+            TE ESPERO PARA CELEBRAR
+          </span>
+        </div>
       </div>
     );
   }
@@ -176,23 +199,9 @@ const CountdownTimer = memo(function CountdownTimer({ active = true }: { active?
   const minutes = time?.minutes ?? 0;
   const seconds = time?.seconds ?? 0;
 
-  const units = [
-    { label: "DIAS", value: days },
-    { label: "HORAS", value: hours },
-    { label: "MINUTOS", value: minutes },
-    { label: "SEGUNDOS", value: seconds },
-  ];
-
   return (
-    <div className="w-full max-w-[440px] text-center">
-      {/* Título no mesmo padrão do bloco de data do pôster */}
-      <div className="mx-auto flex w-full max-w-[360px] items-center gap-3 sm:gap-4">
-        <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
-        <h2 className="whitespace-nowrap font-serif text-[19px] sm:text-[26px] font-bold leading-none tracking-wide text-royal-navy">
-          Contagem Regressiva
-        </h2>
-        <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
-      </div>
+    <div ref={clockRef} className="w-full max-w-[440px] text-center">
+      <CountdownHeading />
 
       {/* Cápsula translúcida com borda 1px, brilho interno e divisórias sutis */}
       <div
@@ -205,19 +214,42 @@ const CountdownTimer = memo(function CountdownTimer({ active = true }: { active?
             : "Carregando contagem regressiva"
         }
       >
-        {units.map((u, idx) => (
-          <CountdownUnit
-            key={u.label}
-            value={u.value}
-            label={u.label}
-            ready={ready}
-            reducedMotion={reducedMotion}
-            showDivider={idx < units.length - 1}
-          />
-        ))}
+        <CountdownUnit
+          value={days}
+          label="DIAS"
+          ready={ready}
+          reducedMotion={reducedMotion}
+          showDivider
+        />
+        <CountdownUnit
+          value={hours}
+          label="HORAS"
+          ready={ready}
+          reducedMotion={reducedMotion}
+          showDivider
+        />
+        <CountdownUnit
+          value={minutes}
+          label="MINUTOS"
+          ready={ready}
+          reducedMotion={reducedMotion}
+          showDivider
+        />
+        <CountdownUnit
+          value={seconds}
+          label="SEGUNDOS"
+          ready={ready}
+          reducedMotion={reducedMotion}
+          showDivider={false}
+        />
       </div>
     </div>
   );
+});
+
+const CountdownTimer = memo(function CountdownTimer({ active = true }: { active?: boolean }) {
+  const reducedMotion = useSafeReducedMotion();
+  return <CountdownClock active={active} reducedMotion={reducedMotion} />;
 });
 
 export default CountdownTimer;

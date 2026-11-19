@@ -1,4 +1,4 @@
-import { getFormattedDate, type EventConfig } from "@/config/event";
+import type { EventConfig } from "@/config/event";
 
 /** Copia texto com fallback para navegadores/contextos sem Clipboard API. */
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -28,192 +28,109 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-/** `Date` → `YYYYMMDDTHHMMSSZ` (UTC). Ex.: 20:00 BRT → `20270716T230000Z`. */
-const toUtcStamp = (date: Date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-
-/** `Date` → `YYYYMMDDTHHMMSS` no fuso informado (ex.: `20270716T200000` em America/Sao_Paulo). */
-function toZonedStamp(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "00";
-  return `${get("year")}${get("month")}${get("day")}T${get("hour")}${get("minute")}${get("second")}`;
+/** Detecta iPhone, iPad (incluindo iPadOS 13+ que reporta MacIntel) e iPod. */
+export function isIOSDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 }
 
-function eventRange(event: EventConfig) {
-  const start = new Date(event.dateISO);
-  const end = new Date(start.getTime() + event.durationHours * 3_600_000);
-  return { start, end };
+const KNOWN_IN_APP_UA_REGEX =
+  /Instagram|FBAN|FBAV|FBIOS|FB_IAB|WhatsApp|Line\/|MicroMessenger|Twitter|Snapchat|TikTok|BytedanceWebview|;\s*wv\)/i;
+
+/**
+ * Detecta WebViews embutidos (WhatsApp, Instagram, Facebook, TikTok, Android `wv`) e iOS WKWebView,
+ * onde `window.open(..., "_blank")` ou downloads `blob:` costumam ser bloqueados.
+ */
+export function isInAppBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  if (KNOWN_IN_APP_UA_REGEX.test(ua)) return true;
+  const isAppleHandheld = /iPhone|iPad|iPod/i.test(ua);
+  const isThirdPartyIosBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+  const hasSafariToken = /Safari\//i.test(ua);
+  return isAppleHandheld && !hasSafariToken && !isThirdPartyIosBrowser;
 }
 
-const eventTitle = (event: EventConfig) => `Aniversário de ${event.age} anos — ${event.name}`;
-
-const eventLocation = (event: EventConfig) => `${event.venue.name} — ${event.venue.address}`;
-
-/** Descrição comum (Google Agenda / .ics) com data e horário oficiais no fuso do evento. */
-function eventDetails(event: EventConfig): string {
-  const { long, time, endTime } = getFormattedDate(event);
-  const dressCodeLine = event.dressCodeNote
-    ? `Traje: ${event.dressCode} — ${event.dressCodeNote}`
-    : `Traje: ${event.dressCode}`;
-  return [
-    `${long}, às ${time} (até ${endTime}, horário de Brasília).`,
-    "",
-    event.openingText,
-    "",
-    dressCodeLine,
-    `Convite: ${event.siteUrl}`,
-  ].join("\n");
-}
-
-export function googleCalendarUrl(event: EventConfig): string {
-  const { start, end } = eventRange(event);
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: eventTitle(event),
-    // UTC absoluto (ex.: 20270716T230000Z/20270717T050000Z) — imune ao fuso do dispositivo.
-    dates: `${toUtcStamp(start)}/${toUtcStamp(end)}`,
-    details: eventDetails(event),
-    location: eventLocation(event),
-    ctz: event.timeZone,
-  });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-/** Dobra linhas do iCalendar em 75 octetos (RFC 5545 §3.1), preservando caracteres multibyte. */
-function foldIcsLine(line: string): string {
-  const encoder = new TextEncoder();
-  if (encoder.encode(line).length <= 75) return line;
-
-  const chunks: string[] = [];
-  let current = "";
-  let currentBytes = 0;
-  for (const char of line) {
-    const bytes = encoder.encode(char).length;
-    const limit = chunks.length === 0 ? 75 : 74; // linhas de continuação começam com um espaço
-    if (currentBytes + bytes > limit) {
-      chunks.push(current);
-      current = char;
-      currentBytes = bytes;
-    } else {
-      current += char;
-      currentBytes += bytes;
+/** Dispara feedback háptico sem lançar exceções em navegadores/WebViews restritos. */
+export function triggerHaptic(pattern: number | number[]): void {
+  try {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(pattern);
     }
+  } catch {
+    /* ignora bloqueio de política ou dispositivo sem suporte */
   }
-  chunks.push(current);
-  return chunks.join("\r\n ");
 }
 
-/** Gera conteúdo iCalendar RFC 5545 completo (compartilhado entre cliente e `/api/calendar`). */
-export function buildIcsContent(event: EventConfig): string {
-  const { start, end } = eventRange(event);
-  const tz = event.timeZone;
-  const offset = event.dateISO.match(/([+-])(\d{2}):?(\d{2})$/);
-  const tzOffset = offset ? `${offset[1]}${offset[2]}${offset[3]}` : "-0300";
-  const slugName = event.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "evento";
-  const esc = (s: string) =>
-    s
-      .replace(/\r\n?|\u2028|\u2029/g, "\n")
-      .replace(/\\/g, "\\\\")
-      .replace(/\n/g, "\\n")
-      .replace(/,/g, "\\,")
-      .replace(/;/g, "\\;");
+/**
+ * Abre URL externa com compatibilidade real para WebViews in-app e bloqueadores de pop-up:
+ * - Em WebViews (Instagram/WhatsApp) com `preferSameTabInApp`, navega na mesma aba para acionar Universal Links;
+ * - Nos demais navegadores, evita `"noopener"` nas features para não receber `null` falso-negativo da spec HTML,
+ *   neutralizando `win.opener = null` logo após abrir, com fallback para `window.location.assign`.
+ */
+export function openExternalUrl(
+  url: string,
+  options?: { preferSameTabInApp?: boolean },
+): void {
+  if (typeof window === "undefined") return;
 
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//convitecarol.site//Convite Carol 18//PT-BR",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-    // Fuso explícito (Brasil sem horário de verão desde 2019 → offset fixo do evento).
-    "BEGIN:VTIMEZONE",
-    `TZID:${tz}`,
-    `X-LIC-LOCATION:${tz}`,
-    "BEGIN:STANDARD",
-    `TZOFFSETFROM:${tzOffset}`,
-    `TZOFFSETTO:${tzOffset}`,
-    `TZNAME:${tzOffset.slice(0, 3)}`,
-    "DTSTART:19700101T000000",
-    "END:STANDARD",
-    "END:VTIMEZONE",
-    "BEGIN:VEVENT",
-    `UID:${slugName}-${event.age}-${toUtcStamp(start)}@${event.siteUrl.replace(/^https?:\/\//, "")}`,
-    `DTSTAMP:${toUtcStamp(new Date())}`,
-    `DTSTART;TZID=${tz}:${toZonedStamp(start, tz)}`,
-    `DTEND;TZID=${tz}:${toZonedStamp(end, tz)}`,
-    `SUMMARY:${esc(eventTitle(event))}`,
-    `DESCRIPTION:${esc(eventDetails(event))}`,
-    `LOCATION:${esc(eventLocation(event))}`,
-    `URL:${event.siteUrl}`,
-    "STATUS:CONFIRMED",
-    "TRANSP:OPAQUE",
-    "BEGIN:VALARM",
-    "TRIGGER:-P1D",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${esc(eventTitle(event))}`,
-    "END:VALARM",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ];
-
-  return `${lines.map(foldIcsLine).join("\r\n")}\r\n`;
-}
-
-/** Gera e baixa (ou abre no Apple Calendar no iOS) um arquivo .ics (RFC 5545). */
-export function downloadIcs(event: EventConfig): void {
-  const isIOS =
-    typeof navigator !== "undefined" &&
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
-
-  if (isIOS) {
-    // Em iOS Safari e WebViews (WhatsApp/Instagram), navegar para URL HTTPS com text/calendar
-    // aciona diretamente a folha nativa do Apple Calendar em vez de falhar em download de blob:.
-    window.location.assign("/api/calendar");
+  if (options?.preferSameTabInApp && isInAppBrowser()) {
+    window.location.assign(url);
     return;
   }
 
-  const ics = buildIcsContent(event);
-  const slugName = event.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "convite";
+  let win: Window | null = null;
+  try {
+    win = window.open(url, "_blank");
+    if (win) {
+      try {
+        win.opener = null;
+      } catch {
+        /* cross-origin opener protegido */
+      }
+      return;
+    }
+  } catch {
+    /* segue para fallback */
+  }
 
-  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${slugName}-${event.age}-anos.ics`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  window.location.assign(url);
+}
+
+/** Garante string UTF-16 bem-formada (remove surrogates órfãos para impedir `URIError` no `encodeURIComponent`). */
+export function toWellFormedString(value: string): string {
+  if (typeof value !== "string") return "";
+  const maybeWellFormed = (value as string & { toWellFormed?: () => string }).toWellFormed;
+  if (typeof maybeWellFormed === "function") {
+    return maybeWellFormed.call(value);
+  }
+  return value.replace(
+    /([\uD800-\uDBFF])(?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])([\uDC00-\uDFFF])/g,
+    "",
+  );
+}
+
+/** Fatiamento seguro por codepoints Unicode (evita cortar emojis ou pares substitutos ao meio). */
+export function sliceUnicode(value: string, maxChars: number): string {
+  const safe = toWellFormedString(value);
+  if (maxChars <= 0) return "";
+  return Array.from(safe).slice(0, maxChars).join("");
 }
 
 export const googleMapsUrl = (query: string) =>
-  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(toWellFormedString(query))}`;
 
 export const googleMapsEmbedUrl = (query: string) =>
-  `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+  `https://www.google.com/maps?q=${encodeURIComponent(toWellFormedString(query))}&output=embed`;
 
-export const wazeUrl = (query: string) => `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes`;
+export const wazeUrl = (query: string) =>
+  `https://waze.com/ul?q=${encodeURIComponent(toWellFormedString(query))}&navigate=yes`;
 
 export const whatsappUrl = (phone: string, message: string) =>
-  `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+  `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(toWellFormedString(message))}`;
 
 /* ───────────────────────── Segurança & Sanitização RSVP ───────────────────────── */
 
@@ -226,17 +143,18 @@ export const RSVP_LIMITS = {
 const HTML_TAG_REGEX = /<[^>]*>/g;
 const ANGLE_BRACKET_REGEX = /[<>]/g;
 const URI_PAYLOAD_REGEX = /(?:javascript|data|vbscript)\s*:/gi;
-const SINGLE_LINE_CONTROL_REGEX = /[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g;
-const MULTILINE_CONTROL_REGEX = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g;
+// Preserva `\u200D` (ZWJ) para não quebrar emojis compostos (ex.: 👨‍👩‍👧, ❤️‍🔥)
+const SINGLE_LINE_CONTROL_REGEX = /[\u0000-\u001F\u007F-\u009F\u200B\u200C\uFEFF]/g;
+const MULTILINE_CONTROL_REGEX = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F\u200B\u200C\uFEFF]/g;
 
 /**
  * Sanitiza texto de linha única: remove tags HTML, colchetes angulares, payloads de script,
- * caracteres de controle/invisíveis, normaliza espaços consecutivos e aplica trim/limite.
+ * caracteres de controle/invisíveis (preservando ZWJ para emojis compostos), normaliza espaços e aplica trim/limite por codepoints.
  */
 export function sanitizeSingleLineInput(value: string, maxLength?: number): string {
   if (typeof value !== "string") return "";
 
-  let clean = value
+  let clean = toWellFormedString(value)
     .replace(HTML_TAG_REGEX, " ")
     .replace(ANGLE_BRACKET_REGEX, "")
     .replace(URI_PAYLOAD_REGEX, "")
@@ -245,20 +163,20 @@ export function sanitizeSingleLineInput(value: string, maxLength?: number): stri
     .trim();
 
   if (typeof maxLength === "number" && maxLength > 0) {
-    clean = clean.slice(0, maxLength).trim();
+    clean = sliceUnicode(clean, maxLength).trim();
   }
 
   return clean;
 }
 
 /**
- * Sanitiza texto multilinha preservando quebras de linha legítimas, removendo tags HTML,
- * payloads de script, caracteres de controle e normalizando espaços múltiplos.
+ * Sanitiza texto multilinha preservando quebras de linha legítimas e emojis ZWJ,
+ * removendo tags HTML, payloads de script, caracteres de controle e normalizando espaços múltiplos.
  */
 export function sanitizeMultilineInput(value: string, maxLength?: number): string {
   if (typeof value !== "string") return "";
 
-  let clean = value
+  let clean = toWellFormedString(value)
     .replace(/\r\n?|\u2028|\u2029/g, "\n")
     .replace(HTML_TAG_REGEX, " ")
     .replace(ANGLE_BRACKET_REGEX, "")
@@ -270,7 +188,7 @@ export function sanitizeMultilineInput(value: string, maxLength?: number): strin
     .trim();
 
   if (typeof maxLength === "number" && maxLength > 0) {
-    clean = clean.slice(0, maxLength).trim();
+    clean = sliceUnicode(clean, maxLength).trim();
   }
 
   return clean;
@@ -366,3 +284,4 @@ export function validateRsvpInput(input: RsvpPayloadInput): RsvpValidationResult
   };
 }
 
+export type { EventConfig };

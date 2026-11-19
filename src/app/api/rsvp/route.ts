@@ -22,8 +22,20 @@ function isAllowedOrigin(request: Request): boolean {
   }
 
   const requestHost = request.headers.get("host")?.toLowerCase();
+  const forwardedHost = request.headers
+    .get("x-forwarded-host")
+    ?.split(",")[0]
+    ?.trim()
+    .toLowerCase();
   const siteHost = new URL(EVENT.siteUrl).host.toLowerCase();
-  return originHost === requestHost || originHost === siteHost;
+  const wwwSiteHost = siteHost.startsWith("www.") ? siteHost : `www.${siteHost}`;
+
+  return (
+    originHost === requestHost ||
+    originHost === forwardedHost ||
+    originHost === siteHost ||
+    originHost === wwwSiteHost
+  );
 }
 
 /**
@@ -52,7 +64,7 @@ export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
     const rawText = await request.text();
-    if (rawText.length > MAX_BODY_BYTES) {
+    if (Buffer.byteLength(rawText, "utf8") > MAX_BODY_BYTES) {
       return NextResponse.json(
         { ok: false, error: "Payload excede o limite permitido." },
         { status: 413, headers: NO_STORE_HEADERS },

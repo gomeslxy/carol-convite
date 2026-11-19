@@ -1,13 +1,14 @@
 "use client";
 
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { m, useInView, useScroll, useTransform } from "framer-motion";
 import { CalendarDays, Clock } from "lucide-react";
 import Image from "next/image";
 import { memo, useId, useRef, useState, type CSSProperties } from "react";
 import { Bow } from "@/components/BowDecoration";
 import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
-import carolCutoutImage from "../../public/images/carol-cutout.png";
-import partyHatImage from "../../public/images/party-hat.png";
+import { useSafeReducedMotion } from "@/hooks/useSafeReducedMotion";
+import carolCutoutImage from "../../public/images/carol-cutout.webp";
+import partyHatImage from "../../public/images/party-hat.webp";
 
 export type FloatStyle = CSSProperties & {
   "--float-duration"?: string;
@@ -95,6 +96,7 @@ function buildDiscoTiles(rows: number): DiscoTile[] {
 
 const BIG_DISCO_TILES = buildDiscoTiles(10);
 const MINI_DISCO_TILES = buildDiscoTiles(8);
+const BIG_DISCO_SPARKLES = BIG_DISCO_TILES.filter((t) => t.sparkle).slice(0, 3);
 
 /** Globo Espelhado Vetorial 3D com reflexos dinâmicos. */
 const MirrorDiscoBall = memo(function MirrorDiscoBall({
@@ -168,10 +170,7 @@ const MirrorDiscoBall = memo(function MirrorDiscoBall({
 
         {/* Brilhos especulares sutis apenas nos globos principais */}
         {!mini &&
-          tiles
-            .filter((t) => t.sparkle)
-            .slice(0, 3)
-            .map((t, idx) => (
+          BIG_DISCO_SPARKLES.map((t, idx) => (
               <g
                 key={`glint-${t.id}`}
                 style={{
@@ -262,6 +261,19 @@ export const GlitterBlueStar = memo(function GlitterBlueStar({
   );
 });
 
+const SILVER_STAR_FACETS: readonly [string, string][] = [
+  ["50,50 50,4 37.5,33.5", "#FFFFFF"],
+  ["50,50 50,4 62.5,33.5", "#CBD5E1"],
+  ["50,50 62.5,33.5 94.5,36.2", "#F8FAFC"],
+  ["50,50 94.5,36.2 70,57.4", "#64748B"],
+  ["50,50 70,57.4 77.6,88.8", "#E2E8F0"],
+  ["50,50 77.6,88.8 50,72", "#475569"],
+  ["50,50 50,72 22.4,88.8", "#94A3B8"],
+  ["50,50 22.4,88.8 30,57.4", "#475569"],
+  ["50,50 30,57.4 5.5,36.2", "#CBD5E1"],
+  ["50,50 5.5,36.2 37.5,33.5", "#94A3B8"],
+];
+
 /** Estrela 3D facetada em Prata Metálico Espelhado (10 facetas chanfradas). */
 export const MetallicSilverStar = memo(function MetallicSilverStar({
   className = "",
@@ -272,19 +284,6 @@ export const MetallicSilverStar = memo(function MetallicSilverStar({
   style?: FloatStyle;
   animClass?: string;
 }) {
-  const facets: [string, string][] = [
-    ["50,50 50,4 37.5,33.5", "#FFFFFF"],
-    ["50,50 50,4 62.5,33.5", "#CBD5E1"],
-    ["50,50 62.5,33.5 94.5,36.2", "#F8FAFC"],
-    ["50,50 94.5,36.2 70,57.4", "#64748B"],
-    ["50,50 70,57.4 77.6,88.8", "#E2E8F0"],
-    ["50,50 77.6,88.8 50,72", "#475569"],
-    ["50,50 50,72 22.4,88.8", "#94A3B8"],
-    ["50,50 22.4,88.8 30,57.4", "#475569"],
-    ["50,50 30,57.4 5.5,36.2", "#CBD5E1"],
-    ["50,50 5.5,36.2 37.5,33.5", "#94A3B8"],
-  ];
-
   return (
     <svg
       width={100}
@@ -294,7 +293,7 @@ export const MetallicSilverStar = memo(function MetallicSilverStar({
       className={`${animClass} pointer-events-none h-auto aspect-square select-none ${className}`}
       aria-hidden
     >
-      {facets.map(([pts, fill], idx) => (
+      {SILVER_STAR_FACETS.map(([pts, fill], idx) => (
         <polygon key={idx} points={pts} fill={fill} stroke="#64748B" strokeWidth="0.4" strokeLinejoin="round" />
       ))}
       <polygon
@@ -359,7 +358,7 @@ function LetterBlock({
   textClass: string;
 }) {
   return (
-    <motion.div
+    <m.div
       initial={
         reducedMotion
           ? { opacity: 0, y: tile.yOffset, rotate: tile.rotate }
@@ -418,23 +417,23 @@ function LetterBlock({
       >
         {tile.char}
       </div>
-    </motion.div>
+    </m.div>
   );
 }
+
+const BALLOON_SPECS = [
+  { cx: 58, cy: 66, rx: 52, ry: 56, gradKey: "a", rot: -10 },
+  { cx: 120, cy: 102, rx: 48, ry: 52, gradKey: "b", rot: 8 },
+  { cx: 74, cy: 132, rx: 54, ry: 58, gradKey: "a", rot: -4 },
+  { cx: 164, cy: 152, rx: 52, ry: 55, gradKey: "a", rot: 12 },
+  { cx: 112, cy: 176, rx: 46, ry: 48, gradKey: "b", rot: 0 },
+] as const;
 
 /** Cluster de 5 balões brilhantes em Azul Royal/Marinho (renderização leve 60fps). */
 function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const gradA = `bal-a-${uid}`;
   const gradB = `bal-b-${uid}`;
-
-  const balloons = [
-    { cx: 58, cy: 66, rx: 52, ry: 56, grad: gradA, rot: -10 },
-    { cx: 120, cy: 102, rx: 48, ry: 52, grad: gradB, rot: 8 },
-    { cx: 74, cy: 132, rx: 54, ry: 58, grad: gradA, rot: -4 },
-    { cx: 164, cy: 152, rx: 52, ry: 55, grad: gradA, rot: 12 },
-    { cx: 112, cy: 176, rx: 46, ry: 48, grad: gradB, rot: 0 },
-  ] as const;
 
   return (
     <svg
@@ -459,7 +458,7 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
         </radialGradient>
       </defs>
 
-      {balloons.map((b, idx) => (
+      {BALLOON_SPECS.map((b, idx) => (
         <g key={idx} transform={`rotate(${b.rot} ${b.cx} ${b.cy})`}>
             {/* Nó sutil na base do balão */}
             <polygon
@@ -471,7 +470,7 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
               cy={b.cy}
               rx={b.rx}
               ry={b.ry}
-              fill={`url(#${b.grad})`}
+              fill={`url(#${b.gradKey === "a" ? gradA : gradB})`}
               stroke="#3B82F6"
               strokeOpacity="0.22"
               strokeWidth="1.2"
@@ -550,8 +549,8 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
   const posterRef = useRef<HTMLElement>(null);
   const [portraitError, setPortraitError] = useState(false);
   const [hatError, setHatError] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
-  const reducedMotion = Boolean(prefersReducedMotion);
+  const reducedMotion = useSafeReducedMotion();
+  const isPosterInView = useInView(posterRef, { margin: "120px 0px 120px 0px" });
   const { scrollYProgress } = useScroll({
     target: posterRef,
     offset: ["start start", "end start"],
@@ -567,8 +566,9 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
   return (
     <section
       ref={posterRef}
+      data-poster-inview={isPosterInView ? "true" : "false"}
       aria-label={`Pôster comemorativo ${EVENT.name} — ${EVENT.age} Anos`}
-      className="relative flex min-h-[650px] sm:min-h-[820px] w-full flex-col items-center justify-between overflow-visible pt-[calc(4rem+env(safe-area-inset-top))] sm:pt-20 select-none"
+      className="relative flex min-h-[650px] sm:min-h-[820px] w-full flex-col items-center justify-between overflow-visible pt-[calc(4rem+env(safe-area-inset-top))] sm:pt-[calc(5rem+env(safe-area-inset-top))] select-none"
     >
       <h1 className="sr-only">
         Happy Birthday — {EVENT.name}, {EVENT.age} Anos • {FORMATTED_EVENT_DATE.long} às{" "}
@@ -576,12 +576,12 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
       </h1>
 
       {/* 1. GLOBOS ESPELHADOS GIGANTES (Entrada cinematográfica lenta + parallax no scroll) */}
-      <motion.div
+      <m.div
         style={{ y: topBallParallax }}
         className="pointer-events-none absolute -top-12 -left-14 sm:-top-16 sm:-left-16 z-[3] w-[198px] sm:w-[274px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, rotate: -28, x: -28 }}
           animate={
             revealed
@@ -597,15 +597,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
           }
         >
           <MirrorDiscoBall />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: bottomBallParallax }}
         className="pointer-events-none absolute -bottom-14 -right-12 sm:-bottom-16 sm:-right-14 z-[24] w-[196px] sm:w-[278px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, rotate: 26, x: 28 }}
           animate={
             revealed
@@ -621,16 +621,16 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
           }
         >
           <MirrorDiscoBall />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       {/* 2. ESTRELAS LATERAIS COM ENTRADA STAGGERED PROLONGADA, PARALLAX & CINTILAÇÃO */}
-      <motion.div
+      <m.div
         style={{ y: starsUpParallax }}
         className="pointer-events-none absolute top-3 right-2.5 sm:top-5 sm:right-5 z-[4] w-[62px] sm:w-[94px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
           animate={
             revealed
@@ -657,15 +657,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsDownParallax }}
         className="pointer-events-none absolute top-[72px] right-[25%] sm:top-[88px] sm:right-[28%] z-[4] w-[38px] sm:w-[56px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
           animate={
             revealed
@@ -693,15 +693,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsUpParallax }}
         className="pointer-events-none absolute top-[134px] right-1.5 sm:top-[164px] sm:right-5 z-[4] w-[36px] sm:w-[68px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -20 }}
           animate={
             revealed
@@ -729,15 +729,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsDownParallax }}
         className="pointer-events-none absolute top-[224px] right-1.5 sm:top-[276px] sm:right-4 z-[4] w-[24px] sm:w-[40px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
           animate={
             revealed
@@ -765,15 +765,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsUpParallax }}
         className="pointer-events-none absolute top-[242px] left-1.5 sm:top-[290px] sm:left-7 z-[4] w-[34px] sm:w-[60px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -22 }}
           animate={
             revealed
@@ -801,15 +801,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsDownParallax }}
         className="pointer-events-none absolute top-[336px] left-1.5 sm:top-[396px] sm:left-6 z-[4] w-[34px] sm:w-[58px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
           animate={
             revealed
@@ -837,15 +837,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsUpParallax }}
         className="pointer-events-none absolute bottom-[174px] right-2.5 sm:bottom-[218px] sm:right-6 z-[4] w-[50px] sm:w-[70px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
           animate={
             revealed
@@ -873,15 +873,15 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
-      <motion.div
+      <m.div
         style={{ y: starsDownParallax }}
         className="pointer-events-none absolute bottom-[118px] right-5 sm:bottom-[152px] sm:right-10 z-[4] w-[34px] sm:w-[46px]"
         aria-hidden
       >
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
           animate={
             revealed
@@ -909,13 +909,13 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             }
             className="w-full"
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       {/* 3. MIOLO EDITORIAL CENTRAL: Mini Globo + Letreiro "HAPPY BiRthdAy" + Data */}
       <div className="relative z-[10] flex w-full flex-col items-center px-3 sm:px-6 text-center">
         {/* Mini Globo Central com Estrela Azul-Marinho no Topo */}
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -42, scale: 0.48 }}
           animate={
             revealed
@@ -932,7 +932,7 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
           className="relative -mb-2 sm:-mb-2.5 z-[11] w-[66px] sm:w-[86px]"
         >
           <MirrorDiscoBall mini topStar />
-        </motion.div>
+        </m.div>
 
         {/* Letreiro "HAPPY" */}
         <div className="relative z-[12] flex items-center justify-center gap-1 sm:gap-1.5" aria-hidden="true">
@@ -968,7 +968,7 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
         </div>
 
         {/* Bloco da Data Oficial: Julho · SEX | 16 | 20:00 · 2027 */}
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.94 }}
           animate={
             revealed
@@ -1034,13 +1034,13 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             </span>
             <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
           </div>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* 4. BASE DO PÔSTER: Foto P&B da Carol Bebê + Chapéu Glitter Azul + Laço Azul + Balões */}
       <div className="relative mt-5 sm:mt-8 flex w-full items-end justify-center">
         {/* Buquê de Balões Glossy Azul Royal no Canto Inferior Esquerdo */}
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -44, y: 40, scale: 0.82 }}
           animate={
             revealed
@@ -1069,10 +1069,10 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
           >
             <RoyalGlossyBalloons />
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Foto Recortada da Carol Bebê + Adereços 100% travados em coordenadas percentuais (zero CLS) */}
-        <motion.div
+        <m.div
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 48, scale: 0.88 }}
           animate={
             revealed
@@ -1093,11 +1093,11 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             alt={`${EVENT.name} — ${EVENT.age} anos`}
             width={833}
             height={1024}
-            priority
-            fetchPriority="high"
+            unoptimized
+            fetchPriority="low"
             loading="eager"
-            decoding="sync"
-            data-critical-asset="carol"
+            decoding="async"
+            data-poster-asset="carol"
             sizes="(max-width: 639px) 252px, 344px"
             draggable={false}
             onError={() => setPortraitError(true)}
@@ -1114,7 +1114,7 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
           />
 
           {/* Laço Azul Royal Acetinado preso no cabelo/faixa (lado superior esquerdo, acima da sobrancelha) */}
-          <motion.div
+          <m.div
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
             animate={
               revealed
@@ -1131,10 +1131,10 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
             className="pointer-events-none absolute top-[11%] left-[25.5%] z-[18] w-[15.5%] -rotate-[22deg] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]"
           >
             <Bow variant="royal" className="w-full" />
-          </motion.div>
+          </m.div>
 
           {/* Chapéu Cônico Glitter Azul Royal apoiado no topo/lateral superior direito da cabeça */}
-          <motion.div
+          <m.div
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.4, y: -14 }}
             animate={
               revealed
@@ -1155,11 +1155,11 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
               alt=""
               width={331}
               height={472}
-              priority
-              fetchPriority="high"
+              unoptimized
+              fetchPriority="low"
               loading="eager"
-              decoding="sync"
-              data-critical-asset="partyHat"
+              decoding="async"
+              data-poster-asset="partyHat"
               sizes="(max-width: 639px) 84px, 114px"
               draggable={false}
               onError={() => setHatError(true)}
@@ -1172,8 +1172,8 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
                 WebkitBackfaceVisibility: "hidden",
               }}
             />
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       </div>
     </section>
   );
