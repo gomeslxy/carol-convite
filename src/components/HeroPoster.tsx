@@ -1148,19 +1148,19 @@ const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean })
                 ? { duration: 0.2 }
                 : { type: "spring", stiffness: 130, damping: 13, delay: revealed ? 1.95 : 0 }
             }
-            className="pointer-events-none absolute -top-[18.5%] right-[11.5%] z-[18] w-[33%] rotate-[23deg]"
+            className="pointer-events-none absolute -top-[1%] right-[22%] z-[18] w-[16.5%] rotate-[23deg]"
           >
             <Image
               src={partyHatImage}
               alt=""
-              width={331}
-              height={472}
+              width={171}
+              height={244}
               unoptimized
               fetchPriority="low"
               loading="eager"
               decoding="async"
               data-poster-asset="partyHat"
-              sizes="(max-width: 639px) 84px, 114px"
+              sizes="(max-width: 639px) 42px, 57px"
               draggable={false}
               onError={() => setHatError(true)}
               className={`block h-auto w-full select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.38)] ${

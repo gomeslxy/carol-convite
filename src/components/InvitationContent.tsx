@@ -65,7 +65,7 @@ const InvitationContent = memo(function InvitationContent({
       }`}
     >
       {/* Fundo único contínuo em papel texturizado claro (#F1F2F4) do topo do pôster até o rodapé */}
-      <div className="bg-poster-paper relative isolate min-h-svh md:min-h-0 w-full overflow-x-clip md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(7,23,57,0.30),0_14px_30px_-8px_rgba(10,36,99,0.14)]">
+      <div className="bg-poster-paper relative isolate min-h-svh md:min-h-0 w-full overflow-clip md:rounded-[26px] shadow-[0_32px_70px_-14px_rgba(7,23,57,0.30),0_14px_30px_-8px_rgba(10,36,99,0.14)]">
         {/* Camada sutil de brilho atmosférico em GPU (zero filtros SVG pesados) */}
         <div
           className="pointer-events-none absolute inset-0 z-0 opacity-70"
