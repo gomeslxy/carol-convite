@@ -40,9 +40,9 @@ export const EVENT: EventConfig = {
   name: "Carol",
   initial: "C",
   age: 18,
-  /** Horário oficial: Sábado, 17/07/2027 às 19:30 (Brasília) = 2027-07-17T22:30:00Z. */
-  dateISO: "2027-07-17T19:30:00-03:00",
-  durationHours: 5,
+  /** Horário oficial: Sexta-feira, 16/07/2027 às 20:00 (Brasília) = 2027-07-16T23:00:00Z, até 17/07 às 02:00. */
+  dateISO: "2027-07-16T20:00:00-03:00",
+  durationHours: 6,
   timeZone: "America/Sao_Paulo",
   quoteText:
     "“Você pode sonhar, criar, desenhar e construir o lugar mais maravilhoso do mundo. Mas é necessário ter pessoas para transformar seu sonho em realidade.”",
