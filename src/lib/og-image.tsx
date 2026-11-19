@@ -5,7 +5,7 @@ import { EVENT, FORMATTED_EVENT_DATE } from "@/config/event";
 
 /**
  * Banner social (Open Graph / Twitter) 1200×630 gerado no build a partir de `src/config/event.ts`.
- * Fonte única de verdade: data, horário (19:30), local e nome nunca ficam "assados" em PNG estático.
+ * Fonte única de verdade: data, horário, local e nome nunca ficam "assados" em PNG estático.
  */
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 
@@ -30,20 +30,30 @@ function loadCinzelBoldFont(): Promise<ArrayBuffer | null> {
           signal: AbortSignal.timeout(4000),
         },
       );
-      if (!cssRes.ok) return null;
+      if (!cssRes.ok) {
+        cachedCinzelBold = null;
+        return null;
+      }
 
       const cssText = await cssRes.text();
       const match =
         cssText.match(/src:\s*url\(([^)]+)\)\s*format\(['"]?(?:truetype|opentype)['"]?\)/i) ??
         cssText.match(/url\((https?:\/\/[^)]+\.(?:ttf|otf))\)/i);
       const fontUrl = match?.[1]?.replace(/['"]/g, "").trim();
-      if (!fontUrl) return null;
+      if (!fontUrl) {
+        cachedCinzelBold = null;
+        return null;
+      }
 
       const fontRes = await fetch(fontUrl, { signal: AbortSignal.timeout(4000) });
-      if (!fontRes.ok) return null;
+      if (!fontRes.ok) {
+        cachedCinzelBold = null;
+        return null;
+      }
 
       return await fontRes.arrayBuffer();
     } catch {
+      cachedCinzelBold = null;
       return null;
     }
   })();

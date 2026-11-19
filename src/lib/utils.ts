@@ -28,10 +28,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-/** `Date` → `YYYYMMDDTHHMMSSZ` (UTC). Ex.: 19:30 BRT → `20270717T223000Z`. */
+/** `Date` → `YYYYMMDDTHHMMSSZ` (UTC). Ex.: 20:00 BRT → `20270716T230000Z`. */
 const toUtcStamp = (date: Date) => date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
-/** `Date` → `YYYYMMDDTHHMMSS` no fuso informado (ex.: `20270717T193000` em America/Sao_Paulo). */
+/** `Date` → `YYYYMMDDTHHMMSS` no fuso informado (ex.: `20270716T200000` em America/Sao_Paulo). */
 function toZonedStamp(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -59,13 +59,16 @@ const eventLocation = (event: EventConfig) => `${event.venue.name} — ${event.v
 
 /** Descrição comum (Google Agenda / .ics) com data e horário oficiais no fuso do evento. */
 function eventDetails(event: EventConfig): string {
-  const { long, time } = getFormattedDate(event);
+  const { long, time, endTime } = getFormattedDate(event);
+  const dressCodeLine = event.dressCodeNote
+    ? `Traje: ${event.dressCode} — ${event.dressCodeNote}`
+    : `Traje: ${event.dressCode}`;
   return [
-    `${long}, às ${time} (horário de Brasília).`,
+    `${long}, às ${time} (até ${endTime}, horário de Brasília).`,
     "",
     event.openingText,
     "",
-    `Traje: ${event.dressCode}`,
+    dressCodeLine,
     `Convite: ${event.siteUrl}`,
   ].join("\n");
 }
@@ -75,7 +78,7 @@ export function googleCalendarUrl(event: EventConfig): string {
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: eventTitle(event),
-    // UTC absoluto (ex.: 20270717T223000Z/20270718T033000Z) — imune ao fuso do dispositivo.
+    // UTC absoluto (ex.: 20270716T230000Z/20270717T050000Z) — imune ao fuso do dispositivo.
     dates: `${toUtcStamp(start)}/${toUtcStamp(end)}`,
     details: eventDetails(event),
     location: eventLocation(event),
@@ -108,15 +111,27 @@ function foldIcsLine(line: string): string {
   return chunks.join("\r\n ");
 }
 
-/** Gera e baixa um arquivo .ics (Apple Calendar, Outlook, Samsung…). */
-export function downloadIcs(event: EventConfig): void {
+/** Gera conteúdo iCalendar RFC 5545 completo (compartilhado entre cliente e `/api/calendar`). */
+export function buildIcsContent(event: EventConfig): string {
   const { start, end } = eventRange(event);
   const tz = event.timeZone;
   const offset = event.dateISO.match(/([+-])(\d{2}):?(\d{2})$/);
   const tzOffset = offset ? `${offset[1]}${offset[2]}${offset[3]}` : "-0300";
-  const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+  const slugName = event.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "evento";
+  const esc = (s: string) =>
+    s
+      .replace(/\r\n?|\u2028|\u2029/g, "\n")
+      .replace(/\\/g, "\\\\")
+      .replace(/\n/g, "\\n")
+      .replace(/,/g, "\\,")
+      .replace(/;/g, "\\;");
 
-  const ics = [
+  const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//convitecarol.site//Convite Carol 18//PT-BR",
@@ -134,7 +149,7 @@ export function downloadIcs(event: EventConfig): void {
     "END:STANDARD",
     "END:VTIMEZONE",
     "BEGIN:VEVENT",
-    `UID:${event.name.toLowerCase()}-${event.age}-${toUtcStamp(start)}@${event.siteUrl.replace(/^https?:\/\//, "")}`,
+    `UID:${slugName}-${event.age}-${toUtcStamp(start)}@${event.siteUrl.replace(/^https?:\/\//, "")}`,
     `DTSTAMP:${toUtcStamp(new Date())}`,
     `DTSTART;TZID=${tz}:${toZonedStamp(start, tz)}`,
     `DTEND;TZID=${tz}:${toZonedStamp(end, tz)}`,
@@ -151,19 +166,42 @@ export function downloadIcs(event: EventConfig): void {
     "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",
-  ]
-    .map(foldIcsLine)
-    .join("\r\n");
+  ];
+
+  return `${lines.map(foldIcsLine).join("\r\n")}\r\n`;
+}
+
+/** Gera e baixa (ou abre no Apple Calendar no iOS) um arquivo .ics (RFC 5545). */
+export function downloadIcs(event: EventConfig): void {
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+
+  if (isIOS) {
+    // Em iOS Safari e WebViews (WhatsApp/Instagram), navegar para URL HTTPS com text/calendar
+    // aciona diretamente a folha nativa do Apple Calendar em vez de falhar em download de blob:.
+    window.location.assign("/api/calendar");
+    return;
+  }
+
+  const ics = buildIcsContent(event);
+  const slugName = event.name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "convite";
 
   const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${event.name.toLowerCase()}-${event.age}-anos.ics`;
+  a.download = `${slugName}-${event.age}-anos.ics`;
   document.body.appendChild(a);
   a.click();
   a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 export const googleMapsUrl = (query: string) =>

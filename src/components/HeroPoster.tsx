@@ -347,31 +347,68 @@ function LetterBlock({
   tile,
   index,
   revealed,
+  reducedMotion,
   sizeClass,
   textClass,
 }: {
   tile: LetterTile;
   index: number;
   revealed: boolean;
+  reducedMotion: boolean;
   sizeClass: string;
   textClass: string;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.56, y: tile.yOffset + 30, rotate: tile.rotate * 2.1 }}
-      animate={
-        revealed
-          ? { opacity: 1, scale: tile.tall ? 1.06 : 1, y: tile.yOffset, rotate: tile.rotate }
+      initial={
+        reducedMotion
+          ? { opacity: 0, y: tile.yOffset, rotate: tile.rotate }
           : { opacity: 0, scale: 0.56, y: tile.yOffset + 30, rotate: tile.rotate * 2.1 }
       }
-      whileHover={{ scale: 1.09, rotate: 0, y: tile.yOffset - 4 }}
-      whileTap={{ scale: 0.94 }}
-      transition={{
-        type: "spring",
-        stiffness: 120,
-        damping: 14,
-        delay: revealed ? 0.3 + index * 0.11 : 0,
-      }}
+      animate={
+        revealed
+          ? {
+              opacity: 1,
+              scale: tile.tall ? 1.06 : 1,
+              y: tile.yOffset,
+              rotate: tile.rotate,
+              transition: reducedMotion
+                ? { duration: 0.2, delay: 0 }
+                : {
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 14,
+                    delay: 0.3 + index * 0.11,
+                  },
+            }
+          : reducedMotion
+            ? { opacity: 0, y: tile.yOffset, rotate: tile.rotate, transition: { duration: 0.15, delay: 0 } }
+            : {
+                opacity: 0,
+                scale: 0.56,
+                y: tile.yOffset + 30,
+                rotate: tile.rotate * 2.1,
+                transition: { type: "spring", stiffness: 120, damping: 14, delay: 0 },
+              }
+      }
+      whileHover={
+        reducedMotion
+          ? undefined
+          : {
+              scale: 1.09,
+              rotate: 0,
+              y: tile.yOffset - 4,
+              transition: { type: "spring", stiffness: 320, damping: 20, delay: 0 },
+            }
+      }
+      whileTap={
+        reducedMotion
+          ? undefined
+          : {
+              scale: 0.94,
+              transition: { type: "spring", stiffness: 420, damping: 24, delay: 0 },
+            }
+      }
       className={`relative cursor-default rounded-[5px] sm:rounded-[7px] bg-[linear-gradient(135deg,#FFFFFF_0%,#CBD5E1_36%,#1E40AF_72%,#F8FAFC_100%)] p-[2px] shadow-[0_6px_14px_rgba(7,23,57,0.28)] ${sizeClass}`}
     >
       <div
@@ -505,34 +542,39 @@ function RoyalGlossyBalloons({ className = "" }: { className?: string }) {
  *  - Parallax multi-camada atrelado ao scroll (globos espelhados + estrelas laterais).
  *  - Letreiro "HAPPY BiRthdAy" em placas retangulares metálicas com stagger.
  *  - Estrelas cintilantes em glitter azul royal e prata 3D chanfrada.
- *  - Bloco editorial da data (Julho · SÁB | 17 | 19:30 · 2027).
+ *  - Bloco editorial da data (Julho · SEX | 16 | 20:00 · 2027).
  *  - Foto P&B da Carol bebê com proporção explícita (zero CLS), chapéu, laço e balões.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-export default function HeroPoster({ revealed }: { revealed: boolean }) {
+const HeroPoster = memo(function HeroPoster({ revealed }: { revealed: boolean }) {
   const posterRef = useRef<HTMLElement>(null);
   const [portraitError, setPortraitError] = useState(false);
+  const [hatError, setHatError] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+  const reducedMotion = Boolean(prefersReducedMotion);
   const { scrollYProgress } = useScroll({
     target: posterRef,
     offset: ["start start", "end start"],
   });
 
-  const topBallParallax = useTransform(scrollYProgress, [0, 1], [0, prefersReducedMotion ? 0 : -26]);
-  const bottomBallParallax = useTransform(scrollYProgress, [0, 1], [0, prefersReducedMotion ? 0 : 22]);
-  const starsUpParallax = useTransform(scrollYProgress, [0, 1], [0, prefersReducedMotion ? 0 : -18]);
-  const starsDownParallax = useTransform(scrollYProgress, [0, 1], [0, prefersReducedMotion ? 0 : 14]);
+  const topBallParallax = useTransform(scrollYProgress, [0, 1], [0, reducedMotion ? 0 : -26]);
+  const bottomBallParallax = useTransform(scrollYProgress, [0, 1], [0, reducedMotion ? 0 : 22]);
+  const starsUpParallax = useTransform(scrollYProgress, [0, 1], [0, reducedMotion ? 0 : -18]);
+  const starsDownParallax = useTransform(scrollYProgress, [0, 1], [0, reducedMotion ? 0 : 14]);
 
-  const monthTitle =
-    FORMATTED_EVENT_DATE.month.charAt(0).toUpperCase() +
-    FORMATTED_EVENT_DATE.month.slice(1).toLowerCase();
+  const starAnim = (anim: string) => (reducedMotion ? "" : anim);
 
   return (
     <section
       ref={posterRef}
       aria-label={`Pôster comemorativo ${EVENT.name} — ${EVENT.age} Anos`}
-      className="relative flex min-h-[650px] sm:min-h-[820px] w-full flex-col items-center justify-between overflow-visible pt-16 sm:pt-20 select-none"
+      className="relative flex min-h-[650px] sm:min-h-[820px] w-full flex-col items-center justify-between overflow-visible pt-[calc(4rem+env(safe-area-inset-top))] sm:pt-20 select-none"
     >
+      <h1 className="sr-only">
+        Happy Birthday — {EVENT.name}, {EVENT.age} Anos • {FORMATTED_EVENT_DATE.long} às{" "}
+        {FORMATTED_EVENT_DATE.time}
+      </h1>
+
       {/* 1. GLOBOS ESPELHADOS GIGANTES (Entrada cinematográfica lenta + parallax no scroll) */}
       <motion.div
         style={{ y: topBallParallax }}
@@ -540,13 +582,19 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.7, rotate: -28, x: -28 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, rotate: -28, x: -28 }}
           animate={
             revealed
               ? { opacity: 1, scale: 1, rotate: 0, x: 0 }
-              : { opacity: 0, scale: 0.7, rotate: -28, x: -28 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.7, rotate: -28, x: -28 }
           }
-          transition={{ duration: 1.85, delay: revealed ? 0.15 : 0, ease: [0.16, 1, 0.3, 1] }}
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { duration: 1.85, delay: revealed ? 0.15 : 0, ease: [0.16, 1, 0.3, 1] }
+          }
         >
           <MirrorDiscoBall />
         </motion.div>
@@ -558,13 +606,19 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.7, rotate: 26, x: 28 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.7, rotate: 26, x: 28 }}
           animate={
             revealed
               ? { opacity: 1, scale: 1, rotate: 0, x: 0 }
-              : { opacity: 0, scale: 0.7, rotate: 26, x: 28 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.7, rotate: 26, x: 28 }
           }
-          transition={{ duration: 1.85, delay: revealed ? 0.45 : 0, ease: [0.16, 1, 0.3, 1] }}
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { duration: 1.85, delay: revealed ? 0.45 : 0, ease: [0.16, 1, 0.3, 1] }
+          }
         >
           <MirrorDiscoBall />
         </motion.div>
@@ -577,11 +631,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: -24 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.35 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: -24 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.35 : 0 }
+          }
         >
           <GlitterBlueStar
+            animClass={starAnim("animate-sticker-float")}
             style={
               {
                 "--float-duration": "4.8s",
@@ -601,11 +666,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: 22 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.55 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: 22 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.55 : 0 }
+          }
         >
           <GlitterBlueStar
+            animClass={starAnim("animate-sticker-float")}
             style={
               {
                 animationDelay: "0.4s",
@@ -626,11 +702,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: -20 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -20 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.72 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -20 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: -20 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.72 : 0 }
+          }
         >
           <MetallicSilverStar
+            animClass={starAnim("animate-sticker-float-alt")}
             style={
               {
                 animationDelay: "0.3s",
@@ -651,11 +738,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: 20 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.9 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: 20 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 0.9 : 0 }
+          }
         >
           <MetallicSilverStar
+            animClass={starAnim("animate-sticker-float-alt")}
             style={
               {
                 animationDelay: "0.6s",
@@ -676,11 +774,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: -22 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -22 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.08 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -22 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: -22 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.08 : 0 }
+          }
         >
           <MetallicSilverStar
+            animClass={starAnim("animate-sticker-float-alt")}
             style={
               {
                 animationDelay: "0.2s",
@@ -701,11 +810,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: 22 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.25 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 22 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: 22 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.25 : 0 }
+          }
         >
           <GlitterBlueStar
+            animClass={starAnim("animate-sticker-float")}
             style={
               {
                 animationDelay: "0.5s",
@@ -726,11 +846,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: -24 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.42 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: -24 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: -24 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.42 : 0 }
+          }
         >
           <GlitterBlueStar
+            animClass={starAnim("animate-sticker-float")}
             style={
               {
                 animationDelay: "0.7s",
@@ -751,11 +882,22 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         aria-hidden
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.2, rotate: 20 }}
-          animate={revealed ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
-          transition={{ type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.6 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.2, rotate: 20 }}
+          animate={
+            revealed
+              ? { opacity: 1, scale: 1, rotate: 0 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, scale: 0.2, rotate: 20 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 110, damping: 14, delay: revealed ? 1.6 : 0 }
+          }
         >
           <MetallicSilverStar
+            animClass={starAnim("animate-sticker-float-alt")}
             style={
               {
                 animationDelay: "0.85s",
@@ -774,22 +916,33 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
       <div className="relative z-[10] flex w-full flex-col items-center px-3 sm:px-6 text-center">
         {/* Mini Globo Central com Estrela Azul-Marinho no Topo */}
         <motion.div
-          initial={{ opacity: 0, y: -42, scale: 0.48 }}
-          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -42, scale: 0.48 }}
-          transition={{ type: "spring", stiffness: 115, damping: 15, delay: revealed ? 0.1 : 0 }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -42, scale: 0.48 }}
+          animate={
+            revealed
+              ? { opacity: 1, y: 0, scale: 1 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, y: -42, scale: 0.48 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 115, damping: 15, delay: revealed ? 0.1 : 0 }
+          }
           className="relative -mb-2 sm:-mb-2.5 z-[11] w-[66px] sm:w-[86px]"
         >
           <MirrorDiscoBall mini topStar />
         </motion.div>
 
         {/* Letreiro "HAPPY" */}
-        <div className="relative z-[12] flex items-center justify-center gap-1 sm:gap-1.5">
+        <div className="relative z-[12] flex items-center justify-center gap-1 sm:gap-1.5" aria-hidden="true">
           {HAPPY_TILES.map((tile, i) => (
             <LetterBlock
               key={`happy-${i}`}
               tile={tile}
               index={i}
               revealed={revealed}
+              reducedMotion={reducedMotion}
               sizeClass="w-[45px] h-[55px] sm:w-[66px] sm:h-[80px]"
               textClass="text-[28px] sm:text-[42px]"
             />
@@ -797,40 +950,58 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
         </div>
 
         {/* Letreiro "BiRthdAy" */}
-        <div className="relative z-[12] mt-1 sm:mt-1.5 flex items-center justify-center gap-[3px] sm:gap-1.5">
+        <div
+          className="relative z-[12] mt-1 sm:mt-1.5 flex items-center justify-center gap-[3px] sm:gap-1.5"
+          aria-hidden="true"
+        >
           {BIRTHDAY_TILES.map((tile, i) => (
             <LetterBlock
               key={`bday-${i}`}
               tile={tile}
               index={i + 5}
               revealed={revealed}
+              reducedMotion={reducedMotion}
               sizeClass="w-[32px] h-[43px] sm:w-[50px] sm:h-[66px]"
               textClass="text-[21px] sm:text-[34px]"
             />
           ))}
         </div>
 
-        {/* Bloco da Data Oficial: Julho · SÁB | 17 | 19:30 · 2027 */}
+        {/* Bloco da Data Oficial: Julho · SEX | 16 | 20:00 · 2027 */}
         <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.94 }}
-          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 30, scale: 0.94 }}
-          transition={{ duration: 1.35, delay: revealed ? 1.35 : 0, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-4 sm:mt-6 flex w-full max-w-[290px] sm:max-w-[390px] flex-col items-center text-royal-navy"
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.94 }}
+          animate={
+            revealed
+              ? { opacity: 1, y: 0, scale: 1 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, y: 30, scale: 0.94 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { duration: 1.35, delay: revealed ? 1.35 : 0, ease: [0.16, 1, 0.3, 1] }
+          }
+          className="mt-4 sm:mt-6 flex w-full max-w-[300px] sm:max-w-[400px] flex-col items-center text-royal-navy"
         >
           {/* Mês entre filetes */}
           <div className="flex w-full items-center gap-3 sm:gap-4">
             <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
             <span className="font-serif text-[26px] sm:text-[34px] font-bold leading-none tracking-wide">
-              {monthTitle}
+              {FORMATTED_EVENT_DATE.monthTitle}
             </span>
             <span className="h-[1.5px] flex-1 bg-royal-deep/80" />
           </div>
 
-          {/* Linha Central: [Calendário] SÁB | 17 | [Relógio] 19:30 */}
-          <div className="mt-1.5 sm:mt-2 flex items-center justify-center gap-2.5 sm:gap-5">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <CalendarDays className="size-[20px] sm:size-[28px] text-royal-deep" strokeWidth={2} />
-              <span className="font-sans text-[16px] sm:text-[22px] font-extrabold tracking-[0.06em] uppercase">
+          {/* Linha Central com simetria óptica (1fr · dia · 1fr): [Calendário] SEX | 16 | [Relógio] 20:00 */}
+          <div className="mt-1.5 sm:mt-2 grid w-full grid-cols-[1fr_auto_auto_auto_1fr] items-center gap-2 sm:gap-4">
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+              <CalendarDays
+                className="size-[19px] sm:size-[26px] shrink-0 text-royal-deep"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <span className="font-sans text-[15px] sm:text-[21px] font-extrabold tracking-[0.06em] uppercase">
                 {FORMATTED_EVENT_DATE.weekdayShort}
               </span>
             </div>
@@ -843,9 +1014,13 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
 
             <span className="h-9 sm:h-11 w-[2px] bg-royal-deep/80" aria-hidden />
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Clock className="size-[20px] sm:size-[28px] text-royal-deep" strokeWidth={2} />
-              <span className="font-sans text-[16px] sm:text-[22px] font-extrabold tabular-nums tracking-[0.04em]">
+            <div className="flex items-center justify-start gap-1.5 sm:gap-2">
+              <Clock
+                className="size-[19px] sm:size-[26px] shrink-0 text-royal-deep"
+                strokeWidth={2}
+                aria-hidden
+              />
+              <span className="font-sans text-[15px] sm:text-[21px] font-extrabold tabular-nums tracking-[0.04em]">
                 {FORMATTED_EVENT_DATE.time}
               </span>
             </div>
@@ -866,9 +1041,19 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
       <div className="relative mt-5 sm:mt-8 flex w-full items-end justify-center">
         {/* Buquê de Balões Glossy Azul Royal no Canto Inferior Esquerdo */}
         <motion.div
-          initial={{ opacity: 0, x: -44, y: 40, scale: 0.82 }}
-          animate={revealed ? { opacity: 1, x: 0, y: 0, scale: 1 } : { opacity: 0, x: -44, y: 40, scale: 0.82 }}
-          transition={{ duration: 1.75, delay: revealed ? 1.35 : 0, ease: [0.16, 1, 0.3, 1] }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -44, y: 40, scale: 0.82 }}
+          animate={
+            revealed
+              ? { opacity: 1, x: 0, y: 0, scale: 1 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, x: -44, y: 40, scale: 0.82 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { duration: 1.75, delay: revealed ? 1.35 : 0, ease: [0.16, 1, 0.3, 1] }
+          }
           className="pointer-events-none absolute -bottom-4 -left-5 sm:-bottom-6 sm:-left-6 z-[22] w-[184px] sm:w-[264px]"
         >
           <div
@@ -880,7 +1065,7 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
                 "--r-mid": "2deg",
               } as FloatStyle
             }
-            className="animate-sticker-float"
+            className={reducedMotion ? "" : "animate-sticker-float"}
           >
             <RoyalGlossyBalloons />
           </div>
@@ -888,9 +1073,19 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
 
         {/* Foto Recortada da Carol Bebê + Adereços 100% travados em coordenadas percentuais (zero CLS) */}
         <motion.div
-          initial={{ opacity: 0, y: 48, scale: 0.88 }}
-          animate={revealed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 48, scale: 0.88 }}
-          transition={{ duration: 1.65, delay: revealed ? 0.95 : 0, ease: [0.16, 1, 0.3, 1] }}
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 48, scale: 0.88 }}
+          animate={
+            revealed
+              ? { opacity: 1, y: 0, scale: 1 }
+              : reducedMotion
+                ? { opacity: 0 }
+                : { opacity: 0, y: 48, scale: 0.88 }
+          }
+          transition={
+            reducedMotion
+              ? { duration: 0.2 }
+              : { duration: 1.65, delay: revealed ? 0.95 : 0, ease: [0.16, 1, 0.3, 1] }
+          }
           className="relative z-[14] mx-auto aspect-[833/1024] w-[252px] sm:w-[344px]"
         >
           <Image
@@ -920,9 +1115,19 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
 
           {/* Laço Azul Royal Acetinado preso no cabelo/faixa (lado superior esquerdo, acima da sobrancelha) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.4 }}
-            animate={revealed ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.4 }}
-            transition={{ type: "spring", stiffness: 135, damping: 13, delay: revealed ? 1.75 : 0 }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.4 }}
+            animate={
+              revealed
+                ? { opacity: 1, scale: 1 }
+                : reducedMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, scale: 0.4 }
+            }
+            transition={
+              reducedMotion
+                ? { duration: 0.2 }
+                : { type: "spring", stiffness: 135, damping: 13, delay: revealed ? 1.75 : 0 }
+            }
             className="pointer-events-none absolute top-[11%] left-[25.5%] z-[18] w-[15.5%] -rotate-[22deg] drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]"
           >
             <Bow variant="royal" className="w-full" />
@@ -930,9 +1135,19 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
 
           {/* Chapéu Cônico Glitter Azul Royal apoiado no topo/lateral superior direito da cabeça */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.4, y: -14 }}
-            animate={revealed ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.4, y: -14 }}
-            transition={{ type: "spring", stiffness: 130, damping: 13, delay: revealed ? 1.95 : 0 }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.4, y: -14 }}
+            animate={
+              revealed
+                ? { opacity: 1, scale: 1, y: 0 }
+                : reducedMotion
+                  ? { opacity: 0 }
+                  : { opacity: 0, scale: 0.4, y: -14 }
+            }
+            transition={
+              reducedMotion
+                ? { duration: 0.2 }
+                : { type: "spring", stiffness: 130, damping: 13, delay: revealed ? 1.95 : 0 }
+            }
             className="pointer-events-none absolute -top-[18.5%] right-[11.5%] z-[18] w-[33%] rotate-[23deg]"
           >
             <Image
@@ -947,7 +1162,10 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
               data-critical-asset="partyHat"
               sizes="(max-width: 639px) 84px, 114px"
               draggable={false}
-              className="block h-auto w-full select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.38)]"
+              onError={() => setHatError(true)}
+              className={`block h-auto w-full select-none drop-shadow-[0_6px_12px_rgba(7,23,57,0.38)] ${
+                hatError ? "opacity-0" : ""
+              }`}
               style={{
                 transform: "translate3d(0, 0, 0)",
                 backfaceVisibility: "hidden",
@@ -959,4 +1177,6 @@ export default function HeroPoster({ revealed }: { revealed: boolean }) {
       </div>
     </section>
   );
-}
+});
+
+export default HeroPoster;

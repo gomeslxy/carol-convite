@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, MotionConfig } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import CoverGate from "@/components/CoverGate";
 import InvitationContent from "@/components/InvitationContent";
@@ -59,8 +59,9 @@ async function safeDecodeImage(img: HTMLImageElement): Promise<void> {
 }
 
 /**
- * Garante carregamento e pré-decodificação em memória (`img.decode()`) do elemento DOM montado
- * e via `new Image()` (reaproveitando o mesmo candidato AVIF/WebP em cache, sem download duplicado).
+ * Garante carregamento e pré-decodificação em memória (`img.decode()`) do elemento DOM montado.
+ * Se já carregou (`naturalWidth > 0`), retorna sem criar segunda instância de `Image`;
+ * caso contrário tenta o fallback pela URL resolvida.
  */
 async function decodeDomCriticalImage(
   domEl: HTMLImageElement,
@@ -70,22 +71,12 @@ async function decodeDomCriticalImage(
   if (signal.aborted) return;
 
   await safeDecodeImage(domEl);
-  if (signal.aborted) return;
+  if (signal.aborted || domEl.naturalWidth > 0) return;
 
   const resolvedSrc = domEl.currentSrc || domEl.getAttribute("src") || domEl.src;
   if (!resolvedSrc) return;
 
-  const probe = new window.Image();
-  probe.decoding = "sync";
-  const sizes = domEl.getAttribute("sizes");
-  const srcset = domEl.getAttribute("srcset");
-  if (sizes) probe.sizes = sizes;
-  if (srcset) probe.srcset = srcset;
-  probe.src = resolvedSrc;
-
-  await waitForImageLoad(probe, signal);
-  if (signal.aborted) return;
-  await safeDecodeImage(probe);
+  await decodeFallbackUrl(resolvedSrc, signal);
 }
 
 async function decodeFallbackUrl(src: string, signal: AbortSignal): Promise<void> {
@@ -190,30 +181,32 @@ export default function InvitationExperience() {
   const handleOpenComplete = useCallback(() => setStage("open"), []);
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-x-clip md:px-6 md:py-12 lg:px-10 lg:py-16">
-      {/* Iluminação ambiental em Azul Royal e Prata suave no fundo do Desktop */}
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 hidden md:block"
-        style={{
-          background:
-            "radial-gradient(50% 50% at 50% 45%, rgba(10, 36, 99, 0.09) 0%, transparent 72%), radial-gradient(38% 38% at 15% 20%, rgba(30, 64, 175, 0.07) 0%, transparent 65%), radial-gradient(38% 38% at 85% 80%, rgba(148, 163, 184, 0.22) 0%, transparent 65%)",
-        }}
-        aria-hidden
-      />
-
-      <InvitationContent revealed={stage !== "closed"} />
-
-      {stage !== "open" && (
-        <CoverGate
-          ready={isAppReady}
-          onOpenStart={handleOpenStart}
-          onOpenComplete={handleOpenComplete}
+    <MotionConfig reducedMotion="user">
+      <div className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-x-clip md:px-6 md:py-12 lg:px-10 lg:py-16">
+        {/* Iluminação ambiental em Azul Royal e Prata suave no fundo do Desktop */}
+        <div
+          className="pointer-events-none fixed inset-0 -z-10 hidden md:block"
+          style={{
+            background:
+              "radial-gradient(50% 50% at 50% 45%, rgba(10, 36, 99, 0.09) 0%, transparent 72%), radial-gradient(38% 38% at 15% 20%, rgba(30, 64, 175, 0.07) 0%, transparent 65%), radial-gradient(38% 38% at 85% 80%, rgba(148, 163, 184, 0.22) 0%, transparent 65%)",
+          }}
+          aria-hidden
         />
-      )}
 
-      <AnimatePresence>
-        {!isAppReady && <Preloader key="app-preloader" />}
-      </AnimatePresence>
-    </div>
+        <InvitationContent revealed={stage !== "closed"} />
+
+        {stage !== "open" && (
+          <CoverGate
+            ready={isAppReady}
+            onOpenStart={handleOpenStart}
+            onOpenComplete={handleOpenComplete}
+          />
+        )}
+
+        <AnimatePresence>
+          {!isAppReady && <Preloader key="app-preloader" />}
+        </AnimatePresence>
+      </div>
+    </MotionConfig>
   );
 }

@@ -75,14 +75,18 @@ export interface FormattedDate {
   weekdayShort: string;
   day: string;
   month: string;
+  /** Mês em Title Case (ex.: "Julho"). */
+  monthTitle: string;
   year: string;
-  /** Horário 24h no fuso do evento (ex.: "19:30"). */
+  /** Horário 24h de início no fuso do evento (ex.: "20:00"). */
   time: string;
-  /** "17 · 07 · 2027" */
+  /** Horário 24h de término no fuso do evento (ex.: "02:00"). */
+  endTime: string;
+  /** "16 · 07 · 2027" */
   short: string;
-  /** "17/07/2027" */
+  /** "16/07/2027" */
   numeric: string;
-  /** "Sábado, 17 de Julho de 2027" */
+  /** "Sexta, 16 de Julho de 2027" */
   long: string;
 }
 
@@ -90,13 +94,14 @@ const formattedDateCache = new Map<string, FormattedDate>();
 
 /** Formata a data no fuso do evento com cache determinístico — idêntico no servidor e no cliente. */
 export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
-  const cacheKey = `${config.dateISO}|${config.timeZone}`;
+  const cacheKey = `${config.dateISO}|${config.timeZone}|${config.durationHours}`;
   const cached = formattedDateCache.get(cacheKey);
   if (cached) return cached;
 
   const date = new Date(config.dateISO);
-  const fmt = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("pt-BR", { timeZone: config.timeZone, ...options }).format(date);
+  const endDate = new Date(date.getTime() + config.durationHours * 3_600_000);
+  const fmt = (options: Intl.DateTimeFormatOptions, target: Date = date) =>
+    new Intl.DateTimeFormat("pt-BR", { timeZone: config.timeZone, ...options }).format(target);
 
   const day = fmt({ day: "2-digit" });
   const monthNum = fmt({ month: "2-digit" });
@@ -104,18 +109,21 @@ export function getFormattedDate(config: EventConfig = EVENT): FormattedDate {
   const fullWeekday = strip(fmt({ weekday: "long" })).toUpperCase();
   const shortWeekday = strip(fmt({ weekday: "short" })).toUpperCase();
   const month = strip(fmt({ month: "long" })).toUpperCase();
+  const monthTitle = capitalize(month);
 
   const result: FormattedDate = {
     weekday: fullWeekday,
     weekdayShort: shortWeekday,
     day,
     month,
+    monthTitle,
     year,
-    // `hourCycle: "h23"` evita o bug "24:30" de alguns motores com `hour12: false`.
+    // `hourCycle: "h23"` evita o bug "24:xx" de alguns motores com `hour12: false`.
     time: fmt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
+    endTime: fmt({ hour: "2-digit", minute: "2-digit", hourCycle: "h23" }, endDate),
     short: `${day} · ${monthNum} · ${year}`,
     numeric: `${day}/${monthNum}/${year}`,
-    long: `${capitalize(fullWeekday)}, ${day} de ${capitalize(month)} de ${year}`,
+    long: `${capitalize(fullWeekday)}, ${day} de ${monthTitle} de ${year}`,
   };
 
   formattedDateCache.set(cacheKey, result);

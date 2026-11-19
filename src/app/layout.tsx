@@ -27,7 +27,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 const siteTitle = `${EVENT.name} — ${EVENT.age} Anos | Convite Oficial`;
-const socialTitle = `${EVENT.name} • ${EVENT.age} Anos — ${FORMATTED_EVENT_DATE.day} de Julho de ${FORMATTED_EVENT_DATE.year} às ${FORMATTED_EVENT_DATE.time}`;
+const socialTitle = `${EVENT.name} • ${EVENT.age} Anos — ${FORMATTED_EVENT_DATE.day} de ${FORMATTED_EVENT_DATE.monthTitle} de ${FORMATTED_EVENT_DATE.year} às ${FORMATTED_EVENT_DATE.time}`;
 const siteDescription = `Você é meu convidado especial para celebrar os meus ${EVENT.age} anos — ${FORMATTED_EVENT_DATE.long}, às ${FORMATTED_EVENT_DATE.time}, no ${EVENT.venue.name}. Confirme sua presença e confira os detalhes.`;
 
 const eventJsonLd = {
@@ -35,6 +35,7 @@ const eventJsonLd = {
   "@type": "SocialEvent",
   name: siteTitle,
   description: siteDescription,
+  image: `${EVENT.siteUrl}/opengraph-image`,
   startDate: EVENT.dateISO,
   endDate: new Date(EVENT_TIMESTAMP + EVENT.durationHours * 3_600_000).toISOString(),
   eventStatus: "https://schema.org/EventScheduled",

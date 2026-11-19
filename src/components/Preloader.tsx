@@ -43,15 +43,6 @@ export default function Preloader() {
           className="pointer-events-none absolute inset-0 size-full"
           aria-hidden
         >
-          <defs>
-            <linearGradient id={arcGradId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0" />
-              <stop offset="38%" stopColor="#94A3B8" stopOpacity="0.8" />
-              <stop offset="78%" stopColor="#0A2463" stopOpacity="0.92" />
-              <stop offset="100%" stopColor="#071739" stopOpacity="1" />
-            </linearGradient>
-          </defs>
-
           <circle
             cx="56"
             cy="56"
@@ -72,7 +63,7 @@ export default function Preloader() {
           />
         </svg>
 
-        {/* Anel fino orbital em Royal Blue & Prata (100% GPU via transform) */}
+        {/* Anel fino orbital em Royal Blue & Prata (100% GPU via transform; <defs> local para iOS Safari) */}
         <svg
           width={112}
           height={112}
@@ -82,6 +73,15 @@ export default function Preloader() {
           }`}
           aria-hidden
         >
+          <defs>
+            <linearGradient id={arcGradId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#E2E8F0" stopOpacity="0" />
+              <stop offset="38%" stopColor="#94A3B8" stopOpacity="0.8" />
+              <stop offset="78%" stopColor="#0A2463" stopOpacity="0.92" />
+              <stop offset="100%" stopColor="#071739" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+
           <circle
             cx="56"
             cy="56"

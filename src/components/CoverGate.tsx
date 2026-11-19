@@ -141,26 +141,26 @@ function CoverDoorFrame({
         className="pointer-events-none absolute inset-0"
       >
         <div
-          className={`absolute top-3.5 bottom-3.5 sm:top-6 sm:bottom-6 border-[#B8C0CC]/75 ${isLeft
-            ? "left-3.5 sm:left-6 right-2.5 border-y border-l"
-            : "right-3.5 sm:right-6 left-2.5 border-y border-r"
+          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:top-[max(1.5rem,env(safe-area-inset-top))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] border-[#B8C0CC]/75 ${isLeft
+            ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))] right-2.5 border-y border-l"
+            : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))] left-2.5 border-y border-r"
             }`}
         />
         <div
-          className={`absolute top-5 bottom-5 sm:top-8 sm:bottom-8 border-[#0A2463]/16 ${isLeft
-            ? "left-5 sm:left-8 right-4 border-y border-l"
-            : "right-5 sm:right-8 left-4 border-y border-r"
+          className={`absolute top-[max(1.25rem,calc(0.375rem+env(safe-area-inset-top)))] bottom-[max(1.25rem,calc(0.375rem+env(safe-area-inset-bottom)))] sm:top-[max(2rem,calc(0.5rem+env(safe-area-inset-top)))] sm:bottom-[max(2rem,calc(0.5rem+env(safe-area-inset-bottom)))] border-[#0A2463]/16 ${isLeft
+            ? "left-[max(1.25rem,calc(0.375rem+env(safe-area-inset-left)))] sm:left-[max(2rem,calc(0.5rem+env(safe-area-inset-left)))] right-4 border-y border-l"
+            : "right-[max(1.25rem,calc(0.375rem+env(safe-area-inset-right)))] sm:right-[max(2rem,calc(0.5rem+env(safe-area-inset-right)))] left-4 border-y border-r"
             }`}
         />
 
         <EditorialCornerBracket
           position={isLeft ? "tl" : "tr"}
-          className={`absolute top-3.5 sm:top-6 size-9 sm:size-12 ${isLeft ? "left-3.5 sm:left-6" : "right-3.5 sm:right-6"
+          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] sm:top-[max(1.5rem,env(safe-area-inset-top))] size-9 sm:size-12 ${isLeft ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]" : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
             }`}
         />
         <EditorialCornerBracket
           position={isLeft ? "bl" : "br"}
-          className={`absolute bottom-3.5 sm:bottom-6 size-9 sm:size-12 ${isLeft ? "left-3.5 sm:left-6" : "right-3.5 sm:right-6"
+          className={`absolute bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] size-9 sm:size-12 ${isLeft ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]" : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
             }`}
         />
       </motion.div>
@@ -249,6 +249,7 @@ function CurvedCrestCaption({
         strokeLinejoin="round"
         fontSize="31"
         fontWeight={600}
+        textRendering="geometricPrecision"
         className={`${visible && !reducedMotion ? "animate-breathe-soft " : ""}font-serif uppercase`}
         style={{ letterSpacing: "0.17em", paintOrder: "stroke fill" }}
       >
@@ -388,12 +389,13 @@ export default function CoverGate({
     <div
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className={`fixed inset-0 z-40 h-dvh w-screen overflow-hidden select-none ${
-        isOpening ? "pointer-events-none" : "pointer-events-auto touch-none"
-      }`}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Capa do convite de ${EVENT.name} — ${EVENT.age} Anos`}
+      className={`fixed inset-0 z-40 overflow-hidden select-none ${isOpening ? "pointer-events-none" : "pointer-events-auto touch-none"
+        }`}
+      role={isOpening ? undefined : "dialog"}
+      aria-modal={isOpening ? undefined : true}
+      aria-hidden={isOpening || undefined}
+      inert={isOpening}
+      aria-label={isOpening ? undefined : `Capa do convite de ${EVENT.name} — ${EVENT.age} Anos`}
     >
       {/* Porta Esquerda */}
       <motion.div
@@ -420,7 +422,7 @@ export default function CoverGate({
             delay: ready ? 0.1 : 0,
             ease: LUXURY_EASE,
           }}
-          className="pointer-events-none absolute top-7 left-7 sm:top-11 sm:left-12 flex flex-col items-start"
+          className="pointer-events-none absolute top-[max(1.75rem,calc(0.875rem+env(safe-area-inset-top)))] left-[max(1.75rem,calc(0.875rem+env(safe-area-inset-left)))] sm:top-[max(2.75rem,calc(1.25rem+env(safe-area-inset-top)))] sm:left-[max(3rem,calc(1.5rem+env(safe-area-inset-left)))] flex flex-col items-start"
         >
           <span className="font-script text-[26px] sm:text-[34px] leading-none text-[#071739]/85">
             {EVENT.name}
@@ -463,7 +465,7 @@ export default function CoverGate({
             delay: ready ? 0.14 : 0,
             ease: LUXURY_EASE,
           }}
-          className="pointer-events-none absolute right-7 bottom-7 sm:right-12 sm:bottom-11 flex items-center gap-1.5 font-serif text-[9px] sm:text-[10px] tracking-[0.24em] text-[#071739]/68 uppercase"
+          className="pointer-events-none absolute right-[max(1.75rem,calc(0.875rem+env(safe-area-inset-right)))] bottom-[max(1.75rem,calc(0.875rem+env(safe-area-inset-bottom)))] sm:right-[max(3rem,calc(1.5rem+env(safe-area-inset-right)))] sm:bottom-[max(2.75rem,calc(1.25rem+env(safe-area-inset-bottom)))] flex items-center gap-1.5 font-serif text-[9px] sm:text-[10px] tracking-[0.24em] text-[#071739]/68 uppercase"
         >
           <span className="text-[#0A2463]/70">✦</span>
           <span>{FORMATTED_EVENT_DATE.short}</span>
@@ -502,8 +504,8 @@ export default function CoverGate({
                   ? { scale: 1, opacity: 1, rotate: 0 }
                   : { scale: [1, 1.2, 0.88], opacity: [1, 1, 0], rotate: [0, -5, 7] }
               }
-              whileHover={ready && isIdle ? { scale: 1.04 } : undefined}
-              whileTap={ready && isIdle ? { scale: 0.92 } : undefined}
+              whileHover={ready && isIdle && !reducedMotion ? { scale: 1.04 } : undefined}
+              whileTap={ready && isIdle && !reducedMotion ? { scale: 0.92 } : undefined}
               transition={
                 isIdle
                   ? { type: "spring", stiffness: 420, damping: 24, mass: 0.6 }
@@ -512,6 +514,9 @@ export default function CoverGate({
               style={{ willChange: isAnimatingDoors ? "transform, opacity" : "auto" }}
               className="pointer-events-auto group relative z-20 cursor-pointer rounded-full p-4 sm:p-5 outline-none focus-visible:ring-4 focus-visible:ring-[#0A2463]/35"
             >
+              {/* Área de toque expandida sem alterar a geometria visual (cobre também o texto curvo à direita) */}
+              <span aria-hidden className="absolute -inset-6 sm:-inset-8 rounded-full" />
+
               <div
                 className={
                   ready && isIdle && !reducedMotion ? "animate-crest-float relative" : "relative"
@@ -536,10 +541,20 @@ export default function CoverGate({
                       ...GPU_LAYER_STYLE,
                       filter: CREST_DROP_SHADOW,
                     }}
-                    className={`relative z-10 size-full object-contain ${
-                      crestError ? "opacity-0" : ""
-                    }`}
+                    className={`relative z-10 size-full object-contain ${crestError ? "opacity-0" : ""
+                      }`}
                   />
+
+                  {crestError && (
+                    <div
+                      className="absolute inset-[14%] z-10 flex items-center justify-center rounded-full border-2 border-[#CBD5E1] bg-[radial-gradient(circle_at_35%_30%,#1E3A8A_0%,#0A2463_58%,#071739_100%)] shadow-[0_14px_24px_rgba(7,23,57,0.28),inset_0_2px_6px_rgba(255,255,255,0.45)]"
+                      aria-hidden
+                    >
+                      <span className="font-serif text-5xl sm:text-6xl font-bold text-white">
+                        {EVENT.initial}
+                      </span>
+                    </div>
+                  )}
 
                   {ready && isIdle && !reducedMotion && !crestError && (
                     <div

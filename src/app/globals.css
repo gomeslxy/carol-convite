@@ -71,16 +71,18 @@ a {
   touch-action: manipulation;
 }
 
-/* Bloqueio de scroll (capa fechada) */
+/* Bloqueio de scroll (capa fechada — compatível com iOS Safari) */
 html.scroll-locked,
 html.scroll-locked body {
   overflow: hidden;
+  height: 100%;
   overscroll-behavior: none;
+  touch-action: none;
 }
 
 /* Lenis */
-html.lenis,
-html.lenis body {
+html.lenis:not(.scroll-locked),
+html.lenis:not(.scroll-locked) body {
   height: auto;
 }
 .lenis.lenis-smooth {
@@ -211,7 +213,7 @@ html.lenis body {
 @keyframes breathe-soft {
   0%,
   100% {
-    opacity: 0.62;
+    opacity: 0.72;
   }
   50% {
     opacity: 1;
@@ -253,5 +255,16 @@ html.lenis body {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    will-change: auto !important;
+  }
+
+  .animate-crest-float,
+  .animate-brooch-shimmer,
+  .animate-preloader-orbit,
+  .animate-sticker-float,
+  .animate-sticker-float-alt,
+  .animate-disco-glint,
+  .animate-breathe-soft {
+    animation: none !important;
   }
 }

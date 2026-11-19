@@ -89,8 +89,8 @@ export const EVENT: EventConfig = {
   name: "Carol",
   initial: "C",
   age: 18,
-  dateISO: "2027-07-17T19:30:00-03:00",
-  durationHours: 5,
+  dateISO: "2027-07-16T20:00:00-03:00",
+  durationHours: 6,
   timeZone: "America/Sao_Paulo",
   dressCode: "Esporte Fino",
   dressCodeNote: "Tons de azul royal e prata são reservados à aniversariante.",
@@ -114,8 +114,10 @@ export const EVENT: EventConfig = {
 src/
 ├── app/
 │   ├── api/
+│   │   ├── calendar/
+│   │   │   └── route.ts         # Endpoint GET servindo arquivo .ics (RFC 5545) com abertura nativa no iOS
 │   │   └── rsvp/
-│   │       └── route.ts         # Endpoint POST opcional (RSVP_WEBHOOK_URL) para persistência de confirmações
+│   │       └── route.ts         # Endpoint POST opcional (RSVP_WEBHOOK_URL) com proteção Origin/fórmula/tamanho
 │   ├── globals.css              # Variáveis CSS, temas perolados, gradientes e texturas
 │   ├── layout.tsx               # Metadados SEO, Open Graph, JSON-LD, themeColor (#F4F5F7) e fontes tipográficas
 │   ├── opengraph-image.tsx      # Banner Open Graph dinâmico (1200x630) derivado de event.ts
@@ -125,15 +127,17 @@ src/
 │   └── twitter-image.tsx        # Banner Twitter Card dinâmico (1200x630) derivado de event.ts
 ├── components/
 │   ├── BowDecoration.tsx        # Laços acetinados decorativos vetorizados em SVG
-│   ├── CountdownTimer.tsx       # Contador regressivo com relevo 3D
+│   ├── CountdownTimer.tsx       # Contador regressivo isolado com relevo 3D e zero CLS
 │   ├── CoverGate.tsx            # Capa bipartida com portas e broche metálico interativo
 │   ├── HeroPoster.tsx           # Pôster hero animado com iluminação e tipografia
-│   ├── InvitationContent.tsx    # Seções de detalhes, mapa, calendário e RSVP (com acompanhantes obrigatórios e recibo local)
-│   ├── InvitationExperience.tsx # Orquestrador de pré-carregamento e transições de abertura
+│   ├── InvitationContent.tsx    # Orquestrador contínuo das seções pós-pôster e atalhos de agenda
+│   ├── InvitationExperience.tsx # Orquestrador de pré-carregamento, MotionConfig e transições de abertura
+│   ├── LocationSection.tsx      # Seção Local da Festa isolada com mapa lazy, Waze, Maps e cópia
 │   ├── LuxuryParticles.tsx      # Celebração sob demanda via canvas-confetti no RSVP
 │   ├── Ornaments.tsx            # Divisores e cantoneiras prateadas editoriais
 │   ├── Preloader.tsx            # Tela de carregamento inicial sincronizada com fontes e imagens
-│   └── SmoothScrollProvider.tsx # Provider de scroll inercial (Lenis em RAF nativo)
+│   ├── RsvpSection.tsx          # Formulário RSVP isolado com validação, acompanhantes e recibo local
+│   └── SmoothScrollProvider.tsx # Provider de scroll inercial (Lenis em RAF sob demanda)
 ├── config/
 │   └── event.ts                 # Configurações do evento e formatadores de data determinísticos
 └── lib/
