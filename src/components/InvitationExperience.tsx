@@ -164,16 +164,16 @@ export default function InvitationExperience() {
     const waitFonts =
       typeof document !== "undefined" && "fonts" in document && document.fonts?.ready
         ? Promise.race([
-            document.fonts.ready.then(() => undefined).catch(() => undefined),
-            new Promise<void>((resolve) => {
-              fontTimerId = window.setTimeout(resolve, FONT_READY_TIMEOUT_MS);
-            }),
-          ]).finally(() => {
-            if (fontTimerId !== undefined) {
-              window.clearTimeout(fontTimerId);
-              fontTimerId = undefined;
-            }
-          })
+          document.fonts.ready.then(() => undefined).catch(() => undefined),
+          new Promise<void>((resolve) => {
+            fontTimerId = window.setTimeout(resolve, FONT_READY_TIMEOUT_MS);
+          }),
+        ]).finally(() => {
+          if (fontTimerId !== undefined) {
+            window.clearTimeout(fontTimerId);
+            fontTimerId = undefined;
+          }
+        })
         : Promise.resolve();
 
     const waitImages = preloadDomSelector(

@@ -149,19 +149,19 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
     const lines =
       data.attendance === "yes"
         ? [
-            `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
-            "",
-            `👤 Nome: ${data.name}`,
-            `👥 Total de pessoas: ${data.guests}`,
-            ...(data.companions.length > 0
-              ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
-              : []),
-          ]
+          `Olá, ${EVENT.name}! 💙 Quero confirmar minha presença na sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}!`,
+          "",
+          `👤 Nome: ${data.name}`,
+          `👥 Total de pessoas: ${data.guests}`,
+          ...(data.companions.length > 0
+            ? [`🎟️ Acompanhantes: ${data.companions.join(", ")}`]
+            : []),
+        ]
         : [
-            `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
-            "",
-            `👤 Nome: ${data.name}`,
-          ];
+          `Olá, ${EVENT.name}! Infelizmente não poderei comparecer à sua festa de ${EVENT.age} anos no dia ${FORMATTED_EVENT_DATE.numeric} às ${FORMATTED_EVENT_DATE.time}. 🤍`,
+          "",
+          `👤 Nome: ${data.name}`,
+        ];
 
     if (data.message) {
       lines.push(`💌 Recado: ${data.message}`);
@@ -567,9 +567,8 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                   tabIndex={active ? 0 : -1}
                   onClick={() => selectAttendance(value)}
                   onKeyDown={(e) => handleRadioKeyDown(value, e)}
-                  className={`relative z-10 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${FOCUS_RING_CLS} ${
-                    active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
-                  }`}
+                  className={`relative z-10 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-2.5 py-2.5 font-sans text-[12px] sm:text-[13px] font-semibold transition-colors ${FOCUS_RING_CLS} ${active ? "text-white" : "text-royal-navy/75 hover:text-royal-navy"
+                    }`}
                 >
                   <Icon
                     className="size-4 shrink-0"
@@ -606,11 +605,10 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
               autoComplete="name"
               aria-invalid={errorField?.field === "name"}
               aria-describedby={errorField?.field === "name" && formError ? ids.formError : undefined}
-              className={`${INPUT_CLS} ${
-                errorField?.field === "name"
-                  ? "border-royal-navy ring-4 ring-royal-deep/15"
-                  : ""
-              }`}
+              className={`${INPUT_CLS} ${errorField?.field === "name"
+                ? "border-royal-navy ring-4 ring-royal-deep/15"
+                : ""
+                }`}
             />
           </div>
 
@@ -682,9 +680,8 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                   <p className="mt-1.5 font-sans text-[11px] text-royal-navy/70">
                     {companionsCount === 0
                       ? `Somente você • máx. ${EVENT.rsvp.maxGuests} pessoas`
-                      : `Você + ${companionsCount} ${
-                          companionsCount === 1 ? "acompanhante" : "acompanhantes"
-                        } • máx. ${EVENT.rsvp.maxGuests} pessoas`}
+                      : `Você + ${companionsCount} ${companionsCount === 1 ? "acompanhante" : "acompanhantes"
+                      } • máx. ${EVENT.rsvp.maxGuests} pessoas`}
                   </p>
                 </div>
 
@@ -716,11 +713,10 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                           aria-describedby={
                             hasCompError && formError ? ids.formError : undefined
                           }
-                          className={`${INPUT_CLS} ${
-                            hasCompError
-                              ? "border-royal-navy ring-4 ring-royal-deep/15"
-                              : ""
-                          }`}
+                          className={`${INPUT_CLS} ${hasCompError
+                            ? "border-royal-navy ring-4 ring-royal-deep/15"
+                            : ""
+                            }`}
                         />
                       );
                     })}
@@ -762,9 +758,8 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
                 </span>
               </label>
               <span
-                className={`font-sans text-[10.5px] tabular-nums ${
-                  messageCharCount >= 240 ? "font-semibold text-royal-deep" : "text-silver-500"
-                }`}
+                className={`font-sans text-[10.5px] tabular-nums ${messageCharCount >= 240 ? "font-semibold text-royal-deep" : "text-silver-500"
+                  }`}
               >
                 {messageCharCount}/{RSVP_LIMITS.message}
               </span>
@@ -829,13 +824,11 @@ const RsvpSection = memo(function RsvpSection({ revealed, reducedMotion }: RsvpS
               <p className="mt-1.5 font-sans text-[12.5px] text-royal-navy/85">
                 Obrigada, <strong className="text-royal-navy">{submittedRsvp.name}</strong>.{" "}
                 {submittedRsvp.attendance === "yes"
-                  ? `Registramos ${submittedRsvp.guests} ${
-                      submittedRsvp.guests === 1 ? "pessoa" : "pessoas"
-                    }${
-                      submittedRsvp.companions.length > 0
-                        ? ` (${submittedRsvp.companions.join(", ")})`
-                        : ""
-                    }.`
+                  ? `Registramos ${submittedRsvp.guests} ${submittedRsvp.guests === 1 ? "pessoa" : "pessoas"
+                  }${submittedRsvp.companions.length > 0
+                    ? ` (${submittedRsvp.companions.join(", ")})`
+                    : ""
+                  }.`
                   : "Sentiremos sua falta neste dia especial."}
               </p>
 

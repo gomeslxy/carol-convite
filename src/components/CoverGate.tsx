@@ -143,35 +143,31 @@ function CoverDoorFrame({
         className="pointer-events-none absolute inset-0"
       >
         <div
-          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:top-[max(1.5rem,env(safe-area-inset-top))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] border-[#B8C0CC]/75 ${
-            isLeft
-              ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))] right-2.5 border-y border-l"
-              : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))] left-2.5 border-y border-r"
-          }`}
+          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:top-[max(1.5rem,env(safe-area-inset-top))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] border-[#B8C0CC]/75 ${isLeft
+            ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))] right-2.5 border-y border-l"
+            : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))] left-2.5 border-y border-r"
+            }`}
         />
         <div
-          className={`absolute top-[max(1.25rem,calc(0.375rem+env(safe-area-inset-top)))] bottom-[max(1.25rem,calc(0.375rem+env(safe-area-inset-bottom)))] sm:top-[max(2rem,calc(0.5rem+env(safe-area-inset-top)))] sm:bottom-[max(2rem,calc(0.5rem+env(safe-area-inset-bottom)))] border-[#0A2463]/16 ${
-            isLeft
-              ? "left-[max(1.25rem,calc(0.375rem+env(safe-area-inset-left)))] sm:left-[max(2rem,calc(0.5rem+env(safe-area-inset-left)))] right-4 border-y border-l"
-              : "right-[max(1.25rem,calc(0.375rem+env(safe-area-inset-right)))] sm:right-[max(2rem,calc(0.5rem+env(safe-area-inset-right)))] left-4 border-y border-r"
-          }`}
+          className={`absolute top-[max(1.25rem,calc(0.375rem+env(safe-area-inset-top)))] bottom-[max(1.25rem,calc(0.375rem+env(safe-area-inset-bottom)))] sm:top-[max(2rem,calc(0.5rem+env(safe-area-inset-top)))] sm:bottom-[max(2rem,calc(0.5rem+env(safe-area-inset-bottom)))] border-[#0A2463]/16 ${isLeft
+            ? "left-[max(1.25rem,calc(0.375rem+env(safe-area-inset-left)))] sm:left-[max(2rem,calc(0.5rem+env(safe-area-inset-left)))] right-4 border-y border-l"
+            : "right-[max(1.25rem,calc(0.375rem+env(safe-area-inset-right)))] sm:right-[max(2rem,calc(0.5rem+env(safe-area-inset-right)))] left-4 border-y border-r"
+            }`}
         />
 
         <EditorialCornerBracket
           position={isLeft ? "tl" : "tr"}
-          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] sm:top-[max(1.5rem,env(safe-area-inset-top))] size-9 sm:size-12 ${
-            isLeft
-              ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]"
-              : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
-          }`}
+          className={`absolute top-[max(0.875rem,env(safe-area-inset-top))] sm:top-[max(1.5rem,env(safe-area-inset-top))] size-9 sm:size-12 ${isLeft
+            ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]"
+            : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
+            }`}
         />
         <EditorialCornerBracket
           position={isLeft ? "bl" : "br"}
-          className={`absolute bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] size-9 sm:size-12 ${
-            isLeft
-              ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]"
-              : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
-          }`}
+          className={`absolute bottom-[max(0.875rem,env(safe-area-inset-bottom))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] size-9 sm:size-12 ${isLeft
+            ? "left-[max(0.875rem,env(safe-area-inset-left))] sm:left-[max(1.5rem,env(safe-area-inset-left))]"
+            : "right-[max(0.875rem,env(safe-area-inset-right))] sm:right-[max(1.5rem,env(safe-area-inset-right))]"
+            }`}
         />
       </m.div>
 
@@ -397,9 +393,8 @@ export default function CoverGate({
     <div
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
-      className={`fixed inset-0 z-40 overflow-hidden select-none ${
-        isOpening ? "pointer-events-none" : "pointer-events-auto touch-none"
-      }`}
+      className={`fixed inset-0 z-40 overflow-hidden select-none ${isOpening ? "pointer-events-none" : "pointer-events-auto touch-none"
+        }`}
       role={isOpening ? undefined : "dialog"}
       aria-modal={isOpening ? undefined : true}
       aria-hidden={isOpening || undefined}
@@ -550,9 +545,8 @@ export default function CoverGate({
                       ...GPU_LAYER_STYLE,
                       filter: CREST_DROP_SHADOW,
                     }}
-                    className={`relative z-10 size-full object-contain ${
-                      crestError ? "opacity-0" : ""
-                    }`}
+                    className={`relative z-10 size-full object-contain ${crestError ? "opacity-0" : ""
+                      }`}
                   />
 
                   {crestError && (

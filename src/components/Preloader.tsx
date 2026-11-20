@@ -69,9 +69,8 @@ export default function Preloader() {
           width={112}
           height={112}
           viewBox="0 0 112 112"
-          className={`pointer-events-none absolute inset-0 size-full ${
-            prefersReducedMotion ? "" : "animate-preloader-orbit"
-          }`}
+          className={`pointer-events-none absolute inset-0 size-full ${prefersReducedMotion ? "" : "animate-preloader-orbit"
+            }`}
           aria-hidden
         >
           <defs>
